@@ -1,0 +1,12 @@
+export { default } from "./src/wallet-manager-evm-multisig-safe.js";
+export { default as WalletAccountReadOnlyEvmMultisigSafe } from "./src/wallet-account-read-only-evm-multisig-safe.js";
+export { default as WalletAccountEvmMultisigSafe } from "./src/wallet-account-evm-multisig-safe.js";
+export type FeeRates = import("@tetherto/wdk-wallet-evm").FeeRates;
+export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
+export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
+export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
+export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
+export type TransferResult = import("@tetherto/wdk-wallet-evm").TransferResult;
+export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
+export type ApproveOptions = import("@tetherto/wdk-wallet-evm").ApproveOptions;
+export type EvmMultisigSafeConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;

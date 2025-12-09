@@ -1,1 +1,424 @@
-# wdk-protocol-multisig-safe
+# @tetherto/wdk-wallet-evm-multisig-safe
+
+**Note**: This package is currently in beta. Please test thoroughly in development environments before using in production.
+
+A simple and secure package to manage Safe Protocol multisig wallets with ERC-4337 account abstraction for EVM-compatible blockchains. This package provides a clean API for creating, managing, and interacting with multisig wallets using BIP-39 seed phrases and the Safe smart contract infrastructure.
+
+## 🔍 About WDK
+
+This module is part of the [**WDK (Wallet Development Kit)**](https://wallet.tether.io/) project, which empowers developers to build secure, non-custodial wallets with unified blockchain access, stateless architecture, and complete user control.
+
+For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.tether.io](https://docs.wallet.tether.io).
+
+## 🌟 Features
+
+- **Safe Protocol Integration**: Full support for Safe (formerly Gnosis Safe) multisig wallets
+- **ERC-4337 Account Abstraction**: Gasless transactions via paymasters and bundlers
+- **Multi-Owner Management**: Add, remove, swap owners and change threshold
+- **Propose/Approve/Execute Flow**: Standard multisig transaction workflow
+- **Message Signing**: EIP-191 compliant multisig message signing
+- **Deterministic Addresses**: Predictable Safe addresses from owner configuration
+- **Auto-Execute**: Automatically execute transactions when threshold is met
+
+## ⬇️ Installation
+
+```bash
+npm install @tetherto/wdk-wallet-evm-multisig-safe
+```
+
+## 🚀 Quick Start
+
+### Creating a New 2-of-2 Multisig Safe
+
+```javascript
+import WalletManagerEvmMultisigSafe, {
+  WalletAccountEvmMultisigSafe,
+  WalletAccountReadOnlyEvmMultisigSafe
+} from '@tetherto/wdk-wallet-evm-multisig-safe'
+
+// Owner seed phrases
+const aliceSeed = 'alice seed phrase here...'
+const bobSeed = 'bob seed phrase here...'
+
+// Get owner addresses first
+const aliceEoa = '0x...' // Alice's EOA address
+const bobEoa = '0x...'   // Bob's EOA address
+
+// Create Alice's multisig account
+const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    paymasterAddress: '0x...',
+    paymasterTokenAddress: '0x...' // USDC address
+  },
+  safeAccountConfig: {
+    owners: [aliceEoa, bobEoa],
+    threshold: 2
+  },
+  safeDeploymentConfig: {
+    saltNonce: '0x...' // Optional: deterministic address
+  }
+})
+
+// Get predicted Safe address (before deployment)
+const safeAddress = await alice.getAddress()
+console.log('Safe Address:', safeAddress)
+
+// Check if deployed
+const isDeployed = await alice.isDeployed()
+console.log('Is Deployed:', isDeployed)
+```
+
+### Importing an Existing Safe
+
+```javascript
+const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    paymasterAddress: '0x...',
+    paymasterTokenAddress: '0x...'
+  },
+  safeAddress: '0x...' // Existing Safe address
+})
+
+// Get Safe info
+const owners = await alice.getOwners()
+const threshold = await alice.getThreshold()
+console.log('Owners:', owners)
+console.log('Threshold:', threshold)
+```
+
+### Full Multisig Transaction Flow
+
+```javascript
+// Alice proposes a transaction
+const tx = {
+  to: '0x000000000000000000000000000000000000dEaD',
+  value: '0',
+  data: '0x'
+}
+
+// Get fee estimate
+const quote = await alice.quoteSendTransaction(tx)
+console.log('Estimated fee:', quote.fee)
+
+// Propose transaction
+const proposal = await alice.propose(tx, {
+  amountToApprove: quote.fee * 150n / 100n // 50% buffer
+})
+console.log('SafeOp Hash:', proposal.safeOperationHash)
+console.log('Confirmations:', proposal.confirmations, '/', proposal.threshold)
+
+// Bob approves
+const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", config)
+const approval = await bob.approve(proposal.safeOperationHash)
+console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
+
+// Execute when threshold met
+const result = await alice.execute(proposal.safeOperationHash)
+console.log('UserOp Hash:', result.hash)
+
+// Get on-chain transaction hash
+const txHash = await alice.getTransactionHashByUserOpHash(result.hash)
+console.log('TX Hash:', txHash)
+```
+
+### Using sendTransaction (Auto-Execute)
+
+For convenience, `sendTransaction` and `transfer` automatically execute when threshold is met:
+
+```javascript
+// For 1-of-1 Safe: executes immediately
+// For 2-of-3 Safe: returns proposal for approval
+const result = await alice.sendTransaction({
+  to: '0x...',
+  value: '1000000000000000000', // 1 ETH
+  data: '0x'
+})
+
+console.log('Hash:', result.hash)
+console.log('Fee:', result.fee)
+console.log('Confirmations:', result.confirmations, '/', result.threshold)
+console.log('Executed:', result.executed)
+
+if (!result.executed) {
+  // Need more signatures
+  await bob.approve(result.hash)
+  const execResult = await alice.execute(result.hash)
+}
+```
+
+### Owner Management
+
+```javascript
+// Add new owner
+const proposal = await alice.addOwner('0xNewOwner...', null, {
+  amountToApprove: fee * 200n / 100n
+})
+
+// Remove owner
+const proposal = await alice.removeOwner('0xOwnerToRemove...')
+
+// Swap owner
+const proposal = await alice.swapOwner('0xOldOwner...', '0xNewOwner...')
+
+// Change threshold
+const proposal = await alice.changeThreshold(2)
+
+// Batch update owners and threshold
+const proposal = await alice.updateOwners(
+  ['0xOwner1...', '0xOwner2...', '0xOwner3...'],
+  2 // new threshold
+)
+```
+
+### Message Signing
+
+```javascript
+// Alice proposes a message
+const proposal = await alice.proposeMessage('Hello from Safe!')
+console.log('Message Hash:', proposal.messageHash)
+
+// Bob approves
+const approval = await bob.approveMessage(proposal.messageHash)
+console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
+
+// Get message with combined signature
+const message = await alice.getMessage(proposal.messageHash)
+console.log('Combined Signature:', message.preparedSignature)
+```
+
+### Read-Only Account
+
+```javascript
+import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
+
+const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  safeAddress: '0x...'
+})
+
+// Query Safe info
+const owners = await readOnly.getOwners()
+const threshold = await readOnly.getThreshold()
+const balance = await readOnly.getBalance()
+
+// Get pending transactions
+const pending = await readOnly.getPendingTransactions()
+
+// Get fee estimates
+const quote = await readOnly.quoteSendTransaction(tx)
+```
+
+## 📚 API Reference
+
+### WalletManagerEvmMultisigSafe
+
+Main class for managing multisig Safe wallets.
+
+#### Constructor
+
+```javascript
+new WalletManagerEvmMultisigSafe(seed, config)
+```
+
+**Parameters:**
+- `seed` (string | Uint8Array): BIP-39 seed phrase or seed bytes
+- `config` (EvmMultisigSafeConfig): Configuration object
+
+#### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `getAccount(index)` | Get account at index | `Promise<WalletAccountEvmMultisigSafe>` |
+| `getAccountByPath(path)` | Get account at derivation path | `Promise<WalletAccountEvmMultisigSafe>` |
+| `getFeeRates()` | Get current fee rates | `Promise<{normal: bigint, fast: bigint}>` |
+
+### WalletAccountEvmMultisigSafe
+
+Full-access multisig Safe account with signing capabilities.
+
+#### Constructor
+
+```javascript
+new WalletAccountEvmMultisigSafe(seed, path, config)
+```
+
+#### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| **Query Methods** |
+| `getAddress()` | Get Safe address | `Promise<string>` |
+| `getSignerAddress()` | Get signer's EOA address | `Promise<string>` |
+| `getBalance()` | Get native token balance | `Promise<bigint>` |
+| `getTokenBalance(token)` | Get ERC20 token balance | `Promise<bigint>` |
+| `getOwners()` | Get Safe owners | `Promise<string[]>` |
+| `getThreshold()` | Get required signatures | `Promise<number>` |
+| `getNonce()` | Get Safe nonce | `Promise<bigint>` |
+| `isDeployed()` | Check if Safe is deployed | `Promise<boolean>` |
+| **Transaction Methods** |
+| `sendTransaction(tx)` | Send transaction (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
+| `transfer(options)` | Transfer native token (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
+| `quoteSendTransaction(tx)` | Estimate transaction fee | `Promise<{fee: bigint}>` |
+| `quoteTransfer(options)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
+| **Multisig Flow** |
+| `propose(tx, options)` | Propose transaction | `Promise<ProposeResult>` |
+| `approve(safeOpHash)` | Approve proposal | `Promise<ApprovalResult>` |
+| `reject(safeOpHash)` | Reject proposal | `Promise<ProposeResult>` |
+| `execute(safeOpHash)` | Execute proposal | `Promise<ExecuteResult>` |
+| `isReadyToExecute(safeOpHash)` | Check if ready to execute | `Promise<boolean>` |
+| `getTransactionHashByUserOpHash(hash)` | Get on-chain tx hash | `Promise<string \| null>` |
+| **Owner Management** |
+| `addOwner(address, threshold?, options?)` | Add owner | `Promise<ProposeResult>` |
+| `removeOwner(address, threshold?, options?)` | Remove owner | `Promise<ProposeResult>` |
+| `swapOwner(oldOwner, newOwner, options?)` | Swap owner | `Promise<ProposeResult>` |
+| `changeThreshold(threshold, options?)` | Change threshold | `Promise<ProposeResult>` |
+| `updateOwners(owners, threshold, options?)` | Batch update | `Promise<ProposeResult>` |
+| **Message Signing** |
+| `sign(message)` | Sign message (EOA) | `Promise<string>` |
+| `verify(message, signature)` | Verify signature (EOA) | `Promise<boolean>` |
+| `proposeMessage(message)` | Propose multisig message | `Promise<MessageProposalResult>` |
+| `approveMessage(messageHash)` | Approve message | `Promise<ApprovalResult>` |
+| `getMessage(messageHash)` | Get message status | `Promise<Object \| null>` |
+| **Other** |
+| `deploy()` | Deploy Safe | `Promise<{deployed: boolean, txHash: string \| null}>` |
+| `validateSignerIsOwner()` | Validate signer is owner | `Promise<void>` |
+| `toReadOnlyAccount()` | Convert to read-only | `Promise<WalletAccountReadOnlyEvmMultisigSafe>` |
+| `dispose()` | Clear sensitive data | `void` |
+
+### WalletAccountReadOnlyEvmMultisigSafe
+
+Read-only multisig Safe account for querying.
+
+#### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `getAddress()` | Get Safe address | `Promise<string>` |
+| `getBalance()` | Get native token balance | `Promise<bigint>` |
+| `getTokenBalance(token)` | Get ERC20 token balance | `Promise<bigint>` |
+| `getOwners()` | Get Safe owners | `Promise<string[]>` |
+| `getThreshold()` | Get required signatures | `Promise<number>` |
+| `getNonce()` | Get Safe nonce | `Promise<bigint>` |
+| `isDeployed()` | Check if deployed | `Promise<boolean>` |
+| `getPendingTransactions()` | Get pending operations | `Promise<Object>` |
+| `getTransaction(hash)` | Get operation details | `Promise<Object>` |
+| `isReadyToExecute(hash)` | Check if ready | `Promise<boolean>` |
+| `quoteSendTransaction(tx)` | Estimate fee | `Promise<{fee: bigint}>` |
+| `quoteTransfer(options)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
+
+### Configuration Types
+
+```typescript
+interface EvmMultisigSafeConfig {
+  // Required
+  provider: string | Eip1193Provider
+  bundlerUrl: string
+  chainId: bigint
+
+  // Optional - Safe identification (one required)
+  safeAddress?: string              // Import existing Safe
+  safeAccountConfig?: {             // Create new Safe
+    owners: string[]
+    threshold: number
+  }
+  safeDeploymentConfig?: {          // Deployment options
+    saltNonce?: string
+  }
+
+  // Optional - ERC-4337
+  entryPointAddress?: string
+  safeModulesVersion?: string       // Default: '0.2.0'
+
+  // Optional - Paymaster (for gasless transactions)
+  paymasterOptions?: {
+    paymasterUrl: string
+    paymasterAddress?: string
+    paymasterTokenAddress?: string
+  }
+
+  // Optional - Safe Transaction Service
+  txServiceUrl?: string
+  safeApiKey?: string
+
+  // Optional - Fee limits
+  transferMaxFee?: number | bigint
+}
+
+interface MultisigTransferResult {
+  hash: string           // safeOperationHash (if not executed) or userOpHash (if executed)
+  fee: bigint
+  confirmations: number
+  threshold: number
+  executed: boolean
+}
+
+interface ProposeResult {
+  safeOperationHash: string
+  confirmations: number
+  threshold: number
+}
+
+interface ApprovalResult {
+  confirmations: number
+  threshold: number
+}
+
+interface ExecuteResult {
+  hash: string  // userOpHash
+}
+```
+
+## 🌐 Supported Networks
+
+Works with any EVM chain supported by Safe Protocol and ERC-4337:
+
+- **Ethereum** (Mainnet, Sepolia)
+- **Polygon** (Mainnet, Mumbai)
+- **Arbitrum** (One, Sepolia)
+- **Optimism** (Mainnet, Sepolia)
+- **Base** (Mainnet, Sepolia)
+- **And more...**
+
+## 🔒 Security Considerations
+
+- **Seed Phrase Security**: Store seed phrases securely, never share them
+- **Owner Verification**: Always verify owner addresses before creating a Safe
+- **Threshold Settings**: Choose appropriate threshold for your security needs
+- **Fee Limits**: Set `transferMaxFee` to prevent excessive fees
+- **Memory Cleanup**: Use `dispose()` to clear sensitive data
+- **Signature Verification**: Validate all signatures before execution
+
+## 🛠️ Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Lint code
+npm run lint
+```
+
+## 📜 License
+
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please submit a Pull Request.
+
+## 🆘 Support
+
+For support, open an issue on the GitHub repository.
