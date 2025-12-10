@@ -84,7 +84,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string | null} signerAddress - The signer's EOA address (from child class) or null for pure read-only
    * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
    */
-  constructor(signerAddress, config) {
+  constructor (signerAddress, config) {
     super(undefined)
     this._validateConfig(config)
 
@@ -155,7 +155,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<string | null>} The signer's address or null
    */
-  async getSignerAddress() {
+  async getSignerAddress () {
     return this._signerAddress
   }
 
@@ -164,7 +164,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<string>} The Safe address
    */
-  async getAddress() {
+  async getAddress () {
     if (this._safeAddress) {
       return this._safeAddress
     }
@@ -181,7 +181,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<boolean>} True if deployed
    */
-  async isDeployed() {
+  async isDeployed () {
     const safe4337Pack = await this._getSafe4337Pack()
     return await safe4337Pack.protocolKit.isSafeDeployed()
   }
@@ -191,7 +191,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<string[]>} Array of owner addresses
    */
-  async getOwners() {
+  async getOwners () {
     if (this._owners) {
       return this._owners
     }
@@ -216,7 +216,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<number>} The threshold
    */
-  async getThreshold() {
+  async getThreshold () {
     if (this._threshold) {
       return this._threshold
     }
@@ -241,7 +241,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<number>} The nonce
    */
-  async getNonce() {
+  async getNonce () {
     const safe4337Pack = await this._getSafe4337Pack()
     return await safe4337Pack.protocolKit.getNonce()
   }
@@ -251,7 +251,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<bigint>} Balance in wei
    */
-  async getBalance() {
+  async getBalance () {
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
     return await evmReadOnlyAccount.getBalance()
   }
@@ -262,7 +262,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string} tokenAddress - The token contract address
    * @returns {Promise<bigint>} Token balance in base units
    */
-  async getTokenBalance(tokenAddress) {
+  async getTokenBalance (tokenAddress) {
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
     return await evmReadOnlyAccount.getTokenBalance(tokenAddress)
   }
@@ -272,7 +272,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<bigint>} Paymaster token balance in base units
    */
-  async getPaymasterTokenBalance() {
+  async getPaymasterTokenBalance () {
     const { paymasterOptions } = this._config
 
     if (!paymasterOptions?.paymasterTokenAddress) {
@@ -289,7 +289,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string} spender - The spender address
    * @returns {Promise<bigint>} The allowance
    */
-  async getAllowance(token, spender) {
+  async getAllowance (token, spender) {
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
     return await evmReadOnlyAccount.getAllowance(token, spender)
   }
@@ -299,7 +299,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @returns {Promise<Object>} Pending operations
    */
-  async getPendingTransactions() {
+  async getPendingTransactions () {
     const apiKit = await this._getApiKit()
     const address = await this.getAddress()
     return await apiKit.getPendingSafeOperations(address)
@@ -311,7 +311,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string} safeOperationHash - The Safe operation hash
    * @returns {Promise<Object | null>} The Safe operation or null
    */
-  async getTransaction(safeOperationHash) {
+  async getTransaction (safeOperationHash) {
     const apiKit = await this._getApiKit()
 
     try {
@@ -330,7 +330,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string} userOpHash - The UserOperation hash
    * @returns {Promise<EvmTransactionReceipt | null>} The receipt or null
    */
-  async getTransactionReceipt(userOpHash) {
+  async getTransactionReceipt (userOpHash) {
     const safe4337Pack = await this._getSafe4337Pack()
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
 
@@ -349,7 +349,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string} safeOperationHash - The Safe operation hash
    * @returns {Promise<boolean>} True if ready to execute
    */
-  async isReadyToExecute(safeOperationHash) {
+  async isReadyToExecute (safeOperationHash) {
     const operation = await this.getTransaction(safeOperationHash)
 
     if (!operation) {
@@ -371,7 +371,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {string} [tx.data] - Transaction data
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
-  async quoteSendTransaction(tx) {
+  async quoteSendTransaction (tx) {
     const transactions = Array.isArray(tx) ? tx : [tx]
     const fee = await this._estimateUserOperationGas(transactions)
     return { fee }
@@ -383,7 +383,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {TransferOptions} options - Transfer options
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
-  async quoteTransfer(options) {
+  async quoteTransfer (options) {
     const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(options)
     return await this.quoteSendTransaction(tx)
   }
@@ -397,7 +397,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {number} threshold - Number of required signatures
    * @returns {string} The deterministic salt nonce (hex string)
    */
-  static generateDeterministicSaltNonce(owners, threshold) {
+  static generateDeterministicSaltNonce (owners, threshold) {
     const sortedOwners = [...owners].map(o => o.toLowerCase()).sort()
     const data = JSON.stringify({ owners: sortedOwners, threshold })
     return keccak256(toUtf8Bytes(data))
@@ -410,7 +410,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {Object[]} transactions - Array of transactions
    * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
    */
-  async _estimateUserOperationGas(transactions) {
+  async _estimateUserOperationGas (transactions) {
     const safe4337Pack = await this._getSafe4337Pack()
     const address = await this.getAddress()
 
@@ -467,7 +467,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @protected
    * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
    */
-  async _getSafe4337Pack() {
+  async _getSafe4337Pack () {
     if (!this._safe4337Pack) {
       this._safe4337Pack = await this._initSafe4337Pack()
     }
@@ -482,7 +482,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @protected
    * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
    */
-  async _initSafe4337Pack() {
+  async _initSafe4337Pack () {
     const { safeAddress, safeAccountConfig, safeDeploymentConfig } = this._config
 
     const initOptions = {
@@ -534,7 +534,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @protected
    * @returns {Promise<SafeApiKit>} The Safe API Kit instance
    */
-  async _getApiKit() {
+  async _getApiKit () {
     if (!this._apiKit) {
       const apiKitConfig = {
         chainId: this._config.chainId
@@ -559,7 +559,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @private
    * @returns {Promise<WalletAccountReadOnlyEvm>} The read-only EVM account
    */
-  async _getEvmReadOnlyAccount() {
+  async _getEvmReadOnlyAccount () {
     const address = await this.getAddress()
     return new WalletAccountReadOnlyEvm(address, this._config)
   }
@@ -570,7 +570,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @private
    * @param {EvmMultisigSafeConfig} config - The configuration to validate
    */
-  _validateConfig(config) {
+  _validateConfig (config) {
     if (!config.provider) {
       throw new Error('provider is required')
     }
@@ -587,7 +587,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     const hasSafeAccountConfig = !!config.safeAccountConfig
 
     if (!hasSafeAddress && !hasSafeAccountConfig) {
-      throw new Error('Either safeAddress (import) or safeAccountConfig (create) is required')
+      throw new Error('Either safeAddress or safeAccountConfig must be provided')
     }
 
     if (hasSafeAddress && hasSafeAccountConfig) {
@@ -595,7 +595,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     }
 
     if (hasSafeAccountConfig) {
-      if (!config.safeAccountConfig.owners || config.safeAccountConfig.owners.length === 0) {
+      if (!Array.isArray(config.safeAccountConfig.owners) || config.safeAccountConfig.owners.length === 0) {
         throw new Error('safeAccountConfig.owners is required and must not be empty')
       }
 

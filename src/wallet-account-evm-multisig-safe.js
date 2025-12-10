@@ -756,7 +756,10 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Disposes the wallet account, clearing sensitive data from memory.
    */
   dispose () {
-    this._signerAccount.dispose()
+    if (this._signerAccount) {
+      this._signerAccount.dispose()
+      this._signerAccount = null
+    }
     this._safe4337Pack = null
     this._apiKit = null
   }
