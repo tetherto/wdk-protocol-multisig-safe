@@ -365,8 +365,6 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `changeThreshold(threshold, options?)` | Change threshold | `Promise<ProposeResult>` |
 | `updateOwners(owners, threshold, options?)` | Batch update | `Promise<ProposeResult>` |
 | **Message Signing** |
-| `sign(message)` | Sign message (EOA) | `Promise<string>` |
-| `verify(message, signature)` | Verify signature (EOA) | `Promise<boolean>` |
 | `proposeMessage(message)` | Propose multisig message | `Promise<MessageProposalResult>` |
 | `approveMessage(messageHash)` | Approve message | `Promise<ApprovalResult>` |
 | `getMessage(messageHash)` | Get message status | `Promise<Object \| null>` |

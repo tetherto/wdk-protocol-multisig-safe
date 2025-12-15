@@ -238,34 +238,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
   })
 
-  describe('sign', () => {
-    const MESSAGE = 'Hello, Safe!'
-
-    test('should return a deterministic signature', async () => {
-      const signature = await account.sign(MESSAGE)
-
-      expect(signature).toBe('0x27c626b76608d7351662e9de6d09a9db3d0aeb0a0c3ee25523231a81401d772624c4cf83a40a2be6fd294f735bd7ee2a2090008a6dc479486eb72a044c90acef1c')
-    })
-  })
-
-  describe('verify', () => {
-    const MESSAGE = 'Hello, Safe!'
-
-    test('should return true for a valid signature', async () => {
-      const signature = await account.sign(MESSAGE)
-      const result = await account.verify(MESSAGE, signature)
-
-      expect(result).toBe(true)
-    })
-
-    test('should return false for wrong message', async () => {
-      const signature = await account.sign(MESSAGE)
-      const result = await account.verify('Wrong message', signature)
-
-      expect(result).toBe(false)
-    })
-  })
-
   describe('dispose', () => {
     test('should clear sensitive data', () => {
       const testAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {

@@ -157,27 +157,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Signs a message.
-   *
-   * @param {string} message - The message to sign.
-   * @returns {Promise<string>} The message's signature.
-   */
-  async sign (message) {
-    return await this._signerAccount.sign(message)
-  }
-
-  /**
-   * Verifies a message's signature.
-   *
-   * @param {string} message - The original message.
-   * @param {string} signature - The signature to verify.
-   * @returns {Promise<boolean>} True if the signature is valid.
-   */
-  async verify (message, signature) {
-    return await this._signerAccount.verify(message, signature)
-  }
-
-  /**
    * Proposes a message for multisig signing.
    * Creates a SafeMessage, signs it, and uploads to Safe Transaction Service.
    *
