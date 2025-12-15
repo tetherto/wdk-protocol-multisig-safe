@@ -63,7 +63,7 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
 
 /**
  * @typedef {Object} ProposeOptions
- * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
+ * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  */
 
 /**
@@ -338,9 +338,10 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('Exceeded maximum fee cost for transaction.')
     }
 
-    const proposeResult = await this.propose(tx, {
-      amountToApprove: fee * FEE_TOLERANCE_COEFFICIENT / 100n
-    })
+    const isSponsored = this._config.paymasterOptions?.isSponsored
+    const proposeOptions = isSponsored ? {} : { amountToApprove: fee * FEE_TOLERANCE_COEFFICIENT / 100n }
+
+    const proposeResult = await this.propose(tx, proposeOptions)
 
     if (proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.safeOperationHash)
@@ -379,9 +380,10 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
-    const proposeResult = await this.propose(tx, {
-      amountToApprove: fee * FEE_TOLERANCE_COEFFICIENT / 100n
-    })
+    const isSponsored = this._config.paymasterOptions?.isSponsored
+    const proposeOptions = isSponsored ? {} : { amountToApprove: fee * FEE_TOLERANCE_COEFFICIENT / 100n }
+
+    const proposeResult = await this.propose(tx, proposeOptions)
 
     if (proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.safeOperationHash)
@@ -430,7 +432,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       transactions: formattedTxs.map(tx => ({ from: address, ...tx }))
     }
 
-    if (options.amountToApprove) {
+    if (options.amountToApprove && !this._config.paymasterOptions?.isSponsored) {
       createTxOptions.options = {
         amountToApprove: BigInt(options.amountToApprove.toString())
       }

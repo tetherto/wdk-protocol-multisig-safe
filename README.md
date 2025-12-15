@@ -14,6 +14,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 
 - **Safe Protocol Integration**: Full support for Safe (formerly Gnosis Safe) multisig wallets
 - **ERC-4337 Account Abstraction**: Gasless transactions via paymasters and bundlers
+- **Paymaster Modes**: Support for both ERC-20 paymaster and sponsored (gasless) modes
 - **Multi-Owner Management**: Add, remove, swap owners and change threshold
 - **Propose/Approve/Execute Flow**: Standard multisig transaction workflow
 - **Message Signing**: EIP-191 compliant multisig message signing
@@ -154,7 +155,64 @@ if (!result.executed) {
 }
 ```
 
-### Owner Management
+## 💰 Paymaster Modes
+
+This package supports two paymaster modes for paying gas fees:
+
+### ERC-20 Paymaster Mode
+
+The Safe pays gas fees using ERC-20 tokens (e.g., USDC). The Safe must hold sufficient tokens.
+
+```javascript
+const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    paymasterAddress: '0x...',           // Optional: paymaster contract address
+    paymasterTokenAddress: '0x...'       // USDC or other ERC-20 token address
+  },
+  safeAddress: '0x...'
+})
+
+// Propose with token approval for gas
+const quote = await alice.quoteSendTransaction(tx)
+const proposal = await alice.propose(tx, {
+  amountToApprove: quote.fee * 150n / 100n  // Approve tokens for gas payment
+})
+```
+
+### Sponsored Mode (Gasless)
+
+A sponsor pays the gas fees, making transactions completely free for the Safe. No tokens required in the Safe.
+
+```javascript
+const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    isSponsored: true,                      // Enable sponsored mode
+    sponsorshipPolicyId: 'sp_my_policy'     // Optional: sponsorship policy ID
+  },
+  safeAddress: '0x...'
+})
+
+// No amountToApprove needed - sponsor pays gas!
+const proposal = await alice.propose(tx)
+console.log('SafeOp Hash:', proposal.safeOperationHash)
+
+// Bob approves
+const approval = await bob.approve(proposal.safeOperationHash)
+
+// Execute - completely gasless for the Safe
+const result = await alice.execute(proposal.safeOperationHash)
+console.log('UserOp Hash:', result.hash)
+```
+
+## 👥 Owner Management
 
 ```javascript
 // Add new owner
@@ -178,7 +236,7 @@ const proposal = await alice.updateOwners(
 )
 ```
 
-### Message Signing
+## ✉️ Message Signing
 
 ```javascript
 // Alice proposes a message
@@ -194,7 +252,7 @@ const message = await alice.getMessage(proposal.messageHash)
 console.log('Combined Signature:', message.preparedSignature)
 ```
 
-### Read-Only Account
+## 👁️ Read-Only Account
 
 ```javascript
 import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
@@ -217,6 +275,29 @@ const pending = await readOnly.getPendingTransactions()
 // Get fee estimates
 const quote = await readOnly.quoteSendTransaction(tx)
 ```
+
+## 🔍 Tracking Transactions
+
+After executing a transaction, you receive a UserOp hash. To get the on-chain transaction hash:
+
+```javascript
+// Execute transaction
+const result = await alice.execute(proposal.safeOperationHash)
+console.log('UserOp Hash:', result.hash)
+
+// Get on-chain tx hash (may need to wait for confirmation)
+const txHash = await alice.getTransactionHashByUserOpHash(result.hash)
+console.log('TX Hash:', txHash)
+
+// If null, the transaction is still pending. Retry after a few seconds.
+```
+
+**UserOp Explorers:**
+
+You can track UserOp status on these explorers:
+
+- **JiffyScan**: `https://jiffyscan.xyz/userOpHash/{userOpHash}?network=sepolia`
+- **Blockscout**: `https://eth-sepolia.blockscout.com/op/{userOpHash}`
 
 ## 📚 API Reference
 
@@ -339,11 +420,13 @@ interface EvmMultisigSafeConfig {
   entryPointAddress?: string
   safeModulesVersion?: string       // Default: '0.2.0'
 
-  // Optional - Paymaster (for gasless transactions)
+  // Optional - Paymaster
   paymasterOptions?: {
     paymasterUrl: string
     paymasterAddress?: string
-    paymasterTokenAddress?: string
+    paymasterTokenAddress?: string  // For ERC-20 paymaster mode
+    isSponsored?: boolean           // Enable sponsored (gasless) mode
+    sponsorshipPolicyId?: string    // Optional: sponsorship policy ID
   }
 
   // Optional - Safe Transaction Service
@@ -376,6 +459,14 @@ interface ApprovalResult {
 interface ExecuteResult {
   hash: string  // userOpHash
 }
+
+interface PaymasterOptions {
+  paymasterUrl: string              // Paymaster service URL
+  paymasterAddress?: string         // Optional: paymaster contract address
+  paymasterTokenAddress?: string    // For ERC-20 mode: token address for gas payment
+  isSponsored?: boolean             // For sponsored mode: enable gasless transactions
+  sponsorshipPolicyId?: string      // For sponsored mode: optional policy ID
+}
 ```
 
 ## 🌐 Supported Networks
@@ -397,6 +488,7 @@ Works with any EVM chain supported by Safe Protocol and ERC-4337:
 - **Fee Limits**: Set `transferMaxFee` to prevent excessive fees
 - **Memory Cleanup**: Use `dispose()` to clear sensitive data
 - **Signature Verification**: Validate all signatures before execution
+- **Sponsorship Policies**: When using sponsored mode, configure policies to prevent abuse
 
 ## 🛠️ Development
 
@@ -406,6 +498,11 @@ npm install
 
 # Run tests
 npm test
+
+# Run Sepolia integration tests
+node test/test-sepolia.js sponsored    # Test sponsored mode
+node test/test-sepolia.js multisig     # Test full multisig flow
+node test/test-sepolia.js compare      # Compare paymaster modes
 
 # Lint code
 npm run lint

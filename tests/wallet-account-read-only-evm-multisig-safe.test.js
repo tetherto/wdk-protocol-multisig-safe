@@ -238,6 +238,38 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
 
       expect(account).toBeDefined()
     })
+
+    test('should successfully initialize with ERC-20 paymaster options', () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+          paymasterAddress: '0xPaymasterAddress',
+          paymasterTokenAddress: '0xUSDC'
+        },
+        safeAddress: MOCK_SAFE_ADDRESS
+      })
+
+      expect(account._config.paymasterOptions.paymasterTokenAddress).toBe('0xUSDC')
+      expect(account._config.paymasterOptions.paymasterAddress).toBe('0xPaymasterAddress')
+      expect(account._config.paymasterOptions.isSponsored).toBeUndefined()
+    })
+
+    test('should successfully initialize with sponsored paymaster options', () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+          isSponsored: true,
+          sponsorshipPolicyId: 'sp_my_policy_123'
+        },
+        safeAddress: MOCK_SAFE_ADDRESS
+      })
+
+      expect(account._config.paymasterOptions.isSponsored).toBe(true)
+      expect(account._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
+      expect(account._config.paymasterOptions.paymasterTokenAddress).toBeUndefined()
+    })
   })
 
   describe('getAddress', () => {
@@ -559,6 +591,32 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     })
   })
 
+  describe('getPaymasterTokenBalance', () => {
+    test('should throw error when isSponsored=true (no token configured)', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+          isSponsored: true
+        },
+        safeAddress: MOCK_SAFE_ADDRESS
+      })
+
+      await expect(account.getPaymasterTokenBalance())
+        .rejects.toThrow('No paymaster token configured')
+    })
+
+    test('should throw error when no paymasterOptions configured', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        safeAddress: MOCK_SAFE_ADDRESS
+      })
+
+      await expect(account.getPaymasterTokenBalance())
+        .rejects.toThrow('No paymaster token configured')
+    })
+  })
+
   describe('generateDeterministicSaltNonce', () => {
     test('should generate a deterministic salt nonce', () => {
       const owners = ['0xAAA', '0xBBB']
@@ -566,7 +624,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
 
       const nonce = WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(owners, threshold)
 
-      expect(nonce).toBe('0xd45ee70b400735ca5d4e17ab824ff0322b670873eb9993b576a6157de4530277') 
+      expect(nonce).toBe('0xd45ee70b400735ca5d4e17ab824ff0322b670873eb9993b576a6157de4530277')
     })
 
     test('should return the same nonce regardless of owner order', () => {

@@ -36,8 +36,10 @@ import SafeApiKit from '@safe-global/api-kit'
 /**
  * @typedef {Object} PaymasterOptions
  * @property {string} paymasterUrl - Paymaster service URL
- * @property {string} paymasterAddress - Paymaster contract address
- * @property {string} paymasterTokenAddress - Token address for paymaster payments
+ * @property {string} [paymasterAddress] - Paymaster contract address
+ * @property {string} [paymasterTokenAddress] - Token address for ERC-20 paymaster payments
+ * @property {boolean} [isSponsored] - Enable sponsored mode (sponsor pays gas)
+ * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID for sponsored mode
  */
 
 /**
@@ -512,10 +514,21 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     }
 
     if (this._config.paymasterOptions) {
-      initOptions.paymasterOptions = {
-        paymasterUrl: this._config.paymasterOptions.paymasterUrl,
-        paymasterAddress: this._config.paymasterOptions.paymasterAddress,
-        paymasterTokenAddress: this._config.paymasterOptions.paymasterTokenAddress
+      const { paymasterUrl, paymasterAddress, paymasterTokenAddress, isSponsored, sponsorshipPolicyId } = this._config.paymasterOptions
+
+      initOptions.paymasterOptions = { paymasterUrl }
+
+      if (paymasterAddress) {
+        initOptions.paymasterOptions.paymasterAddress = paymasterAddress
+      }
+
+      if (isSponsored) {
+        initOptions.paymasterOptions.isSponsored = true
+        if (sponsorshipPolicyId) {
+          initOptions.paymasterOptions.sponsorshipPolicyId = sponsorshipPolicyId
+        }
+      } else if (paymasterTokenAddress) {
+        initOptions.paymasterOptions.paymasterTokenAddress = paymasterTokenAddress
       }
     }
 
