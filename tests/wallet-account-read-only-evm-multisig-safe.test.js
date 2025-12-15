@@ -497,7 +497,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     })
   })
 
-  describe('getTransaction', () => {
+  describe('getSafeOperation', () => {
     test('should return transaction details', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
@@ -513,7 +513,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       })
       account._apiKit = mockApiKit
 
-      const tx = await account.getTransaction(MOCK_SAFE_OP_HASH)
+      const tx = await account.getSafeOperation(MOCK_SAFE_OP_HASH)
 
       expect(tx).toEqual(mockTx)
       expect(mockApiKit.getSafeOperation).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
@@ -530,7 +530,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       })
       account._apiKit = mockApiKit
 
-      const tx = await account.getTransaction(MOCK_SAFE_OP_HASH)
+      const tx = await account.getSafeOperation(MOCK_SAFE_OP_HASH)
 
       expect(tx).toBe(null)
     })

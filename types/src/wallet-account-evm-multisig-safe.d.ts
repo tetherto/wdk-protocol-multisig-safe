@@ -30,7 +30,7 @@
  */
 /**
  * @typedef {Object} ProposeOptions
- * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
+ * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  */
 /**
  * @typedef {Object} MultisigTransferResult
@@ -89,20 +89,24 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     get keyPair(): KeyPair;
     /**
-     * Signs a message.
+     * Not supported for Safe multisig accounts.
+     * Use {@link proposeMessage} for multisig message signing.
      *
-     * @param {string} message - The message to sign.
-     * @returns {Promise<string>} The message's signature.
+     * @param {string} _message - The message to sign (unused)
+     * @returns {Promise<never>}
+     * @throws {Error} Always throws - use proposeMessage() instead
      */
-    sign(message: string): Promise<string>;
+    sign(_message: string): Promise<never>;
     /**
-     * Verifies a message's signature.
+     * Not supported for Safe multisig accounts.
+     * Use {@link getMessage} to retrieve multisig message signatures.
      *
-     * @param {string} message - The original message.
-     * @param {string} signature - The signature to verify.
-     * @returns {Promise<boolean>} True if the signature is valid.
+     * @param {string} _message - The original message (unused)
+     * @param {string} _signature - The signature to verify (unused)
+     * @returns {Promise<never>}
+     * @throws {Error} Always throws - use getMessage() instead
      */
-    verify(message: string, signature: string): Promise<boolean>;
+    verify(_message: string, _signature: string): Promise<never>;
     /**
      * Proposes a message for multisig signing.
      * Creates a SafeMessage, signs it, and uploads to Safe Transaction Service.
@@ -118,13 +122,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * @returns {Promise<ApprovalResult>} The approval result.
      */
     approveMessage(messageHash: string): Promise<ApprovalResult>;
-    /**
-     * Gets a message and its signatures from Safe Transaction Service.
-     *
-     * @param {string} messageHash - The Safe message hash.
-     * @returns {Promise<Object | null>} The message with signatures or null.
-     */
-    getMessage(messageHash: string): Promise<any | null>;
     /**
      * Validates that the signer is an owner of the Safe.
      *
@@ -188,13 +185,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * @returns {Promise<ExecuteResult>} The execution result
      */
     execute(safeOperationHash: string): Promise<ExecuteResult>;
-    /**
-     * Gets the on-chain transaction hash for a UserOperation.
-     *
-     * @param {string} userOpHash - The UserOperation hash
-     * @returns {Promise<string | null>} The transaction hash or null if not found
-     */
-    getTransactionHashByUserOpHash(userOpHash: string): Promise<string | null>;
     /**
      * Proposes adding a new owner to the Safe.
      *
@@ -305,7 +295,7 @@ export type MessageProposalResult = {
 };
 export type ProposeOptions = {
     /**
-     * - Amount to approve for paymaster
+     * - Amount to approve for paymaster (ignored in sponsored mode)
      */
     amountToApprove?: number | bigint;
 };

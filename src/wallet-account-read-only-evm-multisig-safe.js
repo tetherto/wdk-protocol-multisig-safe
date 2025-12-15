@@ -33,6 +33,16 @@ import SafeApiKit from '@safe-global/api-kit'
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 
+/** @typedef {import('@safe-global/api-kit').GetSafeOperationListOptions} GetSafeOperationListOptions */
+/** @typedef {import('@safe-global/api-kit').GetSafeOperationListResponse} GetSafeOperationListResponse */
+/** @typedef {import('@safe-global/api-kit').SafeMultisigTransactionListResponse} SafeMultisigTransactionListResponse */
+/** @typedef {import('@safe-global/api-kit').SafeMessageListResponse} SafeMessageListResponse */
+/** @typedef {import('@safe-global/api-kit').TransferListResponse} TransferListResponse */
+/** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
+
+/** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
+/** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
+
 /**
  * @typedef {Object} PaymasterOptions
  * @property {string} paymasterUrl - Paymaster service URL
@@ -426,7 +436,8 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Returns pending Safe operations awaiting signatures.
    *
-   * @returns {Promise<Object>} Pending operations from Safe Transaction Service
+   * @param {GetSafeOperationListOptions} [options] - Query options
+   * @returns {Promise<GetSafeOperationListResponse>} Pending operations from Safe Transaction Service
    */
   async getPendingTransactions () {
     const apiKit = await this._getApiKit()
@@ -439,9 +450,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Returns a specific Safe operation by hash.
    *
    * @param {string} safeOperationHash - The Safe operation hash
-   * @returns {Promise<Object | null>} The operation or null if not found
+   * @returns {Promise<SafeOperationResponse | null>} The operation or null if not found
    */
-  async getTransaction (safeOperationHash) {
+  async getSafeOperation (safeOperationHash) {
     const apiKit = await this._getApiKit()
 
     try {
@@ -458,15 +469,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Returns the transaction history for the Safe.
    * Includes executed multisig transactions.
    *
-   * @param {TransactionHistoryOptions} [options] - Query options
-   * @returns {Promise<Object>} Transaction history from Safe Transaction Service
+   * @param {ListOptions} [options] - Query options (limit, offset)
+   * @returns {Promise<SafeMultisigTransactionListResponse>} Transaction history from Safe Transaction
    *
    */
-  async getTransactionHistory (options = {}) {
+  async getTransactionHistory (options) {
     const apiKit = await this._getApiKit()
     const safeAddress = await this.getAddress()
 
-    return await apiKit.getMultisigTransactions(safeAddress)
+    return await apiKit.getMultisigTransactions(safeAddress, options)
   }
 
   /**
@@ -491,7 +502,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @returns {Promise<boolean>} True if confirmations >= threshold
    */
   async isReadyToExecute (safeOperationHash) {
-    const operation = await this.getTransaction(safeOperationHash)
+    const operation = await this.getSafeOperation(safeOperationHash)
 
     if (!operation) {
       return false
@@ -525,8 +536,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Gets a message and its signatures from Safe Transaction Service.
    *
    * @param {string} messageHash - The Safe message hash
-   * @returns {Promise<Object | null>} The message with signatures or null if not found
-   *
+   * @returns {Promise<SafeMessage | null>} The message with signatures or null if not found
    */
   async getMessage (messageHash) {
     const apiKit = await this._getApiKit()
@@ -544,14 +554,14 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Returns pending messages awaiting signatures.
    *
-   * @returns {Promise<Object>} Pending messages from Safe Transaction Service
-   *
+   * @param {ListOptions} [options] - Query options (limit, offset)
+   * @returns {Promise<SafeMessageListResponse>} Pending messages from Safe Transaction Service
    */
-  async getPendingMessages () {
+  async getPendingMessages (options) {
     const apiKit = await this._getApiKit()
     const safeAddress = await this.getAddress()
 
-    return await apiKit.getMessages(safeAddress)
+    return await apiKit.getMessages(safeAddress, options)
   }
 
   /**

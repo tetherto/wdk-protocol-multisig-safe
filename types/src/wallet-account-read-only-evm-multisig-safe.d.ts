@@ -4,11 +4,21 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferResult} TransferResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
+/** @typedef {import('@safe-global/api-kit').GetSafeOperationListOptions} GetSafeOperationListOptions */
+/** @typedef {import('@safe-global/api-kit').GetSafeOperationListResponse} GetSafeOperationListResponse */
+/** @typedef {import('@safe-global/api-kit').SafeMultisigTransactionListResponse} SafeMultisigTransactionListResponse */
+/** @typedef {import('@safe-global/api-kit').SafeMessageListResponse} SafeMessageListResponse */
+/** @typedef {import('@safe-global/api-kit').TransferListResponse} TransferListResponse */
+/** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
+/** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
+/** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 /**
  * @typedef {Object} PaymasterOptions
  * @property {string} paymasterUrl - Paymaster service URL
- * @property {string} paymasterAddress - Paymaster contract address
- * @property {string} paymasterTokenAddress - Token address for paymaster payments
+ * @property {string} [paymasterAddress] - Paymaster contract address
+ * @property {string} [paymasterTokenAddress] - Token address for ERC-20 paymaster payments
+ * @property {boolean} [isSponsored] - Enable sponsored mode (sponsor pays gas)
+ * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID for sponsored mode
  */
 /**
  * @typedef {Object} SafeAccountConfig
@@ -34,6 +44,26 @@
  * @property {SafeDeploymentConfig} [safeDeploymentConfig] - Safe deployment config (create mode)
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
+/**
+ * @typedef {Object} SafeInfo
+ * @property {string} address - Safe address
+ * @property {string[]} owners - Array of owner addresses
+ * @property {number} threshold - Number of required signatures
+ * @property {string} nonce - Current nonce
+ * @property {string} version - Safe contract version
+ * @property {boolean} isDeployed - Whether Safe is deployed
+ */
+/**
+ * @typedef {Object} SafesByOwnerConfig
+ * @property {bigint} chainId - Chain ID
+ * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
+ * @property {string} [safeApiKey] - Safe API key
+ */
+/**
+ * @typedef {Object} TransactionHistoryOptions
+ * @property {number} [limit] - Maximum number of transactions to return
+ * @property {number} [offset] - Offset for pagination
+ */
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
 /**
@@ -43,6 +73,28 @@ export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
  * @extends WalletAccountReadOnly
  */
 export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly {
+    /**
+     * Gets all Safe addresses owned by an address.
+     * Useful for discovering user's Safes during wallet login/import.
+     *
+     * @static
+     * @param {string} ownerAddress - The owner's EOA address
+     * @param {SafesByOwnerConfig} config - Configuration object
+     * @returns {Promise<string[]>} Array of Safe addresses
+     *
+     */
+    static getSafesByOwner(ownerAddress: string, config: SafesByOwnerConfig): Promise<string[]>;
+    /**
+     * Gets Safe information without creating a full instance.
+     * Useful for quick lookups before importing a Safe.
+     *
+     * @static
+     * @param {string} safeAddress - The Safe address
+     * @param {SafesByOwnerConfig} config - Configuration object
+     * @returns {Promise<SafeInfo>} Safe information
+     *
+     */
+    static getSafeInfo(safeAddress: string, config: SafesByOwnerConfig): Promise<SafeInfo>;
     /**
      * Generates a deterministic salt nonce from owners and threshold.
      * Uses keccak256 hash of sorted owners and threshold.
@@ -144,46 +196,80 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getNonce(): Promise<number>;
     /**
-     * Returns the Safe's balance for the paymaster token.
+     * Returns the Safe contract version.
      *
-     * @returns {Promise<bigint>} Paymaster token balance in base units
+     * @returns {Promise<string>} The Safe version (e.g., "1.4.1")
+     */
+    getVersion(): Promise<string>;
+    /**
+     * Returns the Safe's paymaster token balance.
+     * Convenience method to check if Safe has enough tokens for gas.
+     *
+     * @returns {Promise<bigint>} Paymaster token balance
+     * @throws {Error} If no paymaster token is configured
      */
     getPaymasterTokenBalance(): Promise<bigint>;
     /**
-     * Returns the current allowance for the given token and spender.
+     * Returns pending Safe operations awaiting signatures.
      *
-     * @param {string} token - The token address
-     * @param {string} spender - The spender address
-     * @returns {Promise<bigint>} The allowance
+     * @param {GetSafeOperationListOptions} [options] - Query options
+     * @returns {Promise<GetSafeOperationListResponse>} Pending operations from Safe Transaction Service
      */
-    getAllowance(token: string, spender: string): Promise<bigint>;
-    /**
-     * Returns pending Safe operations from the Safe Transaction Service.
-     *
-     * @returns {Promise<Object>} Pending operations
-     */
-    getPendingTransactions(): Promise<any>;
+    getPendingTransactions(): Promise<GetSafeOperationListResponse>;
     /**
      * Returns a specific Safe operation by hash.
      *
      * @param {string} safeOperationHash - The Safe operation hash
-     * @returns {Promise<Object | null>} The Safe operation or null
+     * @returns {Promise<SafeOperationResponse | null>} The operation or null if not found
      */
-    getTransaction(safeOperationHash: string): Promise<any | null>;
+    getSafeOperation(safeOperationHash: string): Promise<SafeOperationResponse | null>;
     /**
-     * Returns a transaction receipt.
+     * Returns the transaction history for the Safe.
+     * Includes executed multisig transactions.
      *
-     * @param {string} userOpHash - The UserOperation hash
-     * @returns {Promise<EvmTransactionReceipt | null>} The receipt or null
+     * @param {ListOptions} [options] - Query options (limit, offset)
+     * @returns {Promise<SafeMultisigTransactionListResponse>} Transaction history from Safe Transaction
+     *
      */
-    getTransactionReceipt(userOpHash: string): Promise<EvmTransactionReceipt | null>;
+    getTransactionHistory(options?: ListOptions): Promise<SafeMultisigTransactionListResponse>;
     /**
-     * Checks if a Safe operation is ready to execute (has enough signatures).
+     * Returns incoming transfers to the Safe.
+     * Includes ETH and ERC-20 token transfers.
+     *
+     * @param {TransactionHistoryOptions} [options] - Query options
+     * @returns {Promise<Object>} Incoming transfers from Safe Transaction Service
+     *
+     */
+    getIncomingTransactions(options?: TransactionHistoryOptions): Promise<any>;
+    /**
+     * Checks if a Safe operation is ready to be executed.
      *
      * @param {string} safeOperationHash - The Safe operation hash
-     * @returns {Promise<boolean>} True if ready to execute
+     * @returns {Promise<boolean>} True if confirmations >= threshold
      */
     isReadyToExecute(safeOperationHash: string): Promise<boolean>;
+    /**
+     * Gets the on-chain transaction hash for a UserOperation.
+     *
+     * @param {string} userOpHash - The UserOperation hash
+     * @returns {Promise<string | null>} The transaction hash or null if not found
+     *
+     */
+    getTransactionHashByUserOpHash(userOpHash: string): Promise<string | null>;
+    /**
+     * Gets a message and its signatures from Safe Transaction Service.
+     *
+     * @param {string} messageHash - The Safe message hash
+     * @returns {Promise<SafeMessage | null>} The message with signatures or null if not found
+     */
+    getMessage(messageHash: string): Promise<SafeMessage | null>;
+    /**
+     * Returns pending messages awaiting signatures.
+     *
+     * @param {ListOptions} [options] - Query options (limit, offset)
+     * @returns {Promise<SafeMessageListResponse>} Pending messages from Safe Transaction Service
+     */
+    getPendingMessages(options?: ListOptions): Promise<SafeMessageListResponse>;
     /**
      * Estimates the fee for a transaction.
      *
@@ -248,6 +334,14 @@ export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionRe
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type TransferResult = import("@tetherto/wdk-wallet-evm").TransferResult;
 export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
+export type GetSafeOperationListOptions = import("@safe-global/api-kit").GetSafeOperationListOptions;
+export type GetSafeOperationListResponse = import("@safe-global/api-kit").GetSafeOperationListResponse;
+export type SafeMultisigTransactionListResponse = import("@safe-global/api-kit").SafeMultisigTransactionListResponse;
+export type SafeMessageListResponse = import("@safe-global/api-kit").SafeMessageListResponse;
+export type TransferListResponse = import("@safe-global/api-kit").TransferListResponse;
+export type ListOptions = import("@safe-global/api-kit").ListOptions;
+export type SafeOperationResponse = import("@safe-global/types-kit").SafeOperationResponse;
+export type SafeMessage = import("@safe-global/types-kit").SafeMessage;
 export type PaymasterOptions = {
     /**
      * - Paymaster service URL
@@ -256,11 +350,19 @@ export type PaymasterOptions = {
     /**
      * - Paymaster contract address
      */
-    paymasterAddress: string;
+    paymasterAddress?: string;
     /**
-     * - Token address for paymaster payments
+     * - Token address for ERC-20 paymaster payments
      */
-    paymasterTokenAddress: string;
+    paymasterTokenAddress?: string;
+    /**
+     * - Enable sponsored mode (sponsor pays gas)
+     */
+    isSponsored?: boolean;
+    /**
+     * - Sponsorship policy ID for sponsored mode
+     */
+    sponsorshipPolicyId?: string;
 };
 export type SafeAccountConfig = {
     /**
@@ -327,6 +429,56 @@ export type EvmMultisigSafeConfig = {
      * - Maximum fee for transfers
      */
     transferMaxFee?: number | bigint;
+};
+export type SafeInfo = {
+    /**
+     * - Safe address
+     */
+    address: string;
+    /**
+     * - Array of owner addresses
+     */
+    owners: string[];
+    /**
+     * - Number of required signatures
+     */
+    threshold: number;
+    /**
+     * - Current nonce
+     */
+    nonce: string;
+    /**
+     * - Safe contract version
+     */
+    version: string;
+    /**
+     * - Whether Safe is deployed
+     */
+    isDeployed: boolean;
+};
+export type SafesByOwnerConfig = {
+    /**
+     * - Chain ID
+     */
+    chainId: bigint;
+    /**
+     * - Custom Safe Transaction Service URL
+     */
+    txServiceUrl?: string;
+    /**
+     * - Safe API key
+     */
+    safeApiKey?: string;
+};
+export type TransactionHistoryOptions = {
+    /**
+     * - Maximum number of transactions to return
+     */
+    limit?: number;
+    /**
+     * - Offset for pagination
+     */
+    offset?: number;
 };
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
