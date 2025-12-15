@@ -425,7 +425,6 @@ Read-only multisig Safe account for querying.
 | **Balances** |
 | `getBalance()` | Get native token balance | `Promise<bigint>` |
 | `getTokenBalance(token)` | Get ERC20 token balance | `Promise<bigint>` |
-| `getAllTokenBalances()` | Get all ERC-20 token balances | `Promise<TokenBalance[]>` |
 | `getPaymasterTokenBalance()` | Get paymaster token balance | `Promise<bigint>` |
 | **Transactions** |
 | `getPendingTransactions()` | Get pending operations | `Promise<Object>` |

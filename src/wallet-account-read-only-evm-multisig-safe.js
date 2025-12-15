@@ -92,14 +92,6 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {number} [offset] - Offset for pagination
  */
 
-/**
- * @typedef {Object} TokenBalance
- * @property {string} tokenAddress - Token contract address
- * @property {string} token - Token symbol
- * @property {bigint} balance - Token balance in base units
- * @property {number} decimals - Token decimals
- */
-
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
@@ -412,36 +404,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   async getTokenBalance (tokenAddress) {
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
     return await evmReadOnlyAccount.getTokenBalance(tokenAddress)
-  }
-
-  /**
-   * Returns all ERC-20 token balances for the Safe.
-   * Queries the Safe Transaction Service for known token balances.
-   *
-   * @returns {Promise<TokenBalance[]>} Array of token balances
-   *
-   */
-  async getAllTokenBalances () {
-    const apiKit = await this._getApiKit()
-    const safeAddress = await this.getAddress()
-
-    try {
-      const balances = await apiKit.getBalances(safeAddress)
-
-      return balances
-        .filter(b => b.tokenAddress)
-        .map(b => ({
-          tokenAddress: b.tokenAddress,
-          token: b.token?.symbol || 'UNKNOWN',
-          balance: BigInt(b.balance || '0'),
-          decimals: b.token?.decimals || 18
-        }))
-    } catch (error) {
-      if (error.message?.includes('404') || error.message?.includes('not found')) {
-        return []
-      }
-      throw error
-    }
   }
 
   /**
