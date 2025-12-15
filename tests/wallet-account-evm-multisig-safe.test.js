@@ -156,19 +156,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
       expect(account._path).toBe("0'/0/0")
     })
 
-    test('should throw if provider is missing', () => {
-      expect(() => {
-        new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
-          bundlerUrl: MOCK_CONFIG.bundlerUrl,
-          chainId: MOCK_CONFIG.chainId,
-          safeAccountConfig: {
-            owners: [ACCOUNT.address],
-            threshold: 1
-          }
-        })
-      }).toThrow('provider is required')
-    })
-
     test('should successfully initialize with ERC-20 paymaster options', () => {
       const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
@@ -241,9 +228,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should throw error with guidance to use proposeMessage', async () => {
       await expect(account.sign('test message'))
         .rejects.toThrow('sign() is not supported for Safe multisig accounts')
-
-      await expect(account.sign('test message'))
-        .rejects.toThrow('Use proposeMessage()')
     })
   })
 
@@ -251,9 +235,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should throw error with guidance to use getMessage', async () => {
       await expect(account.verify('test message', '0xsignature'))
         .rejects.toThrow('verify() is not supported for Safe multisig accounts')
-
-      await expect(account.verify('test message', '0xsignature'))
-        .rejects.toThrow('Use getMessage()')
     })
   })
 
@@ -611,7 +592,8 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const options = {
-        to: ACCOUNT_2.address,
+        token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
+        recipient: ACCOUNT_2.address,
         amount: 1000n
       }
       const result = await account.transfer(options)
@@ -648,8 +630,12 @@ describe('WalletAccountEvmMultisigSafe', () => {
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      await sponsoredAccount.transfer({ to: ACCOUNT_2.address, amount: 1000n })
+      const options = {
+        token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
+        recipient: ACCOUNT_2.address,
+        amount: 1000n
+      }
+      await sponsoredAccount.transfer(options)
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
       expect(callArgs.options).toBeUndefined()

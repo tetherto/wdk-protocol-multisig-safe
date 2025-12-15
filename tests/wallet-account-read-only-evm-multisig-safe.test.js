@@ -106,36 +106,6 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(account._config.chainId).toBe(MOCK_CONFIG.chainId)
     })
 
-    test('should throw if provider is missing', () => {
-      expect(() => {
-        new WalletAccountReadOnlyEvmMultisigSafe(null, {
-          bundlerUrl: MOCK_CONFIG.bundlerUrl,
-          chainId: MOCK_CONFIG.chainId,
-          safeAddress: MOCK_SAFE_ADDRESS
-        })
-      }).toThrow('provider is required')
-    })
-
-    test('should throw if bundlerUrl is missing', () => {
-      expect(() => {
-        new WalletAccountReadOnlyEvmMultisigSafe(null, {
-          provider: MOCK_CONFIG.provider,
-          chainId: MOCK_CONFIG.chainId,
-          safeAddress: MOCK_SAFE_ADDRESS
-        })
-      }).toThrow('bundlerUrl is required')
-    })
-
-    test('should throw if chainId is missing', () => {
-      expect(() => {
-        new WalletAccountReadOnlyEvmMultisigSafe(null, {
-          provider: MOCK_CONFIG.provider,
-          bundlerUrl: MOCK_CONFIG.bundlerUrl,
-          safeAddress: MOCK_SAFE_ADDRESS
-        })
-      }).toThrow('chainId is required')
-    })
-
     test('should throw if both safeAddress and safeAccountConfig are missing', () => {
       expect(() => {
         new WalletAccountReadOnlyEvmMultisigSafe(null, MOCK_CONFIG)
@@ -622,10 +592,6 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         .rejects.toThrow('ownerAddress is required')
     })
 
-    test('should throw error when chainId is missing', async () => {
-      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(ACCOUNT.address, {}))
-        .rejects.toThrow('chainId is required')
-    })
   })
 
   describe('static getSafeInfo', () => {

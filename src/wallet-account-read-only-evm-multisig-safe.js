@@ -96,12 +96,6 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {string} [safeApiKey] - Safe API key
  */
 
-/**
- * @typedef {Object} TransactionHistoryOptions
- * @property {number} [limit] - Maximum number of transactions to return
- * @property {number} [offset] - Offset for pagination
- */
-
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
@@ -142,7 +136,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Creates a new read-only EVM multisig Safe wallet account.
    *
-   * @param {string | null} signerAddress - The signer's EOA address (from child class) or null for pure read-only
+   * @param {string | null} signerAddress - The signer's EOA address or null for pure read-only
    * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
    */
   constructor (signerAddress, config) {
@@ -224,10 +218,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       throw new Error('ownerAddress is required')
     }
 
-    if (!config?.chainId) {
-      throw new Error('chainId is required')
-    }
-
     const apiKit = new SafeApiKit(createApiKitConfig(config))
     const response = await apiKit.getSafesByOwner(ownerAddress)
 
@@ -235,8 +225,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Gets Safe information without creating a full instance.
-   * Useful for quick lookups before importing a Safe.
+   * Gets Safe information without creating an instance.
    *
    * @static
    * @param {string} safeAddress - The Safe address
@@ -268,7 +257,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
   /**
    * Generates a deterministic salt nonce from owners and threshold.
-   * Uses keccak256 hash of sorted owners and threshold.
    *
    * @static
    * @param {string[]} owners - Array of owner addresses
@@ -284,7 +272,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Returns the signer's EOA address.
    * For read-only accounts created with a signerAddress, returns that address.
-   * For pure read-only accounts (signerAddress is null), returns null.
    *
    * @returns {Promise<string | null>} The signer's address or null
    */
@@ -392,7 +379,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     }
 
     const safe4337Pack = await this._getSafe4337Pack()
-    return await safe4337Pack.protocolKit.getContractVersion()
+    return safe4337Pack.protocolKit.getContractVersion()
   }
 
   /**
@@ -418,7 +405,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
   /**
    * Returns the Safe's paymaster token balance.
-   * Convenience method to check if Safe has enough tokens for gas.
    *
    * @returns {Promise<bigint>} Paymaster token balance
    * @throws {Error} If no paymaster token is configured
@@ -484,15 +470,14 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Returns incoming transfers to the Safe.
    * Includes ETH and ERC-20 token transfers.
    *
-   * @param {TransactionHistoryOptions} [options] - Query options
-   * @returns {Promise<Object>} Incoming transfers from Safe Transaction Service
-   *
+   * @param {ListOptions} [options] - Query options (limit, offset)
+   * @returns {Promise<TransferListResponse>} Incoming transfers from Safe Transaction Service
    */
-  async getIncomingTransactions (options = {}) {
+  async getIncomingTransactions (options) {
     const apiKit = await this._getApiKit()
     const safeAddress = await this.getAddress()
 
-    return await apiKit.getIncomingTransactions(safeAddress)
+    return await apiKit.getIncomingTransactions(safeAddress, options)
   }
 
   /**
@@ -567,15 +552,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Estimates the fee for a transaction.
    *
-   * @param {Object | Object[]} tx - The transaction or array of transactions
-   * @param {string} tx.to - Recipient address
-   * @param {string | number | bigint} [tx.value] - Amount in wei
-   * @param {string} [tx.data] - Transaction data
+   * @param {EvmTransaction} tx - The transaction
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
   async quoteSendTransaction (tx) {
-    const transactions = Array.isArray(tx) ? tx : [tx]
-    const fee = await this._estimateUserOperationGas(transactions)
+    const fee = await this._estimateUserOperationGas([tx])
     return { fee }
   }
 
@@ -594,7 +575,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Estimates UserOperation gas cost.
    *
    * @private
-   * @param {Object[]} transactions - Array of transactions
+   * @param {EvmTransaction[]} transactions - Array of transactions
    * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
    */
   async _estimateUserOperationGas (transactions) {
@@ -758,18 +739,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {EvmMultisigSafeConfig} config - The configuration to validate
    */
   _validateConfig (config) {
-    if (!config.provider) {
-      throw new Error('provider is required')
-    }
-
-    if (!config.bundlerUrl) {
-      throw new Error('bundlerUrl is required')
-    }
-
-    if (!config.chainId) {
-      throw new Error('chainId is required')
-    }
-
     const hasSafeAddress = !!config.safeAddress
     const hasSafeAccountConfig = !!config.safeAccountConfig
 

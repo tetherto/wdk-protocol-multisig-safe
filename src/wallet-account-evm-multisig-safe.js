@@ -31,8 +31,6 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet-evm').TransferResult} TransferResult */
-/** @typedef {import('@tetherto/wdk-wallet-evm').ApproveOptions} ApproveOptions */
 
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 
@@ -67,7 +65,8 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
  */
 
 /**
- * @typedef {Object} MultisigTransferResult
+ * @typedef {Object} MultisigTransactionResult
+ * @extends TransactionResult
  * @property {string} hash - Safe operation hash (for approve/execute)
  * @property {bigint} fee - Estimated fee
  * @property {number} confirmations - Current confirmations
@@ -86,7 +85,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   /**
    * Creates a new EVM multisig Safe wallet account.
    *
-   * @param {string | Uint8Array} seed - The BIP-39 seed phrase or seed bytes
+   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
    * @param {string} path - The BIP-44 derivation path (e.g., "0'/0/0")
    * @param {EvmMultisigSafeConfig} config - The configuration object
    */
@@ -162,12 +161,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    *
    * @param {string} _message - The message to sign (unused)
    * @returns {Promise<never>}
-   * @throws {Error} Always throws - use proposeMessage() instead
+   * @throws {Error} Always throws
    */
   async sign (_message) {
     throw new Error(
-      'sign() is not supported for Safe multisig accounts. ' +
-      'Use proposeMessage() for multisig message signing, then approveMessage() to collect signatures.'
+      'sign() is not supported for Safe multisig accounts.'
     )
   }
 
@@ -178,12 +176,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * @param {string} _message - The original message (unused)
    * @param {string} _signature - The signature to verify (unused)
    * @returns {Promise<never>}
-   * @throws {Error} Always throws - use getMessage() instead
+   * @throws {Error} Always throws
    */
   async verify (_message, _signature) {
     throw new Error(
-      'verify() is not supported for Safe multisig accounts. ' +
-      'Use getMessage() to retrieve the combined multisig signature.'
+      'verify() is not supported for Safe multisig accounts.'
     )
   }
 
@@ -319,8 +316,8 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Sends a transaction - proposes for multisig approval.
    * Auto-executes if threshold is met after proposing.
    *
-   * @param {EvmTransaction | EvmTransaction[]} tx - The transaction(s) to send
-   * @returns {Promise<MultisigTransferResult>} The transaction result
+   * @param {EvmTransaction} tx - The transaction to send
+   * @returns {Promise<MultisigTransactionResult>} The transaction result
    */
   async sendTransaction (tx) {
     const { fee } = await this.quoteSendTransaction(tx)
@@ -355,16 +352,14 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Transfers native token (ETH) - proposes for multisig approval.
+   * Transfers a token to another address.
    * Auto-executes if threshold is met after proposing.
    *
    * @param {TransferOptions} options - Transfer options
-   * @returns {Promise<MultisigTransferResult>} The transfer result
+   * @returns {Promise<MultisigTransactionResult>} The transfer result
    */
   async transfer (options) {
-    const { to, amount } = options
-
-    const tx = { to, value: amount, data: '0x' }
+    const tx = await WalletAccountEvm._getTransferTransaction(options)
     const { fee } = await this.quoteSendTransaction(tx)
 
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {

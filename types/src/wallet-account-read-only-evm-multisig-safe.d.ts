@@ -59,11 +59,6 @@
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
  */
-/**
- * @typedef {Object} TransactionHistoryOptions
- * @property {number} [limit] - Maximum number of transactions to return
- * @property {number} [offset] - Offset for pagination
- */
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
 /**
@@ -85,8 +80,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     static getSafesByOwner(ownerAddress: string, config: SafesByOwnerConfig): Promise<string[]>;
     /**
-     * Gets Safe information without creating a full instance.
-     * Useful for quick lookups before importing a Safe.
+     * Gets Safe information without creating an instance.
      *
      * @static
      * @param {string} safeAddress - The Safe address
@@ -97,7 +91,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     static getSafeInfo(safeAddress: string, config: SafesByOwnerConfig): Promise<SafeInfo>;
     /**
      * Generates a deterministic salt nonce from owners and threshold.
-     * Uses keccak256 hash of sorted owners and threshold.
      *
      * @static
      * @param {string[]} owners - Array of owner addresses
@@ -108,7 +101,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     /**
      * Creates a new read-only EVM multisig Safe wallet account.
      *
-     * @param {string | null} signerAddress - The signer's EOA address (from child class) or null for pure read-only
+     * @param {string | null} signerAddress - The signer's EOA address or null for pure read-only
      * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
      */
     constructor(signerAddress: string | null, config: EvmMultisigSafeReadOnlyConfig);
@@ -166,7 +159,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     /**
      * Returns the signer's EOA address.
      * For read-only accounts created with a signerAddress, returns that address.
-     * For pure read-only accounts (signerAddress is null), returns null.
      *
      * @returns {Promise<string | null>} The signer's address or null
      */
@@ -203,7 +195,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     getVersion(): Promise<string>;
     /**
      * Returns the Safe's paymaster token balance.
-     * Convenience method to check if Safe has enough tokens for gas.
      *
      * @returns {Promise<bigint>} Paymaster token balance
      * @throws {Error} If no paymaster token is configured
@@ -236,11 +227,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Returns incoming transfers to the Safe.
      * Includes ETH and ERC-20 token transfers.
      *
-     * @param {TransactionHistoryOptions} [options] - Query options
-     * @returns {Promise<Object>} Incoming transfers from Safe Transaction Service
-     *
+     * @param {ListOptions} [options] - Query options (limit, offset)
+     * @returns {Promise<TransferListResponse>} Incoming transfers from Safe Transaction Service
      */
-    getIncomingTransactions(options?: TransactionHistoryOptions): Promise<any>;
+    getIncomingTransactions(options?: ListOptions): Promise<TransferListResponse>;
     /**
      * Checks if a Safe operation is ready to be executed.
      *
@@ -273,20 +263,17 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     /**
      * Estimates the fee for a transaction.
      *
-     * @param {Object | Object[]} tx - The transaction or array of transactions
-     * @param {string} tx.to - Recipient address
-     * @param {string | number | bigint} [tx.value] - Amount in wei
-     * @param {string} [tx.data] - Transaction data
+     * @param {EvmTransaction} tx - The transaction
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteSendTransaction(tx: any | any[]): Promise<{
+    quoteSendTransaction(tx: EvmTransaction): Promise<{
         fee: bigint;
     }>;
     /**
      * Estimates UserOperation gas cost.
      *
      * @private
-     * @param {Object[]} transactions - Array of transactions
+     * @param {EvmTransaction[]} transactions - Array of transactions
      * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
      */
     private _estimateUserOperationGas;
@@ -469,16 +456,6 @@ export type SafesByOwnerConfig = {
      * - Safe API key
      */
     safeApiKey?: string;
-};
-export type TransactionHistoryOptions = {
-    /**
-     * - Maximum number of transactions to return
-     */
-    limit?: number;
-    /**
-     * - Offset for pagination
-     */
-    offset?: number;
 };
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';

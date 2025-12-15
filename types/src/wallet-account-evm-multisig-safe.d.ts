@@ -4,8 +4,6 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet-evm').TransferResult} TransferResult */
-/** @typedef {import('@tetherto/wdk-wallet-evm').ApproveOptions} ApproveOptions */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /**
  * @typedef {Object} ProposeResult
@@ -33,7 +31,8 @@
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  */
 /**
- * @typedef {Object} MultisigTransferResult
+ * @typedef {Object} MultisigTransactionResult
+ * @extends TransactionResult
  * @property {string} hash - Safe operation hash (for approve/execute)
  * @property {bigint} fee - Estimated fee
  * @property {number} confirmations - Current confirmations
@@ -51,7 +50,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     /**
      * Creates a new EVM multisig Safe wallet account.
      *
-     * @param {string | Uint8Array} seed - The BIP-39 seed phrase or seed bytes
+     * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
      * @param {string} path - The BIP-44 derivation path (e.g., "0'/0/0")
      * @param {EvmMultisigSafeConfig} config - The configuration object
      */
@@ -94,7 +93,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      *
      * @param {string} _message - The message to sign (unused)
      * @returns {Promise<never>}
-     * @throws {Error} Always throws - use proposeMessage() instead
+     * @throws {Error} Always throws
      */
     sign(_message: string): Promise<never>;
     /**
@@ -104,7 +103,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * @param {string} _message - The original message (unused)
      * @param {string} _signature - The signature to verify (unused)
      * @returns {Promise<never>}
-     * @throws {Error} Always throws - use getMessage() instead
+     * @throws {Error} Always throws
      */
     verify(_message: string, _signature: string): Promise<never>;
     /**
@@ -142,18 +141,18 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * Sends a transaction - proposes for multisig approval.
      * Auto-executes if threshold is met after proposing.
      *
-     * @param {EvmTransaction | EvmTransaction[]} tx - The transaction(s) to send
-     * @returns {Promise<MultisigTransferResult>} The transaction result
+     * @param {EvmTransaction} tx - The transaction to send
+     * @returns {Promise<MultisigTransactionResult>} The transaction result
      */
-    sendTransaction(tx: EvmTransaction | EvmTransaction[]): Promise<MultisigTransferResult>;
+    sendTransaction(tx: EvmTransaction): Promise<MultisigTransactionResult>;
     /**
-     * Transfers native token (ETH) - proposes for multisig approval.
+     * Transfers a token to another address.
      * Auto-executes if threshold is met after proposing.
      *
      * @param {TransferOptions} options - Transfer options
-     * @returns {Promise<MultisigTransferResult>} The transfer result
+     * @returns {Promise<MultisigTransactionResult>} The transfer result
      */
-    transfer(options: TransferOptions): Promise<MultisigTransferResult>;
+    transfer(options: TransferOptions): Promise<MultisigTransactionResult>;
     /**
      * Proposes a new transaction for multisig approval.
      * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
@@ -246,8 +245,6 @@ export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
-export type TransferResult = import("@tetherto/wdk-wallet-evm").TransferResult;
-export type ApproveOptions = import("@tetherto/wdk-wallet-evm").ApproveOptions;
 export type EvmMultisigSafeConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
 export type ProposeResult = {
     /**
@@ -299,26 +296,5 @@ export type ProposeOptions = {
      */
     amountToApprove?: number | bigint;
 };
-export type MultisigTransferResult = {
-    /**
-     * - Safe operation hash (for approve/execute)
-     */
-    hash: string;
-    /**
-     * - Estimated fee
-     */
-    fee: bigint;
-    /**
-     * - Current confirmations
-     */
-    confirmations: number;
-    /**
-     * - Required threshold
-     */
-    threshold: number;
-    /**
-     * - Whether transaction was executed
-     */
-    executed: boolean;
-};
+export type MultisigTransactionResult = any;
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';
