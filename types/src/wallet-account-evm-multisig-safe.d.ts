@@ -296,5 +296,4 @@ export type ProposeOptions = {
      */
     amountToApprove?: number | bigint;
 };
-export type MultisigTransactionResult = any;
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';

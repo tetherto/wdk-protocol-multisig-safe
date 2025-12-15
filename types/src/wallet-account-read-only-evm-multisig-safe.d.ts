@@ -132,7 +132,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @protected
      * @type {SafeApiKit | null}
      */
-    protected _apiKit: typeof SafeApiKit | null;
+    protected _apiKit: SafeApiKit | null;
     /**
      * Cached owners list
      *
@@ -164,6 +164,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getSignerAddress(): Promise<string | null>;
     /**
+     * Returns the Safe address.
+     *
+     * @returns {Promise<string>} The Safe address
+     */
+    getAddress(): Promise<string>;
+    /**
      * Checks if the Safe is deployed on-chain.
      *
      * @returns {Promise<boolean>} True if deployed
@@ -194,6 +200,19 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getVersion(): Promise<string>;
     /**
+     * Returns the Safe's native token balance.
+     *
+     * @returns {Promise<bigint>} Balance in wei
+     */
+    getBalance(): Promise<bigint>;
+    /**
+     * Returns the Safe's balance for a specific ERC-20 token.
+     *
+     * @param {string} tokenAddress - The token contract address
+     * @returns {Promise<bigint>} Token balance in base units
+     */
+    getTokenBalance(tokenAddress: string): Promise<bigint>;
+    /**
      * Returns the Safe's paymaster token balance.
      *
      * @returns {Promise<bigint>} Paymaster token balance
@@ -206,7 +225,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @param {GetSafeOperationListOptions} [options] - Query options
      * @returns {Promise<GetSafeOperationListResponse>} Pending operations from Safe Transaction Service
      */
-    getPendingTransactions(): Promise<GetSafeOperationListResponse>;
+    getPendingTransactions(options?: GetSafeOperationListOptions): Promise<GetSafeOperationListResponse>;
     /**
      * Returns a specific Safe operation by hash.
      *
@@ -270,6 +289,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
         fee: bigint;
     }>;
     /**
+     * Estimates the fee for a token transfer.
+     *
+     * @param {TransferOptions} options - Transfer options
+     * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
+     */
+    quoteTransfer(options: TransferOptions): Promise<{
+        fee: bigint;
+    }>;
+    /**
      * Estimates UserOperation gas cost.
      *
      * @private
@@ -299,7 +327,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @protected
      * @returns {Promise<SafeApiKit>} The Safe API Kit instance
      */
-    protected _getApiKit(): Promise<typeof SafeApiKit>;
+    protected _getApiKit(): Promise<SafeApiKit>;
     /**
      * Returns a read-only EVM account for the Safe address.
      *
