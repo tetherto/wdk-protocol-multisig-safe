@@ -157,6 +157,37 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
+   * Not supported for Safe multisig accounts.
+   * Use {@link proposeMessage} for multisig message signing.
+   *
+   * @param {string} _message - The message to sign (unused)
+   * @returns {Promise<never>}
+   * @throws {Error} Always throws - use proposeMessage() instead
+   */
+  async sign (_message) {
+    throw new Error(
+      'sign() is not supported for Safe multisig accounts. ' +
+      'Use proposeMessage() for multisig message signing, then approveMessage() to collect signatures.'
+    )
+  }
+
+  /**
+   * Not supported for Safe multisig accounts.
+   * Use {@link getMessage} to retrieve multisig message signatures.
+   *
+   * @param {string} _message - The original message (unused)
+   * @param {string} _signature - The signature to verify (unused)
+   * @returns {Promise<never>}
+   * @throws {Error} Always throws - use getMessage() instead
+   */
+  async verify (_message, _signature) {
+    throw new Error(
+      'verify() is not supported for Safe multisig accounts. ' +
+      'Use getMessage() to retrieve the combined multisig signature.'
+    )
+  }
+
+  /**
    * Proposes a message for multisig signing.
    * Creates a SafeMessage, signs it, and uploads to Safe Transaction Service.
    *

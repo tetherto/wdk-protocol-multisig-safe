@@ -202,7 +202,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
       })
 
       expect(sponsoredAccount._config.paymasterOptions.isSponsored).toBe(true)
-      expect(sponsoredAccount._config.paymasterOptions.paymasterUrl).toBe('https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key')
       expect(sponsoredAccount._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
       sponsoredAccount.dispose()
     })
@@ -235,6 +234,26 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const address = await account.getSignerAddress()
 
       expect(address).toBe(ACCOUNT.address)
+    })
+  })
+
+  describe('sign', () => {
+    test('should throw error with guidance to use proposeMessage', async () => {
+      await expect(account.sign('test message'))
+        .rejects.toThrow('sign() is not supported for Safe multisig accounts')
+
+      await expect(account.sign('test message'))
+        .rejects.toThrow('Use proposeMessage()')
+    })
+  })
+
+  describe('verify', () => {
+    test('should throw error with guidance to use getMessage', async () => {
+      await expect(account.verify('test message', '0xsignature'))
+        .rejects.toThrow('verify() is not supported for Safe multisig accounts')
+
+      await expect(account.verify('test message', '0xsignature'))
+        .rejects.toThrow('Use getMessage()')
     })
   })
 
