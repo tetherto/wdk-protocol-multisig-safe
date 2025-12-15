@@ -428,7 +428,7 @@ Read-only multisig Safe account for querying.
 | `getPaymasterTokenBalance()` | Get paymaster token balance | `Promise<bigint>` |
 | **Transactions** |
 | `getPendingTransactions()` | Get pending operations | `Promise<Object>` |
-| `getTransaction(hash)` | Get operation details | `Promise<Object>` |
+| `getSafeOperation(hash)` | Get operation details | `Promise<Object>` |
 | `getTransactionHistory(options?)` | Get executed transaction history | `Promise<Object>` |
 | `getIncomingTransactions(options?)` | Get incoming transfers | `Promise<Object>` |
 | `isReadyToExecute(hash)` | Check if ready | `Promise<boolean>` |
