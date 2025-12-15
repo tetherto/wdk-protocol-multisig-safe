@@ -268,25 +268,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Gets a message and its signatures from Safe Transaction Service.
-   *
-   * @param {string} messageHash - The Safe message hash.
-   * @returns {Promise<Object | null>} The message with signatures or null.
-   */
-  async getMessage (messageHash) {
-    const apiKit = await this._getApiKit()
-
-    try {
-      return await apiKit.getMessage(messageHash)
-    } catch (error) {
-      if (error.message?.includes('not found')) {
-        return null
-      }
-      throw error
-    }
-  }
-
-  /**
    * Validates that the signer is an owner of the Safe.
    *
    * @returns {Promise<void>}
@@ -567,23 +548,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
     return {
       hash: userOpHash
-    }
-  }
-
-  /**
-   * Gets the on-chain transaction hash for a UserOperation.
-   *
-   * @param {string} userOpHash - The UserOperation hash
-   * @returns {Promise<string | null>} The transaction hash or null if not found
-   */
-  async getTransactionHashByUserOpHash (userOpHash) {
-    const safe4337Pack = await this._getSafe4337Pack()
-
-    try {
-      const receipt = await safe4337Pack.getUserOperationReceipt(userOpHash)
-      return receipt?.receipt?.transactionHash || null
-    } catch (e) {
-      return null
     }
   }
 

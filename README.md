@@ -29,6 +29,29 @@ npm install @tetherto/wdk-wallet-evm-multisig-safe
 
 ## 🚀 Quick Start
 
+### Discovering User's Safes
+
+```javascript
+import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
+
+// Find all Safes owned by a user
+const userEoa = '0x1234...'
+const safes = await WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(userEoa, {
+  chainId: 11155111n  // Sepolia
+})
+
+console.log('User owns these Safes:', safes)
+
+// Get info about a specific Safe before importing
+const safeInfo = await WalletAccountReadOnlyEvmMultisigSafe.getSafeInfo(safes[0], {
+  chainId: 11155111n
+})
+
+console.log('Safe owners:', safeInfo.owners)
+console.log('Threshold:', safeInfo.threshold)
+console.log('Version:', safeInfo.version)
+```
+
 ### Creating a New 2-of-2 Multisig Safe
 
 ```javascript
@@ -368,6 +391,8 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `proposeMessage(message)` | Propose multisig message | `Promise<MessageProposalResult>` |
 | `approveMessage(messageHash)` | Approve message | `Promise<ApprovalResult>` |
 | `getMessage(messageHash)` | Get message status | `Promise<Object \| null>` |
+| `sign(message)` | Throws error - use `proposeMessage()` | `Promise<never>` |
+| `verify(message, signature)` | Throws error - use `getMessage()` | `Promise<never>` |
 | **Other** |
 | `deploy()` | Deploy Safe | `Promise<{deployed: boolean, txHash: string \| null}>` |
 | `validateSignerIsOwner()` | Validate signer is owner | `Promise<void>` |
@@ -378,20 +403,41 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 
 Read-only multisig Safe account for querying.
 
-#### Methods
+#### Static Methods
 
 | Method | Description | Returns |
 |--------|-------------|---------|
+| `getSafesByOwner(ownerAddress, config)` | Get all Safe addresses owned by an address | `Promise<string[]>` |
+| `getSafeInfo(safeAddress, config)` | Get Safe info without creating instance | `Promise<SafeInfo>` |
+| `generateDeterministicSaltNonce(owners, threshold)` | Generate deterministic salt nonce | `string` |
+
+#### Instance Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| **Safe Info** |
 | `getAddress()` | Get Safe address | `Promise<string>` |
-| `getBalance()` | Get native token balance | `Promise<bigint>` |
-| `getTokenBalance(token)` | Get ERC20 token balance | `Promise<bigint>` |
 | `getOwners()` | Get Safe owners | `Promise<string[]>` |
 | `getThreshold()` | Get required signatures | `Promise<number>` |
 | `getNonce()` | Get Safe nonce | `Promise<bigint>` |
 | `isDeployed()` | Check if deployed | `Promise<boolean>` |
+| `getVersion()` | Get Safe contract version | `Promise<string>` |
+| **Balances** |
+| `getBalance()` | Get native token balance | `Promise<bigint>` |
+| `getTokenBalance(token)` | Get ERC20 token balance | `Promise<bigint>` |
+| `getAllTokenBalances()` | Get all ERC-20 token balances | `Promise<TokenBalance[]>` |
+| `getPaymasterTokenBalance()` | Get paymaster token balance | `Promise<bigint>` |
+| **Transactions** |
 | `getPendingTransactions()` | Get pending operations | `Promise<Object>` |
 | `getTransaction(hash)` | Get operation details | `Promise<Object>` |
+| `getTransactionHistory(options?)` | Get executed transaction history | `Promise<Object>` |
+| `getIncomingTransactions(options?)` | Get incoming transfers | `Promise<Object>` |
 | `isReadyToExecute(hash)` | Check if ready | `Promise<boolean>` |
+| `getTransactionHashByUserOpHash(hash)` | Get on-chain tx hash | `Promise<string \| null>` |
+| **Messages** |
+| `getMessage(messageHash)` | Get message details | `Promise<Object \| null>` |
+| `getPendingMessages()` | Get pending messages | `Promise<Object>` |
+| **Quotes** |
 | `quoteSendTransaction(tx)` | Estimate fee | `Promise<{fee: bigint}>` |
 | `quoteTransfer(options)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
 
@@ -434,60 +480,7 @@ interface EvmMultisigSafeConfig {
   // Optional - Fee limits
   transferMaxFee?: number | bigint
 }
-
-interface MultisigTransferResult {
-  hash: string           // safeOperationHash (if not executed) or userOpHash (if executed)
-  fee: bigint
-  confirmations: number
-  threshold: number
-  executed: boolean
-}
-
-interface ProposeResult {
-  safeOperationHash: string
-  confirmations: number
-  threshold: number
-}
-
-interface ApprovalResult {
-  confirmations: number
-  threshold: number
-}
-
-interface ExecuteResult {
-  hash: string  // userOpHash
-}
-
-interface PaymasterOptions {
-  paymasterUrl: string              // Paymaster service URL
-  paymasterAddress?: string         // Optional: paymaster contract address
-  paymasterTokenAddress?: string    // For ERC-20 mode: token address for gas payment
-  isSponsored?: boolean             // For sponsored mode: enable gasless transactions
-  sponsorshipPolicyId?: string      // For sponsored mode: optional policy ID
-}
 ```
-
-## 🌐 Supported Networks
-
-Works with any EVM chain supported by Safe Protocol and ERC-4337:
-
-- **Ethereum** (Mainnet, Sepolia)
-- **Polygon** (Mainnet, Mumbai)
-- **Arbitrum** (One, Sepolia)
-- **Optimism** (Mainnet, Sepolia)
-- **Base** (Mainnet, Sepolia)
-- **And more...**
-
-## 🔒 Security Considerations
-
-- **Seed Phrase Security**: Store seed phrases securely, never share them
-- **Owner Verification**: Always verify owner addresses before creating a Safe
-- **Threshold Settings**: Choose appropriate threshold for your security needs
-- **Fee Limits**: Set `transferMaxFee` to prevent excessive fees
-- **Memory Cleanup**: Use `dispose()` to clear sensitive data
-- **Signature Verification**: Validate all signatures before execution
-- **Sponsorship Policies**: When using sponsored mode, configure policies to prevent abuse
-
 ## 🛠️ Development
 
 ```bash
@@ -496,11 +489,6 @@ npm install
 
 # Run tests
 npm test
-
-# Run Sepolia integration tests
-node test/test-sepolia.js sponsored    # Test sponsored mode
-node test/test-sepolia.js multisig     # Test full multisig flow
-node test/test-sepolia.js compare      # Compare paymaster modes
 
 # Lint code
 npm run lint

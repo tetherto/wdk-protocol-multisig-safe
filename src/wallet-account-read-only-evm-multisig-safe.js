@@ -69,9 +69,66 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
 
+/**
+ * @typedef {Object} SafeInfo
+ * @property {string} address - Safe address
+ * @property {string[]} owners - Array of owner addresses
+ * @property {number} threshold - Number of required signatures
+ * @property {string} nonce - Current nonce
+ * @property {string} version - Safe contract version
+ * @property {boolean} isDeployed - Whether Safe is deployed
+ */
+
+/**
+ * @typedef {Object} SafesByOwnerConfig
+ * @property {bigint} chainId - Chain ID
+ * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
+ * @property {string} [safeApiKey] - Safe API key
+ */
+
+/**
+ * @typedef {Object} TransactionHistoryOptions
+ * @property {number} [limit] - Maximum number of transactions to return
+ * @property {number} [offset] - Offset for pagination
+ */
+
+/**
+ * @typedef {Object} TokenBalance
+ * @property {string} tokenAddress - Token contract address
+ * @property {string} token - Token symbol
+ * @property {bigint} balance - Token balance in base units
+ * @property {number} decimals - Token decimals
+ */
+
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
+
+/**
+ * Creates SafeApiKit configuration from config object.
+ *
+ * @private
+ * @param {Object} config - Configuration object
+ * @param {bigint} config.chainId - Chain ID
+ * @param {string} [config.txServiceUrl] - Custom Safe Transaction Service URL
+ * @param {string} [config.safeApiKey] - Safe API key
+ * @returns {Object} SafeApiKit configuration
+ */
+function createApiKitConfig (config) {
+  const apiKitConfig = {
+    chainId: config.chainId
+  }
+
+  if (config.txServiceUrl) {
+    apiKitConfig.txServiceUrl = config.txServiceUrl
+  }
+
+  if (config.safeApiKey) {
+    apiKitConfig.apiKey = config.safeApiKey
+  }
+
+  return apiKitConfig
+}
 
 /**
  * Read-only EVM multisig Safe wallet account.
@@ -148,6 +205,78 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
     /** @private */
     this._signerAddress = signerAddress
+  }
+
+  /**
+   * Gets all Safe addresses owned by an address.
+   * Useful for discovering user's Safes during wallet login/import.
+   *
+   * @static
+   * @param {string} ownerAddress - The owner's EOA address
+   * @param {SafesByOwnerConfig} config - Configuration object
+   * @returns {Promise<string[]>} Array of Safe addresses
+   *
+   */
+  static async getSafesByOwner (ownerAddress, config) {
+    if (!ownerAddress) {
+      throw new Error('ownerAddress is required')
+    }
+
+    if (!config?.chainId) {
+      throw new Error('chainId is required')
+    }
+
+    const apiKit = new SafeApiKit(createApiKitConfig(config))
+    const response = await apiKit.getSafesByOwner(ownerAddress)
+
+    return response.safes || []
+  }
+
+  /**
+   * Gets Safe information without creating a full instance.
+   * Useful for quick lookups before importing a Safe.
+   *
+   * @static
+   * @param {string} safeAddress - The Safe address
+   * @param {SafesByOwnerConfig} config - Configuration object
+   * @returns {Promise<SafeInfo>} Safe information
+   *
+   */
+  static async getSafeInfo (safeAddress, config) {
+    if (!safeAddress) {
+      throw new Error('safeAddress is required')
+    }
+
+    if (!config?.chainId) {
+      throw new Error('chainId is required')
+    }
+
+    const apiKit = new SafeApiKit(createApiKitConfig(config))
+    const safeInfo = await apiKit.getSafeInfo(safeAddress)
+
+    return {
+      address: safeInfo.address,
+      owners: safeInfo.owners,
+      threshold: safeInfo.threshold,
+      nonce: safeInfo.nonce?.toString() || '0',
+      version: safeInfo.version || 'unknown',
+      isDeployed: true
+    }
+  }
+
+  /**
+   * Generates a deterministic salt nonce from owners and threshold.
+   * Uses keccak256 hash of sorted owners and threshold.
+   *
+   * @static
+   * @param {string[]} owners - Array of owner addresses
+   * @param {number} threshold - Number of required signatures
+   * @returns {string} The deterministic salt nonce (hex string)
+   */
+  static generateDeterministicSaltNonce (owners, threshold) {
+    const sortedOwners = [...owners].map(o => o.toLowerCase()).sort()
+    const data = JSON.stringify({ owners: sortedOwners, threshold })
+    return keccak256(toUtf8Bytes(data))
   }
 
   /**
@@ -249,6 +378,22 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
+   * Returns the Safe contract version.
+   *
+   * @returns {Promise<string>} The Safe version (e.g., "1.4.1")
+   */
+  async getVersion () {
+    const isDeployed = await this.isDeployed()
+
+    if (!isDeployed) {
+      return 'not deployed'
+    }
+
+    const safe4337Pack = await this._getSafe4337Pack()
+    return await safe4337Pack.protocolKit.getContractVersion()
+  }
+
+  /**
    * Returns the Safe's native token balance
    *
    * @returns {Promise<bigint>} Balance in wei
@@ -270,40 +415,61 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns the Safe's balance for the paymaster token.
+   * Returns all ERC-20 token balances for the Safe.
+   * Queries the Safe Transaction Service for known token balances.
    *
-   * @returns {Promise<bigint>} Paymaster token balance in base units
+   * @returns {Promise<TokenBalance[]>} Array of token balances
+   *
+   */
+  async getAllTokenBalances () {
+    const apiKit = await this._getApiKit()
+    const safeAddress = await this.getAddress()
+
+    try {
+      const balances = await apiKit.getBalances(safeAddress)
+
+      return balances
+        .filter(b => b.tokenAddress)
+        .map(b => ({
+          tokenAddress: b.tokenAddress,
+          token: b.token?.symbol || 'UNKNOWN',
+          balance: BigInt(b.balance || '0'),
+          decimals: b.token?.decimals || 18
+        }))
+    } catch (error) {
+      if (error.message?.includes('404') || error.message?.includes('not found')) {
+        return []
+      }
+      throw error
+    }
+  }
+
+  /**
+   * Returns the Safe's paymaster token balance.
+   * Convenience method to check if Safe has enough tokens for gas.
+   *
+   * @returns {Promise<bigint>} Paymaster token balance
+   * @throws {Error} If no paymaster token is configured
    */
   async getPaymasterTokenBalance () {
-    const { paymasterOptions } = this._config
+    const paymasterTokenAddress = this._config.paymasterOptions?.paymasterTokenAddress
 
-    if (!paymasterOptions?.paymasterTokenAddress) {
+    if (!paymasterTokenAddress) {
       throw new Error('No paymaster token configured')
     }
 
-    return await this.getTokenBalance(paymasterOptions.paymasterTokenAddress)
+    return await this.getTokenBalance(paymasterTokenAddress)
   }
 
   /**
-   * Returns the current allowance for the given token and spender.
+   * Returns pending Safe operations awaiting signatures.
    *
-   * @param {string} token - The token address
-   * @param {string} spender - The spender address
-   * @returns {Promise<bigint>} The allowance
-   */
-  async getAllowance (token, spender) {
-    const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
-    return await evmReadOnlyAccount.getAllowance(token, spender)
-  }
-
-  /**
-   * Returns pending Safe operations from the Safe Transaction Service.
-   *
-   * @returns {Promise<Object>} Pending operations
+   * @returns {Promise<Object>} Pending operations from Safe Transaction Service
    */
   async getPendingTransactions () {
     const apiKit = await this._getApiKit()
     const address = await this.getAddress()
+
     return await apiKit.getPendingSafeOperations(address)
   }
 
@@ -311,7 +477,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Returns a specific Safe operation by hash.
    *
    * @param {string} safeOperationHash - The Safe operation hash
-   * @returns {Promise<Object | null>} The Safe operation or null
+   * @returns {Promise<Object | null>} The operation or null if not found
    */
   async getTransaction (safeOperationHash) {
     const apiKit = await this._getApiKit()
@@ -327,29 +493,40 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns a transaction receipt.
+   * Returns the transaction history for the Safe.
+   * Includes executed multisig transactions.
    *
-   * @param {string} userOpHash - The UserOperation hash
-   * @returns {Promise<EvmTransactionReceipt | null>} The receipt or null
+   * @param {TransactionHistoryOptions} [options] - Query options
+   * @returns {Promise<Object>} Transaction history from Safe Transaction Service
+   *
    */
-  async getTransactionReceipt (userOpHash) {
-    const safe4337Pack = await this._getSafe4337Pack()
-    const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
+  async getTransactionHistory (options = {}) {
+    const apiKit = await this._getApiKit()
+    const safeAddress = await this.getAddress()
 
-    const userOp = await safe4337Pack.getUserOperationByHash(userOpHash)
-
-    if (!userOp || !userOp.transactionHash) {
-      return null
-    }
-
-    return await evmReadOnlyAccount.getTransactionReceipt(userOp.transactionHash)
+    return await apiKit.getMultisigTransactions(safeAddress)
   }
 
   /**
-   * Checks if a Safe operation is ready to execute (has enough signatures).
+   * Returns incoming transfers to the Safe.
+   * Includes ETH and ERC-20 token transfers.
+   *
+   * @param {TransactionHistoryOptions} [options] - Query options
+   * @returns {Promise<Object>} Incoming transfers from Safe Transaction Service
+   *
+   */
+  async getIncomingTransactions (options = {}) {
+    const apiKit = await this._getApiKit()
+    const safeAddress = await this.getAddress()
+
+    return await apiKit.getIncomingTransactions(safeAddress)
+  }
+
+  /**
+   * Checks if a Safe operation is ready to be executed.
    *
    * @param {string} safeOperationHash - The Safe operation hash
-   * @returns {Promise<boolean>} True if ready to execute
+   * @returns {Promise<boolean>} True if confirmations >= threshold
    */
   async isReadyToExecute (safeOperationHash) {
     const operation = await this.getTransaction(safeOperationHash)
@@ -362,6 +539,57 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     const confirmations = operation.confirmations?.length || 0
 
     return confirmations >= threshold
+  }
+
+  /**
+   * Gets the on-chain transaction hash for a UserOperation.
+   *
+   * @param {string} userOpHash - The UserOperation hash
+   * @returns {Promise<string | null>} The transaction hash or null if not found
+   *
+   */
+  async getTransactionHashByUserOpHash (userOpHash) {
+    const safe4337Pack = await this._getSafe4337Pack()
+
+    try {
+      const receipt = await safe4337Pack.getUserOperationReceipt(userOpHash)
+      return receipt?.receipt?.transactionHash || null
+    } catch (e) {
+      return null
+    }
+  }
+
+  /**
+   * Gets a message and its signatures from Safe Transaction Service.
+   *
+   * @param {string} messageHash - The Safe message hash
+   * @returns {Promise<Object | null>} The message with signatures or null if not found
+   *
+   */
+  async getMessage (messageHash) {
+    const apiKit = await this._getApiKit()
+
+    try {
+      return await apiKit.getMessage(messageHash)
+    } catch (error) {
+      if (error.message?.includes('not found')) {
+        return null
+      }
+      throw error
+    }
+  }
+
+  /**
+   * Returns pending messages awaiting signatures.
+   *
+   * @returns {Promise<Object>} Pending messages from Safe Transaction Service
+   *
+   */
+  async getPendingMessages () {
+    const apiKit = await this._getApiKit()
+    const safeAddress = await this.getAddress()
+
+    return await apiKit.getMessages(safeAddress)
   }
 
   /**
@@ -388,21 +616,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   async quoteTransfer (options) {
     const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(options)
     return await this.quoteSendTransaction(tx)
-  }
-
-  /**
-   * Generates a deterministic salt nonce from owners and threshold.
-   * Uses keccak256 hash of sorted owners and threshold.
-   *
-   * @static
-   * @param {string[]} owners - Array of owner addresses
-   * @param {number} threshold - Number of required signatures
-   * @returns {string} The deterministic salt nonce (hex string)
-   */
-  static generateDeterministicSaltNonce (owners, threshold) {
-    const sortedOwners = [...owners].map(o => o.toLowerCase()).sort()
-    const data = JSON.stringify({ owners: sortedOwners, threshold })
-    return keccak256(toUtf8Bytes(data))
   }
 
   /**
@@ -549,18 +762,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    */
   async _getApiKit () {
     if (!this._apiKit) {
-      const apiKitConfig = {
-        chainId: this._config.chainId
-      }
-
-      if (this._config.txServiceUrl) {
-        apiKitConfig.txServiceUrl = this._config.txServiceUrl
-      }
-
-      if (this._config.safeApiKey) {
-        apiKitConfig.apiKey = this._config.safeApiKey
-      }
-      this._apiKit = new SafeApiKit(apiKitConfig)
+      this._apiKit = new SafeApiKit(createApiKitConfig(this._config))
     }
 
     return this._apiKit

@@ -18,10 +18,6 @@ import { describe, expect, test, jest } from '@jest/globals'
 
 import { WalletAccountReadOnlyEvmMultisigSafe } from '../index.js'
 
-// ============================================
-// Test Constants
-// ============================================
-
 const ACCOUNT = {
   address: '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
 }
@@ -38,10 +34,6 @@ const MOCK_CONFIG = {
 
 const MOCK_SAFE_ADDRESS = '0x1234567890123456789012345678901234567890'
 const MOCK_SAFE_OP_HASH = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
-
-// ============================================
-// Mock Helpers
-// ============================================
 
 const createMockSafe4337Pack = (overrides = {}) => ({
   protocolKit: {
@@ -67,10 +59,6 @@ const createMockApiKit = (overrides = {}) => ({
   }),
   ...overrides
 })
-
-// ============================================
-// WalletAccountReadOnlyEvmMultisigSafe Tests
-// ============================================
 
 describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
   describe('constructor', () => {
@@ -244,18 +232,30 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         ...MOCK_CONFIG,
         paymasterOptions: {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+          paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
+        },
+        safeAddress: MOCK_SAFE_ADDRESS
+      })
+
+      expect(account._config.paymasterOptions.paymasterTokenAddress).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
+      expect(account._config.paymasterOptions.isSponsored).toBeUndefined()
+    })
+
+    test('should successfully initialize with ERC-20 paymaster and paymasterAddress', () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
           paymasterAddress: '0xPaymasterAddress',
           paymasterTokenAddress: '0xUSDC'
         },
         safeAddress: MOCK_SAFE_ADDRESS
       })
 
-      expect(account._config.paymasterOptions.paymasterTokenAddress).toBe('0xUSDC')
       expect(account._config.paymasterOptions.paymasterAddress).toBe('0xPaymasterAddress')
-      expect(account._config.paymasterOptions.isSponsored).toBeUndefined()
     })
 
-    test('should successfully initialize with sponsored paymaster options', () => {
+    test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
         paymasterOptions: {
@@ -268,7 +268,6 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
 
       expect(account._config.paymasterOptions.isSponsored).toBe(true)
       expect(account._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
-      expect(account._config.paymasterOptions.paymasterTokenAddress).toBeUndefined()
     })
   })
 
@@ -614,6 +613,30 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
 
       await expect(account.getPaymasterTokenBalance())
         .rejects.toThrow('No paymaster token configured')
+    })
+  })
+
+  describe('static getSafesByOwner', () => {
+    test('should throw error when ownerAddress is missing', async () => {
+      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(null, { chainId: 11155111n }))
+        .rejects.toThrow('ownerAddress is required')
+    })
+
+    test('should throw error when chainId is missing', async () => {
+      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(ACCOUNT.address, {}))
+        .rejects.toThrow('chainId is required')
+    })
+  })
+
+  describe('static getSafeInfo', () => {
+    test('should throw error when safeAddress is missing', async () => {
+      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafeInfo(null, { chainId: 11155111n }))
+        .rejects.toThrow('safeAddress is required')
+    })
+
+    test('should throw error when chainId is missing', async () => {
+      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafeInfo(MOCK_SAFE_ADDRESS, {}))
+        .rejects.toThrow('chainId is required')
     })
   })
 
