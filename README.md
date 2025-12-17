@@ -582,25 +582,6 @@ interface EvmMultisigSafeConfig {
 }
 ```
 
-## ⚠️ Important Notes
-
-### Deployment Gas Requirements
-
-- **Safe deployment requires native ETH** in the deployer's EOA account
-- The `deploy()` method sends a regular transaction (not a UserOperation)
-- After deployment, all subsequent transactions can use paymaster or sponsored mode
-- Fund the signer's EOA address (from `getSignerAddress()`) before calling `deploy()`
-
-### Gas Payment Summary
-
-| Operation | Gas Payment |
-|-----------|-------------|
-| `deploy()` | ETH in signer's EOA (required) |
-| `sendTransaction()` | Paymaster (ERC-20 tokens) or Sponsored |
-| `transfer()` | Paymaster (ERC-20 tokens) or Sponsored |
-| `propose()` | Paymaster (ERC-20 tokens) or Sponsored |
-| `execute()` | Paymaster (ERC-20 tokens) or Sponsored |
-
 ## 🛠️ Development
 
 ```bash
