@@ -44,6 +44,14 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 
 /**
+ * @typedef {Object} ProposeOptions
+ * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
+ * @property {boolean} [isSponsored] - Override to use sponsored mode
+ * @property {string} [sponsorshipPolicyId] - Override sponsorship policy
+ * @property {string} [paymasterTokenAddress] - Override token for ERC-20 paymaster
+ */
+
+/**
  * @typedef {Object} PaymasterOptions
  * @property {string} paymasterUrl - Paymaster service URL
  * @property {string} [paymasterAddress] - Paymaster contract address
@@ -553,22 +561,24 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Estimates the fee for a transaction.
    *
    * @param {EvmTransaction} tx - The transaction
+   * @param {ProposeOptions} [options] - Options for paymaster override
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
-  async quoteSendTransaction (tx) {
-    const fee = await this._estimateUserOperationGas([tx])
+  async quoteSendTransaction (tx, options = {}) {
+    const fee = await this._estimateUserOperationGas([tx], options)
     return { fee }
   }
 
   /**
    * Estimates the fee for a token transfer.
    *
-   * @param {TransferOptions} options - Transfer options
+   * @param {TransferOptions} transferOptions - Transfer options
+   * @param {ProposeOptions} [options] - Options for paymaster override
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
-  async quoteTransfer (options) {
-    const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(options)
-    return await this.quoteSendTransaction(tx)
+  async quoteTransfer (transferOptions, options = {}) {
+    const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(transferOptions)
+    return await this.quoteSendTransaction(tx, options)
   }
 
   /**
@@ -576,11 +586,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @private
    * @param {EvmTransaction[]} transactions - Array of transactions
+   * @param {ProposeOptions} [options] - Options for paymaster override
    * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
    */
-  async _estimateUserOperationGas (transactions) {
-    const safe4337Pack = await this._getSafe4337Pack()
+  async _estimateUserOperationGas (transactions, options = {}) {
+    const safe4337Pack = await this._getSafe4337Pack(options)
     const address = await this.getAddress()
+
+    const paymasterTokenAddress = options.paymasterTokenAddress ??
+      this._config.paymasterOptions?.paymasterTokenAddress
 
     const formattedTxs = transactions.map(tx => ({
       to: tx.to,
@@ -610,9 +624,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
       const gasCostWei = totalGas * BigInt(maxFeePerGas)
 
-      if (this._config.paymasterOptions?.paymasterTokenAddress) {
+      if (paymasterTokenAddress) {
         const exchangeRate = await safe4337Pack.getTokenExchangeRate(
-          this._config.paymasterOptions.paymasterTokenAddress
+          paymasterTokenAddress
         )
         const gasCostInToken = (gasCostWei * BigInt(exchangeRate)) / (10n ** 18n)
         return gasCostInToken
@@ -633,9 +647,18 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Child classes can override this to add a signer.
    *
    * @protected
+   * @param {ProposeOptions} [options] - Options for paymaster override
    * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
    */
-  async _getSafe4337Pack () {
+  async _getSafe4337Pack (options = {}) {
+    const hasPaymasterOverride = options.isSponsored !== undefined ||
+      options.sponsorshipPolicyId !== undefined ||
+      options.paymasterTokenAddress !== undefined
+
+    if (hasPaymasterOverride) {
+      return await this._initSafe4337Pack(options)
+    }
+
     if (!this._safe4337Pack) {
       this._safe4337Pack = await this._initSafe4337Pack()
     }
@@ -648,9 +671,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Child classes can override to add signer.
    *
    * @protected
+   * @param {ProposeOptions} [options] - Options for paymaster override
    * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
    */
-  async _initSafe4337Pack () {
+  async _initSafe4337Pack (options = {}) {
     const { safeAddress, safeAccountConfig, safeDeploymentConfig } = this._config
 
     const initOptions = {
@@ -680,7 +704,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     }
 
     if (this._config.paymasterOptions) {
-      const { paymasterUrl, paymasterAddress, paymasterTokenAddress, isSponsored, sponsorshipPolicyId } = this._config.paymasterOptions
+      const { paymasterUrl, paymasterAddress } = this._config.paymasterOptions
+
+      const isSponsored = options.isSponsored ?? this._config.paymasterOptions.isSponsored
+      const sponsorshipPolicyId = options.sponsorshipPolicyId ?? this._config.paymasterOptions.sponsorshipPolicyId
+      const paymasterTokenAddress = options.paymasterTokenAddress ?? this._config.paymasterOptions.paymasterTokenAddress
 
       initOptions.paymasterOptions = { paymasterUrl }
 

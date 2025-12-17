@@ -372,6 +372,67 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       sponsoredAccount.dispose()
     })
+
+    test('should override to sponsored mode via options', async () => {
+      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+          paymasterTokenAddress: '0xUSDC'
+        },
+        safeAccountConfig: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit()
+      erc20Account._safe4337Pack = mockPack
+      erc20Account._apiKit = mockApiKit
+      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
+      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      erc20Account._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+
+      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
+      await erc20Account.propose(tx, { isSponsored: true, amountToApprove: 500000n })
+
+      const callArgs = mockPack.createTransaction.mock.calls[0][0]
+      expect(callArgs.options).toBeUndefined()
+
+      erc20Account.dispose()
+    })
+
+    test('should override to ERC-20 mode via options from sponsored config', async () => {
+      const sponsoredAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+          isSponsored: true
+        },
+        safeAccountConfig: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit()
+      sponsoredAccount._safe4337Pack = mockPack
+      sponsoredAccount._apiKit = mockApiKit
+      sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
+      sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      sponsoredAccount._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+
+      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
+      await sponsoredAccount.propose(tx, { isSponsored: false, amountToApprove: 500000n })
+
+      const callArgs = mockPack.createTransaction.mock.calls[0][0]
+      expect(callArgs.options).toBeDefined()
+      expect(callArgs.options.amountToApprove).toBe(500000n)
+
+      sponsoredAccount.dispose()
+    })
   })
 
   describe('approve', () => {
@@ -458,7 +519,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
   })
 
   describe('sendTransaction', () => {
-    test('should return MultisigTransferResult', async () => {
+    test('should return MultisigTransactionResult', async () => {
       const mockPack = createMockSafe4337Pack({
         protocolKit: {
           getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
@@ -573,10 +634,47 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       sponsoredAccount.dispose()
     })
+
+    test('should override to sponsored mode via options', async () => {
+      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+          paymasterTokenAddress: '0xUSDC'
+        },
+        safeAccountConfig: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isSafeDeployed: jest.fn().mockResolvedValue(true),
+          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
+          getThreshold: jest.fn().mockResolvedValue(1)
+        }
+      })
+      const mockApiKit = createMockApiKit()
+      erc20Account._safe4337Pack = mockPack
+      erc20Account._apiKit = mockApiKit
+      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
+      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      erc20Account._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+
+      const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
+      await erc20Account.sendTransaction(tx, { isSponsored: true })
+
+      const callArgs = mockPack.createTransaction.mock.calls[0][0]
+      expect(callArgs.options).toBeUndefined()
+
+      erc20Account.dispose()
+    })
   })
 
   describe('transfer', () => {
-    test('should return MultisigTransferResult', async () => {
+    test('should return MultisigTransactionResult', async () => {
       const mockPack = createMockSafe4337Pack({
         protocolKit: {
           getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
@@ -591,12 +689,12 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const options = {
+      const transferOptions = {
         token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
         recipient: ACCOUNT_2.address,
         amount: 1000n
       }
-      const result = await account.transfer(options)
+      const result = await account.transfer(transferOptions)
 
       expect(result).toBeDefined()
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
@@ -630,17 +728,59 @@ describe('WalletAccountEvmMultisigSafe', () => {
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      const options = {
+
+      const transferOptions = {
         token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
         recipient: ACCOUNT_2.address,
         amount: 1000n
       }
-      await sponsoredAccount.transfer(options)
+      await sponsoredAccount.transfer(transferOptions)
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
       expect(callArgs.options).toBeUndefined()
 
       sponsoredAccount.dispose()
+    })
+
+    test('should override to sponsored mode via options', async () => {
+      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+          paymasterTokenAddress: '0xUSDC'
+        },
+        safeAccountConfig: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isSafeDeployed: jest.fn().mockResolvedValue(true),
+          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
+          getThreshold: jest.fn().mockResolvedValue(1)
+        }
+      })
+      const mockApiKit = createMockApiKit()
+      erc20Account._safe4337Pack = mockPack
+      erc20Account._apiKit = mockApiKit
+      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
+      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      erc20Account._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+
+      const transferOptions = {
+        token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
+        recipient: ACCOUNT_2.address,
+        amount: 1000n
+      }
+      await erc20Account.transfer(transferOptions, { isSponsored: true })
+
+      const callArgs = mockPack.createTransaction.mock.calls[0][0]
+      expect(callArgs.options).toBeUndefined()
+
+      erc20Account.dispose()
     })
   })
 

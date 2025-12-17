@@ -13,6 +13,13 @@
 /** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
 /** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 /**
+ * @typedef {Object} ProposeOptions
+ * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
+ * @property {boolean} [isSponsored] - Override to use sponsored mode
+ * @property {string} [sponsorshipPolicyId] - Override sponsorship policy
+ * @property {string} [paymasterTokenAddress] - Override token for ERC-20 paymaster
+ */
+/**
  * @typedef {Object} PaymasterOptions
  * @property {string} paymasterUrl - Paymaster service URL
  * @property {string} [paymasterAddress] - Paymaster contract address
@@ -132,7 +139,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @protected
      * @type {SafeApiKit | null}
      */
-    protected _apiKit: SafeApiKit | null;
+    protected _apiKit: typeof SafeApiKit | null;
     /**
      * Cached owners list
      *
@@ -199,19 +206,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @returns {Promise<string>} The Safe version (e.g., "1.4.1")
      */
     getVersion(): Promise<string>;
-    /**
-     * Returns the Safe's native token balance.
-     *
-     * @returns {Promise<bigint>} Balance in wei
-     */
-    getBalance(): Promise<bigint>;
-    /**
-     * Returns the Safe's balance for a specific ERC-20 token.
-     *
-     * @param {string} tokenAddress - The token contract address
-     * @returns {Promise<bigint>} Token balance in base units
-     */
-    getTokenBalance(tokenAddress: string): Promise<bigint>;
     /**
      * Returns the Safe's paymaster token balance.
      *
@@ -283,18 +277,20 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Estimates the fee for a transaction.
      *
      * @param {EvmTransaction} tx - The transaction
+     * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteSendTransaction(tx: EvmTransaction): Promise<{
+    quoteSendTransaction(tx: EvmTransaction, options?: ProposeOptions): Promise<{
         fee: bigint;
     }>;
     /**
      * Estimates the fee for a token transfer.
      *
-     * @param {TransferOptions} options - Transfer options
+     * @param {TransferOptions} transferOptions - Transfer options
+     * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteTransfer(options: TransferOptions): Promise<{
+    quoteTransfer(transferOptions: TransferOptions, options?: ProposeOptions): Promise<{
         fee: bigint;
     }>;
     /**
@@ -302,6 +298,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      *
      * @private
      * @param {EvmTransaction[]} transactions - Array of transactions
+     * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
      */
     private _estimateUserOperationGas;
@@ -310,24 +307,26 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Child classes can override this to add a signer.
      *
      * @protected
+     * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
      */
-    protected _getSafe4337Pack(): Promise<Safe4337Pack>;
+    protected _getSafe4337Pack(options?: ProposeOptions): Promise<Safe4337Pack>;
     /**
      * Initializes the Safe4337Pack with configuration.
      * Child classes can override to add signer.
      *
      * @protected
+     * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
      */
-    protected _initSafe4337Pack(): Promise<Safe4337Pack>;
+    protected _initSafe4337Pack(options?: ProposeOptions): Promise<Safe4337Pack>;
     /**
      * Returns the Safe API Kit instance.
      *
      * @protected
      * @returns {Promise<SafeApiKit>} The Safe API Kit instance
      */
-    protected _getApiKit(): Promise<SafeApiKit>;
+    protected _getApiKit(): Promise<typeof SafeApiKit>;
     /**
      * Returns a read-only EVM account for the Safe address.
      *
@@ -357,6 +356,24 @@ export type TransferListResponse = import("@safe-global/api-kit").TransferListRe
 export type ListOptions = import("@safe-global/api-kit").ListOptions;
 export type SafeOperationResponse = import("@safe-global/types-kit").SafeOperationResponse;
 export type SafeMessage = import("@safe-global/types-kit").SafeMessage;
+export type ProposeOptions = {
+    /**
+     * - Amount to approve for paymaster (ignored in sponsored mode)
+     */
+    amountToApprove?: number | bigint;
+    /**
+     * - Override to use sponsored mode
+     */
+    isSponsored?: boolean;
+    /**
+     * - Override sponsorship policy
+     */
+    sponsorshipPolicyId?: string;
+    /**
+     * - Override token for ERC-20 paymaster
+     */
+    paymasterTokenAddress?: string;
+};
 export type PaymasterOptions = {
     /**
      * - Paymaster service URL

@@ -5,6 +5,7 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
+/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
 /**
  * @typedef {Object} ProposeResult
  * @property {string} safeOperationHash - The Safe operation hash
@@ -25,10 +26,6 @@
  * @property {string} messageHash - The Safe message hash
  * @property {number} confirmations - Number of confirmations
  * @property {number} threshold - Required threshold
- */
-/**
- * @typedef {Object} ProposeOptions
- * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  */
 /**
  * Result of a multisig transaction (sendTransaction/transfer).
@@ -143,17 +140,19 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * Auto-executes if threshold is met after proposing.
      *
      * @param {EvmTransaction} tx - The transaction to send
+     * @param {ProposeOptions} [options] - Propose options (paymaster override)
      * @returns {Promise<MultisigTransactionResult>} The transaction result
      */
-    sendTransaction(tx: EvmTransaction): Promise<MultisigTransactionResult>;
+    sendTransaction(tx: EvmTransaction, options?: ProposeOptions): Promise<MultisigTransactionResult>;
     /**
      * Transfers a token to another address.
      * Auto-executes if threshold is met after proposing.
      *
-     * @param {TransferOptions} options - Transfer options
+     * @param {TransferOptions} transferOptions - Transfer options
+     * @param {ProposeOptions} [options] - Propose options (paymaster override)
      * @returns {Promise<MultisigTransactionResult>} The transfer result
      */
-    transfer(options: TransferOptions): Promise<MultisigTransactionResult>;
+    transfer(transferOptions: TransferOptions, options?: ProposeOptions): Promise<MultisigTransactionResult>;
     /**
      * Proposes a new transaction for multisig approval.
      * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
@@ -247,6 +246,7 @@ export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type EvmMultisigSafeConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
+export type ProposeOptions = import("./wallet-account-read-only-evm-multisig-safe.js").ProposeOptions;
 export type ProposeResult = {
     /**
      * - The Safe operation hash
@@ -290,12 +290,6 @@ export type MessageProposalResult = {
      * - Required threshold
      */
     threshold: number;
-};
-export type ProposeOptions = {
-    /**
-     * - Amount to approve for paymaster (ignored in sponsored mode)
-     */
-    amountToApprove?: number | bigint;
 };
 /**
  * Result of a multisig transaction (sendTransaction/transfer).

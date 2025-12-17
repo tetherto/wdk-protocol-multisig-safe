@@ -22,10 +22,10 @@ export type SafeAccountConfig = import("./src/wallet-account-read-only-evm-multi
 export type SafeDeploymentConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").SafeDeploymentConfig;
 export type SafeInfo = import("./src/wallet-account-read-only-evm-multisig-safe.js").SafeInfo;
 export type SafesByOwnerConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").SafesByOwnerConfig;
+export type ProposeOptions = import("./src/wallet-account-read-only-evm-multisig-safe.js").ProposeOptions;
 export type ProposeResult = import("./src/wallet-account-evm-multisig-safe.js").ProposeResult;
 export type ApprovalResult = import("./src/wallet-account-evm-multisig-safe.js").ApprovalResult;
 export type ExecuteResult = import("./src/wallet-account-evm-multisig-safe.js").ExecuteResult;
 export type MessageProposalResult = import("./src/wallet-account-evm-multisig-safe.js").MessageProposalResult;
-export type ProposeOptions = import("./src/wallet-account-evm-multisig-safe.js").ProposeOptions;
 export type MultisigTransactionResult = import("./src/wallet-account-evm-multisig-safe.js").MultisigTransactionResult;
 export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION } from "./src/wallet-account-read-only-evm-multisig-safe.js";

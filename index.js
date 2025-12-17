@@ -50,6 +50,7 @@
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').SafeDeploymentConfig} SafeDeploymentConfig */
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').SafeInfo} SafeInfo */
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').SafesByOwnerConfig} SafesByOwnerConfig */
+/** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
 
 // ============================================
 // Re-export types from full account module
@@ -59,7 +60,6 @@
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').ApprovalResult} ApprovalResult */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').ExecuteResult} ExecuteResult */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').MessageProposalResult} MessageProposalResult */
-/** @typedef {import('./src/wallet-account-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').MultisigTransactionResult} MultisigTransactionResult */
 
 // ============================================

@@ -33,6 +33,7 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
+/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
 
 /**
  * @typedef {Object} ProposeResult
@@ -57,11 +58,6 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
  * @property {string} messageHash - The Safe message hash
  * @property {number} confirmations - Number of confirmations
  * @property {number} threshold - Required threshold
- */
-
-/**
- * @typedef {Object} ProposeOptions
- * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  */
 
 /**
@@ -309,17 +305,22 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Auto-executes if threshold is met after proposing.
    *
    * @param {EvmTransaction} tx - The transaction to send
+   * @param {ProposeOptions} [options] - Propose options (paymaster override)
    * @returns {Promise<MultisigTransactionResult>} The transaction result
    */
-  async sendTransaction (tx) {
-    const { fee } = await this.quoteSendTransaction(tx)
+  async sendTransaction (tx, options = {}) {
+    const { fee } = await this.quoteSendTransaction(tx, options)
 
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transaction.')
     }
 
-    const isSponsored = this._config.paymasterOptions?.isSponsored
-    const proposeOptions = isSponsored ? {} : { amountToApprove: fee * FEE_TOLERANCE_COEFFICIENT / 100n }
+    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
+
+    const proposeOptions = { ...options }
+    if (!isSponsored && !proposeOptions.amountToApprove) {
+      proposeOptions.amountToApprove = fee * FEE_TOLERANCE_COEFFICIENT / 100n
+    }
 
     const proposeResult = await this.propose(tx, proposeOptions)
 
@@ -347,19 +348,24 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Transfers a token to another address.
    * Auto-executes if threshold is met after proposing.
    *
-   * @param {TransferOptions} options - Transfer options
+   * @param {TransferOptions} transferOptions - Transfer options
+   * @param {ProposeOptions} [options] - Propose options (paymaster override)
    * @returns {Promise<MultisigTransactionResult>} The transfer result
    */
-  async transfer (options) {
-    const tx = await WalletAccountEvm._getTransferTransaction(options)
-    const { fee } = await this.quoteSendTransaction(tx)
+  async transfer (transferOptions, options = {}) {
+    const tx = await WalletAccountEvm._getTransferTransaction(transferOptions)
+    const { fee } = await this.quoteSendTransaction(tx, options)
 
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
-    const isSponsored = this._config.paymasterOptions?.isSponsored
-    const proposeOptions = isSponsored ? {} : { amountToApprove: fee * FEE_TOLERANCE_COEFFICIENT / 100n }
+    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
+
+    const proposeOptions = { ...options }
+    if (!isSponsored && !proposeOptions.amountToApprove) {
+      proposeOptions.amountToApprove = fee * FEE_TOLERANCE_COEFFICIENT / 100n
+    }
 
     const proposeResult = await this.propose(tx, proposeOptions)
 
@@ -394,7 +400,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   async propose (transaction, options = {}) {
     await this.validateSignerIsOwner()
 
-    const safe4337Pack = await this._getSafe4337Pack()
+    const safe4337Pack = await this._getSafe4337Pack(options)
     const address = await this.getAddress()
     const threshold = await this.getThreshold()
 
@@ -410,7 +416,9 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       transactions: formattedTxs.map(tx => ({ from: address, ...tx }))
     }
 
-    if (options.amountToApprove && !this._config.paymasterOptions?.isSponsored) {
+    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
+
+    if (options.amountToApprove && !isSponsored) {
       createTxOptions.options = {
         amountToApprove: BigInt(options.amountToApprove.toString())
       }
