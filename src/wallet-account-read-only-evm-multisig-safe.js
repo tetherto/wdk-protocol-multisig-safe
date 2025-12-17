@@ -425,11 +425,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {GetSafeOperationListOptions} [options] - Query options
    * @returns {Promise<GetSafeOperationListResponse>} Pending operations from Safe Transaction Service
    */
-  async getPendingTransactions () {
+  async getPendingTransactions (options) {
     const apiKit = await this._getApiKit()
     const address = await this.getAddress()
 
-    return await apiKit.getPendingSafeOperations(address)
+    return await apiKit.getPendingSafeOperations(address, options)
   }
 
   /**

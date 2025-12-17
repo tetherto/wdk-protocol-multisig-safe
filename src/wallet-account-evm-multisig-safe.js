@@ -65,12 +65,13 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
  */
 
 /**
+ * Result of a multisig transaction (sendTransaction/transfer).
+ *
  * @typedef {Object} MultisigTransactionResult
- * @extends TransactionResult
- * @property {string} hash - Safe operation hash (for approve/execute)
- * @property {bigint} fee - Estimated fee
- * @property {number} confirmations - Current confirmations
- * @property {number} threshold - Required threshold
+ * @property {string} hash - Safe operation hash (if not executed) or UserOp hash (if executed)
+ * @property {bigint} fee - Estimated fee in paymaster token units
+ * @property {number} confirmations - Current number of confirmations
+ * @property {number} threshold - Required threshold for execution
  * @property {boolean} executed - Whether transaction was executed
  */
 
@@ -144,15 +145,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    */
   get keyPair () {
     return this._signerAccount.keyPair
-  }
-
-  /**
-   * Returns the signer's EOA address.
-   *
-   * @returns {Promise<string>} The signer's address
-   */
-  async getSignerAddress () {
-    return await this._signerAccount.getAddress()
   }
 
   /**

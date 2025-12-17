@@ -31,12 +31,13 @@
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  */
 /**
+ * Result of a multisig transaction (sendTransaction/transfer).
+ *
  * @typedef {Object} MultisigTransactionResult
- * @extends TransactionResult
- * @property {string} hash - Safe operation hash (for approve/execute)
- * @property {bigint} fee - Estimated fee
- * @property {number} confirmations - Current confirmations
- * @property {number} threshold - Required threshold
+ * @property {string} hash - Safe operation hash (if not executed) or UserOp hash (if executed)
+ * @property {bigint} fee - Estimated fee in paymaster token units
+ * @property {number} confirmations - Current number of confirmations
+ * @property {number} threshold - Required threshold for execution
  * @property {boolean} executed - Whether transaction was executed
  */
 /**
@@ -295,5 +296,30 @@ export type ProposeOptions = {
      * - Amount to approve for paymaster (ignored in sponsored mode)
      */
     amountToApprove?: number | bigint;
+};
+/**
+ * Result of a multisig transaction (sendTransaction/transfer).
+ */
+export type MultisigTransactionResult = {
+    /**
+     * - Safe operation hash (if not executed) or UserOp hash (if executed)
+     */
+    hash: string;
+    /**
+     * - Estimated fee in paymaster token units
+     */
+    fee: bigint;
+    /**
+     * - Current number of confirmations
+     */
+    confirmations: number;
+    /**
+     * - Required threshold for execution
+     */
+    threshold: number;
+    /**
+     * - Whether transaction was executed
+     */
+    executed: boolean;
 };
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';
