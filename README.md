@@ -15,6 +15,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 - **Safe Protocol Integration**: Full support for Safe (formerly Gnosis Safe) multisig wallets
 - **ERC-4337 Account Abstraction**: Gasless transactions via paymasters and bundlers
 - **Paymaster Modes**: Support for both ERC-20 paymaster and sponsored (gasless) modes
+- **Per-Transaction Paymaster Override**: Switch between ERC-20 and sponsored mode on a per-transaction basis
 - **Multi-Owner Management**: Add, remove, swap owners and change threshold
 - **Propose/Approve/Execute Flow**: Standard multisig transaction workflow
 - **Message Signing**: EIP-191 compliant multisig message signing
@@ -178,6 +179,44 @@ if (!result.executed) {
 }
 ```
 
+## 🚀 Deploying a Safe
+
+**Important**: Safe deployment requires native ETH in the deployer's EOA account to pay for the deployment transaction gas. After deployment, all subsequent transactions can use paymaster (ERC-20 tokens) or sponsored mode for gas payment.
+
+```javascript
+// Ensure the signer's EOA has ETH for deployment gas
+const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    paymasterTokenAddress: '0x...' // USDC address
+  },
+  safeAccountConfig: {
+    owners: [aliceEoa, bobEoa],
+    threshold: 2
+  }
+})
+
+// Check signer's EOA address and fund it with ETH
+const signerEoa = await alice.getSignerAddress()
+console.log('Fund this address with ETH for deployment:', signerEoa)
+
+// Deploy the Safe (requires ETH in signer's EOA)
+const deployResult = await alice.deploy()
+console.log('Deployed:', deployResult.deployed)
+console.log('TX Hash:', deployResult.txHash)
+
+// After deployment, transactions can use paymaster or sponsored mode
+// No more ETH needed in the Safe or signer's EOA!
+const result = await alice.sendTransaction({
+  to: '0x...',
+  value: '0',
+  data: '0x...'
+})
+```
+
 ## 💰 Paymaster Modes
 
 This package supports two paymaster modes for paying gas fees:
@@ -234,6 +273,68 @@ const approval = await bob.approve(proposal.safeOperationHash)
 const result = await alice.execute(proposal.safeOperationHash)
 console.log('UserOp Hash:', result.hash)
 ```
+
+### Per-Transaction Paymaster Override
+
+You can override the paymaster mode on a per-transaction basis, regardless of the account's default configuration
+```javascript
+// Account configured with ERC-20 paymaster (USDC)
+const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    paymasterTokenAddress: '0xUSDC...'  // Default: pay gas with USDC
+  },
+  safeAddress: '0x...'
+})
+
+// Override to sponsored mode for this specific transaction
+const result = await alice.sendTransaction(tx, {
+  isSponsored: true  // This transaction will be gasless!
+})
+
+// Or override to use a different token
+const result2 = await alice.sendTransaction(tx, {
+  paymasterTokenAddress: '0xUSDT...'  // Pay gas with USDT instead
+})
+```
+
+```javascript
+// Account configured with sponsored mode
+const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  paymasterOptions: {
+    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+    isSponsored: true  // Default: gasless
+  },
+  safeAddress: '0x...'
+})
+
+// Override to ERC-20 paymaster for this specific transaction
+const quote = await bob.quoteSendTransaction(tx, {
+  isSponsored: false,
+  paymasterTokenAddress: '0xUSDC...'
+})
+
+const result = await bob.sendTransaction(tx, {
+  isSponsored: false,
+  paymasterTokenAddress: '0xUSDC...',
+  amountToApprove: quote.fee * 150n / 100n
+})
+```
+
+**Override Options:**
+
+| Option | Description |
+|--------|-------------|
+| `isSponsored` | Override to sponsored mode (`true`) or ERC-20 mode (`false`) |
+| `sponsorshipPolicyId` | Override sponsorship policy ID (for sponsored mode) |
+| `paymasterTokenAddress` | Override token address for gas payment (for ERC-20 mode) |
+| `amountToApprove` | Token amount to approve for paymaster (for ERC-20 mode) |
 
 ## 👥 Owner Management
 
@@ -370,12 +471,12 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `getNonce()` | Get Safe nonce | `Promise<bigint>` |
 | `isDeployed()` | Check if Safe is deployed | `Promise<boolean>` |
 | **Transaction Methods** |
-| `sendTransaction(tx)` | Send transaction (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
-| `transfer(options)` | Transfer native token (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
-| `quoteSendTransaction(tx)` | Estimate transaction fee | `Promise<{fee: bigint}>` |
-| `quoteTransfer(options)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
+| `sendTransaction(tx, options?)` | Send transaction (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
+| `transfer(options, proposeOptions?)` | Transfer native token (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
+| `quoteSendTransaction(tx, options?)` | Estimate transaction fee | `Promise<{fee: bigint}>` |
+| `quoteTransfer(options, proposeOptions?)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
 | **Multisig Flow** |
-| `propose(tx, options)` | Propose transaction | `Promise<ProposeResult>` |
+| `propose(tx, options?)` | Propose transaction | `Promise<ProposeResult>` |
 | `approve(safeOpHash)` | Approve proposal | `Promise<ApprovalResult>` |
 | `reject(safeOpHash)` | Reject proposal | `Promise<ProposeResult>` |
 | `execute(safeOpHash)` | Execute proposal | `Promise<ExecuteResult>` |
@@ -394,7 +495,7 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `sign(message)` | Throws error - use `proposeMessage()` | `Promise<never>` |
 | `verify(message, signature)` | Throws error - use `getMessage()` | `Promise<never>` |
 | **Other** |
-| `deploy()` | Deploy Safe | `Promise<{deployed: boolean, txHash: string \| null}>` |
+| `deploy()` | Deploy Safe (requires ETH in signer's EOA) | `Promise<{deployed: boolean, txHash: string \| null}>` |
 | `validateSignerIsOwner()` | Validate signer is owner | `Promise<void>` |
 | `toReadOnlyAccount()` | Convert to read-only | `Promise<WalletAccountReadOnlyEvmMultisigSafe>` |
 | `dispose()` | Clear sensitive data | `void` |
@@ -437,8 +538,8 @@ Read-only multisig Safe account for querying.
 | `getMessage(messageHash)` | Get message details | `Promise<Object \| null>` |
 | `getPendingMessages()` | Get pending messages | `Promise<Object>` |
 | **Quotes** |
-| `quoteSendTransaction(tx)` | Estimate fee | `Promise<{fee: bigint}>` |
-| `quoteTransfer(options)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
+| `quoteSendTransaction(tx, options?)` | Estimate fee | `Promise<{fee: bigint}>` |
+| `quoteTransfer(options, proposeOptions?)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
 
 ### Configuration Types
 
@@ -480,6 +581,26 @@ interface EvmMultisigSafeConfig {
   transferMaxFee?: number | bigint
 }
 ```
+
+## ⚠️ Important Notes
+
+### Deployment Gas Requirements
+
+- **Safe deployment requires native ETH** in the deployer's EOA account
+- The `deploy()` method sends a regular transaction (not a UserOperation)
+- After deployment, all subsequent transactions can use paymaster or sponsored mode
+- Fund the signer's EOA address (from `getSignerAddress()`) before calling `deploy()`
+
+### Gas Payment Summary
+
+| Operation | Gas Payment |
+|-----------|-------------|
+| `deploy()` | ETH in signer's EOA (required) |
+| `sendTransaction()` | Paymaster (ERC-20 tokens) or Sponsored |
+| `transfer()` | Paymaster (ERC-20 tokens) or Sponsored |
+| `propose()` | Paymaster (ERC-20 tokens) or Sponsored |
+| `execute()` | Paymaster (ERC-20 tokens) or Sponsored |
+
 ## 🛠️ Development
 
 ```bash

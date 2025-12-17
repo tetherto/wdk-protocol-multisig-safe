@@ -23,10 +23,6 @@ import {
   WalletAccountReadOnlyEvmMultisigSafe
 } from '../index.js'
 
-// ============================================
-// Test Constants
-// ============================================
-
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
 const SEED_PHRASE_2 = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong'
 const INVALID_SEED_PHRASE = 'invalid seed phrase'
@@ -53,10 +49,6 @@ const MOCK_SAFE_OP_HASH = '0xabcdef1234567890abcdef1234567890abcdef1234567890abc
 const MOCK_USER_OP_HASH = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 const MOCK_TX_HASH = '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321'
 const MOCK_MESSAGE_HASH = '0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678'
-
-// ============================================
-// Mock Helpers
-// ============================================
 
 const createMockSafe4337Pack = (overrides = {}) => ({
   protocolKit: {
@@ -125,10 +117,6 @@ const createMockApiKit = (overrides = {}) => ({
   }),
   ...overrides
 })
-
-// ============================================
-// WalletAccountEvmMultisigSafe Tests
-// ============================================
 
 describe('WalletAccountEvmMultisigSafe', () => {
   let account

@@ -22,10 +22,6 @@ import WalletManagerEvmMultisigSafe, {
   WalletAccountEvmMultisigSafe
 } from '../index.js'
 
-// ============================================
-// Test Constants
-// ============================================
-
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
 const SEED_PHRASE_2 = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong'
 const INVALID_SEED_PHRASE = 'invalid seed phrase'
@@ -46,10 +42,6 @@ const MOCK_CONFIG = {
     threshold: 1
   }
 }
-
-// ============================================
-// WalletManagerEvmMultisigSafe Tests
-// ============================================
 
 describe('WalletManagerEvmMultisigSafe', () => {
   let manager

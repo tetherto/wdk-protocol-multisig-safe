@@ -593,8 +593,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     const safe4337Pack = await this._getSafe4337Pack(options)
     const address = await this.getAddress()
 
-    const paymasterTokenAddress = options.paymasterTokenAddress ??
-      this._config.paymasterOptions?.paymasterTokenAddress
+    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
+
+    const paymasterTokenAddress = !isSponsored
+      ? (options.paymasterTokenAddress ?? this._config.paymasterOptions?.paymasterTokenAddress)
+      : null
 
     const formattedTxs = transactions.map(tx => ({
       to: tx.to,
