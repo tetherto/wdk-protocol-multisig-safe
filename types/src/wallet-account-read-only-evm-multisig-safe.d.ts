@@ -22,7 +22,7 @@
 /**
  * @typedef {Object} PaymasterOptions
  * @property {string} paymasterUrl - Paymaster service URL
- * @property {string} [paymasterAddress] - Paymaster contract address
+ * @property {string} paymasterAddress - Paymaster contract address
  * @property {string} [paymasterTokenAddress] - Token address for ERC-20 paymaster payments
  * @property {boolean} [isSponsored] - Enable sponsored mode (sponsor pays gas)
  * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID for sponsored mode
@@ -382,7 +382,7 @@ export type PaymasterOptions = {
     /**
      * - Paymaster contract address
      */
-    paymasterAddress?: string;
+    paymasterAddress: string;
     /**
      * - Token address for ERC-20 paymaster payments
      */
