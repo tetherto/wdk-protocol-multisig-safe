@@ -179,7 +179,7 @@ if (!result.executed) {
 }
 ```
 
-## 🚀 Deploying a Safe
+### Deploying a Safe
 
 **Important**: Safe deployment requires native ETH in the deployer's EOA account to pay for the deployment transaction gas. After deployment, all subsequent transactions can use paymaster (ERC-20 tokens) or sponsored mode for gas payment.
 
@@ -216,10 +216,6 @@ const result = await alice.sendTransaction({
   data: '0x...'
 })
 ```
-
-## 💰 Paymaster Modes
-
-This package supports two paymaster modes for paying gas fees:
 
 ### ERC-20 Paymaster Mode
 
@@ -336,7 +332,7 @@ const result = await bob.sendTransaction(tx, {
 | `paymasterTokenAddress` | Override token address for gas payment (for ERC-20 mode) |
 | `amountToApprove` | Token amount to approve for paymaster (for ERC-20 mode) |
 
-## 👥 Owner Management
+### Owner Management
 
 ```javascript
 // Add new owner
@@ -360,7 +356,7 @@ const proposal = await alice.updateOwners(
 )
 ```
 
-## ✉️ Message Signing
+### Message Signing
 
 ```javascript
 // Alice proposes a message
@@ -376,7 +372,7 @@ const message = await alice.getMessage(proposal.messageHash)
 console.log('Combined Signature:', message.preparedSignature)
 ```
 
-## 👁️ Read-Only Account
+### Read-Only Account
 
 ```javascript
 import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
@@ -400,7 +396,7 @@ const pending = await readOnly.getPendingTransactions()
 const quote = await readOnly.quoteSendTransaction(tx)
 ```
 
-## 🔍 Tracking Transactions
+### Tracking Transactions
 
 After executing a transaction, you receive a UserOp hash. To get the on-chain transaction hash:
 
