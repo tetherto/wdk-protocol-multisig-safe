@@ -20,7 +20,7 @@ import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
 
 import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
-import { Safe4337Pack } from '@wdk-safe-global/relay-kit'
+import { Safe4337Pack } from '@jonpdunne/relay-kit'
 
 import SafeApiKit from '@safe-global/api-kit'
 
@@ -107,6 +107,7 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
+export const DEFAULT_SAFE_VERSION = '1.4.1'
 
 /**
  * Creates SafeApiKit configuration from config object.
@@ -288,7 +289,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns the Safe address.
+   * Returns the predicted Safe address.
    *
    * @returns {Promise<string>} The Safe address
    */
@@ -297,11 +298,21 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       return this._safeAddress
     }
 
-    const safe4337Pack = await this._getSafe4337Pack()
-    const address = await safe4337Pack.protocolKit.getAddress()
-    this._safeAddress = address
+    const { owners, threshold } = this._config.safeAccountConfig
+    const saltNonce = this._config.safeDeploymentConfig?.saltNonce ||
+      WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(owners, threshold)
 
-    return address
+    this._safeAddress = Safe4337Pack.predictSafeAddress({
+      owners,
+      threshold,
+      saltNonce,
+      chainId: this._config.chainId,
+      safeVersion: DEFAULT_SAFE_VERSION,
+      safeModulesVersion: this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION,
+      paymasterOptions: this._config.paymasterOptions
+    })
+
+    return this._safeAddress
   }
 
   /**

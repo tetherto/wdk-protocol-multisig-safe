@@ -68,6 +68,7 @@
  */
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
+export const DEFAULT_SAFE_VERSION: "1.4.1";
 /**
  * Read-only EVM multisig Safe wallet account.
  * Provides query-only operations for Safe multisig wallets.
@@ -504,5 +505,5 @@ export type SafesByOwnerConfig = {
 };
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
-import { Safe4337Pack } from '@wdk-safe-global/relay-kit';
+import { Safe4337Pack } from '@jonpdunne/relay-kit';
 import SafeApiKit from '@safe-global/api-kit';

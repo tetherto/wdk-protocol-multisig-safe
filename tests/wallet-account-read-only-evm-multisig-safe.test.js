@@ -253,7 +253,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(address).toBe(MOCK_SAFE_ADDRESS)
     })
 
-    test('should call Safe4337Pack when safeAddress not cached', async () => {
+    test('should deterministic address when safeAccountConfig provided', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
         safeAccountConfig: {
@@ -262,13 +262,9 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         }
       })
 
-      const mockPack = createMockSafe4337Pack()
-      account._safe4337Pack = mockPack
-
       const address = await account.getAddress()
 
-      expect(address).toBe(MOCK_SAFE_ADDRESS)
-      expect(mockPack.protocolKit.getAddress).toHaveBeenCalled()
+      expect(address).toBe('0x2298cce24D20586409b765A86B44f535982395b2')
     })
   })
 
@@ -591,7 +587,6 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(null, { chainId: 11155111n }))
         .rejects.toThrow('ownerAddress is required')
     })
-
   })
 
   describe('static getSafeInfo', () => {
