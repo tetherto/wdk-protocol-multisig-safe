@@ -43,32 +43,16 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
 /** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 
+/** @typedef {import('@jonpdunne/relay-kit').PaymasterOptions} PaymasterOptions */
+/** @typedef {import('@jonpdunne/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('@jonpdunne/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
+
 /**
  * @typedef {Object} ProposeOptions
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  * @property {boolean} [isSponsored] - Override to use sponsored mode
  * @property {string} [sponsorshipPolicyId] - Override sponsorship policy
  * @property {string} [paymasterTokenAddress] - Override token for ERC-20 paymaster
- */
-
-/**
- * @typedef {Object} PaymasterOptions
- * @property {string} paymasterUrl - Paymaster service URL
- * @property {string} paymasterAddress - Paymaster contract address
- * @property {string} [paymasterTokenAddress] - Token address for ERC-20 paymaster payments
- * @property {boolean} [isSponsored] - Enable sponsored mode (sponsor pays gas)
- * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID for sponsored mode
- */
-
-/**
- * @typedef {Object} SafeAccountConfig
- * @property {string[]} owners - Array of owner addresses
- * @property {number} threshold - Number of required signatures
- */
-
-/**
- * @typedef {Object} SafeDeploymentConfig
- * @property {string} [saltNonce] - Salt nonce for deterministic deployment
  */
 
 /**
@@ -81,9 +65,7 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {PaymasterOptions} [paymasterOptions] - Paymaster configuration
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
- * @property {string} [safeAddress] - Existing Safe address (import mode)
- * @property {SafeAccountConfig} [safeAccountConfig] - Safe account config (create mode)
- * @property {SafeDeploymentConfig} [safeDeploymentConfig] - Safe deployment config (create mode)
+ * @property {ExistingSafeOptions | PredictedSafeOptions} options - Safe options (existing or predicted)
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
 
@@ -166,7 +148,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @protected
      * @type {string | null}
      */
-    this._safeAddress = config.safeAddress || null
+    this._safeAddress = config.options?.safeAddress || null
 
     /**
      * The safe's implementation of the erc-4337 standard.
@@ -298,14 +280,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       return this._safeAddress
     }
 
-    const { owners, threshold } = this._config.safeAccountConfig
-    const saltNonce = this._config.safeDeploymentConfig?.saltNonce ||
+    const options = this._config.options
+    const { owners, threshold, saltNonce } = options
+    const finalSaltNonce = saltNonce ||
       WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(owners, threshold)
 
     this._safeAddress = Safe4337Pack.predictSafeAddress({
       owners,
       threshold,
-      saltNonce,
+      saltNonce: finalSaltNonce,
       chainId: this._config.chainId,
       safeVersion: DEFAULT_SAFE_VERSION,
       safeModulesVersion: this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION,
@@ -341,10 +324,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       const safe4337Pack = await this._getSafe4337Pack()
       this._owners = await safe4337Pack.protocolKit.getOwners()
     } else {
-      if (!this._config.safeAccountConfig) {
-        throw new Error('Safe is not deployed and no safeAccountConfig provided')
+      if (!this._config.options?.owners) {
+        throw new Error('Safe is not deployed and no owners provided in options')
       }
-      this._owners = this._config.safeAccountConfig.owners
+      this._owners = this._config.options.owners
     }
 
     return this._owners
@@ -366,10 +349,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       const safe4337Pack = await this._getSafe4337Pack()
       this._threshold = await safe4337Pack.protocolKit.getThreshold()
     } else {
-      if (!this._config.safeAccountConfig) {
-        throw new Error('Safe is not deployed and no safeAccountConfig provided')
+      if (!this._config.options?.threshold) {
+        throw new Error('Safe is not deployed and no threshold provided in options')
       }
-      this._threshold = this._config.safeAccountConfig.threshold
+      this._threshold = this._config.options.threshold
     }
 
     return this._threshold
@@ -688,8 +671,8 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {ProposeOptions} [options] - Options for paymaster override
    * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
    */
-  async _initSafe4337Pack (options = {}) {
-    const { safeAddress, safeAccountConfig, safeDeploymentConfig } = this._config
+  async _initSafe4337Pack (proposeOptions = {}) {
+    const safeOptions = this._config.options
 
     const initOptions = {
       provider: this._config.provider,
@@ -701,28 +684,36 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       initOptions.signer = this._signerAccount._account
     }
 
-    if (safeAddress) {
-      initOptions.options = { safeAddress }
-    } else if (safeAccountConfig) {
-      const saltNonce = safeDeploymentConfig?.saltNonce ||
+    if (safeOptions.safeAddress) {
+      initOptions.options = { safeAddress: safeOptions.safeAddress }
+    } else if (safeOptions.owners) {
+      const saltNonce = safeOptions.saltNonce ||
         WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(
-          safeAccountConfig.owners,
-          safeAccountConfig.threshold
+          safeOptions.owners,
+          safeOptions.threshold
         )
 
       initOptions.options = {
-        owners: safeAccountConfig.owners,
-        threshold: safeAccountConfig.threshold,
+        owners: safeOptions.owners,
+        threshold: safeOptions.threshold,
         saltNonce
+      }
+
+      if (safeOptions.safeVersion) {
+        initOptions.options.safeVersion = safeOptions.safeVersion
+      }
+
+      if (safeOptions.deploymentType) {
+        initOptions.options.deploymentType = safeOptions.deploymentType
       }
     }
 
     if (this._config.paymasterOptions) {
       const { paymasterUrl, paymasterAddress } = this._config.paymasterOptions
 
-      const isSponsored = options.isSponsored ?? this._config.paymasterOptions.isSponsored
-      const sponsorshipPolicyId = options.sponsorshipPolicyId ?? this._config.paymasterOptions.sponsorshipPolicyId
-      const paymasterTokenAddress = options.paymasterTokenAddress ?? this._config.paymasterOptions.paymasterTokenAddress
+      const isSponsored = proposeOptions.isSponsored ?? this._config.paymasterOptions.isSponsored
+      const sponsorshipPolicyId = proposeOptions.sponsorshipPolicyId ?? this._config.paymasterOptions.sponsorshipPolicyId
+      const paymasterTokenAddress = proposeOptions.paymasterTokenAddress ?? this._config.paymasterOptions.paymasterTokenAddress
 
       initOptions.paymasterOptions = { paymasterUrl }
 
@@ -781,28 +772,24 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {EvmMultisigSafeConfig} config - The configuration to validate
    */
   _validateConfig (config) {
-    const hasSafeAddress = !!config.safeAddress
-    const hasSafeAccountConfig = !!config.safeAccountConfig
-
-    if (!hasSafeAddress && !hasSafeAccountConfig) {
-      throw new Error('Either safeAddress or safeAccountConfig must be provided')
+    if (!config.options) {
+      throw new Error('options is required')
     }
 
-    if (hasSafeAddress && hasSafeAccountConfig) {
-      throw new Error('Cannot provide both safeAddress and safeAccountConfig')
-    }
+    const options = config.options
+    const hasPredictedSafe = !!options.owners
 
-    if (hasSafeAccountConfig) {
-      if (!Array.isArray(config.safeAccountConfig.owners) || config.safeAccountConfig.owners.length === 0) {
-        throw new Error('safeAccountConfig.owners is required and must not be empty')
+    if (hasPredictedSafe) {
+      if (!Array.isArray(options.owners) || options.owners.length === 0) {
+        throw new Error('options.owners is required and must not be empty')
       }
 
-      if (!config.safeAccountConfig.threshold || config.safeAccountConfig.threshold < 1) {
-        throw new Error('safeAccountConfig.threshold must be at least 1')
+      if (!options.threshold || options.threshold < 1) {
+        throw new Error('options.threshold must be at least 1')
       }
 
-      if (config.safeAccountConfig.threshold > config.safeAccountConfig.owners.length) {
-        throw new Error('safeAccountConfig.threshold cannot exceed number of owners')
+      if (options.threshold > options.owners.length) {
+        throw new Error('options.threshold cannot exceed number of owners')
       }
     }
   }

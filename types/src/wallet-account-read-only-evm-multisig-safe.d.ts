@@ -12,29 +12,15 @@
 /** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
 /** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
 /** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
+/** @typedef {import('@jonpdunne/relay-kit').PaymasterOptions} PaymasterOptions */
+/** @typedef {import('@jonpdunne/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('@jonpdunne/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
 /**
  * @typedef {Object} ProposeOptions
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
  * @property {boolean} [isSponsored] - Override to use sponsored mode
  * @property {string} [sponsorshipPolicyId] - Override sponsorship policy
  * @property {string} [paymasterTokenAddress] - Override token for ERC-20 paymaster
- */
-/**
- * @typedef {Object} PaymasterOptions
- * @property {string} paymasterUrl - Paymaster service URL
- * @property {string} paymasterAddress - Paymaster contract address
- * @property {string} [paymasterTokenAddress] - Token address for ERC-20 paymaster payments
- * @property {boolean} [isSponsored] - Enable sponsored mode (sponsor pays gas)
- * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID for sponsored mode
- */
-/**
- * @typedef {Object} SafeAccountConfig
- * @property {string[]} owners - Array of owner addresses
- * @property {number} threshold - Number of required signatures
- */
-/**
- * @typedef {Object} SafeDeploymentConfig
- * @property {string} [saltNonce] - Salt nonce for deterministic deployment
  */
 /**
  * @typedef {Object} EvmMultisigSafeConfig
@@ -46,9 +32,7 @@
  * @property {PaymasterOptions} [paymasterOptions] - Paymaster configuration
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
- * @property {string} [safeAddress] - Existing Safe address (import mode)
- * @property {SafeAccountConfig} [safeAccountConfig] - Safe account config (create mode)
- * @property {SafeDeploymentConfig} [safeDeploymentConfig] - Safe deployment config (create mode)
+ * @property {ExistingSafeOptions | PredictedSafeOptions} options - Safe options (existing or predicted)
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
 /**
@@ -320,7 +304,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
      */
-    protected _initSafe4337Pack(options?: ProposeOptions): Promise<Safe4337Pack>;
+    protected _initSafe4337Pack(proposeOptions?: {}): Promise<Safe4337Pack>;
     /**
      * Returns the Safe API Kit instance.
      *
@@ -357,6 +341,9 @@ export type TransferListResponse = import("@safe-global/api-kit").TransferListRe
 export type ListOptions = import("@safe-global/api-kit").ListOptions;
 export type SafeOperationResponse = import("@safe-global/types-kit").SafeOperationResponse;
 export type SafeMessage = import("@safe-global/types-kit").SafeMessage;
+export type PaymasterOptions = import("@jonpdunne/relay-kit").PaymasterOptions;
+export type ExistingSafeOptions = import("@jonpdunne/relay-kit").ExistingSafeOptions;
+export type PredictedSafeOptions = import("@jonpdunne/relay-kit").PredictedSafeOptions;
 export type ProposeOptions = {
     /**
      * - Amount to approve for paymaster (ignored in sponsored mode)
@@ -374,44 +361,6 @@ export type ProposeOptions = {
      * - Override token for ERC-20 paymaster
      */
     paymasterTokenAddress?: string;
-};
-export type PaymasterOptions = {
-    /**
-     * - Paymaster service URL
-     */
-    paymasterUrl: string;
-    /**
-     * - Paymaster contract address
-     */
-    paymasterAddress: string;
-    /**
-     * - Token address for ERC-20 paymaster payments
-     */
-    paymasterTokenAddress?: string;
-    /**
-     * - Enable sponsored mode (sponsor pays gas)
-     */
-    isSponsored?: boolean;
-    /**
-     * - Sponsorship policy ID for sponsored mode
-     */
-    sponsorshipPolicyId?: string;
-};
-export type SafeAccountConfig = {
-    /**
-     * - Array of owner addresses
-     */
-    owners: string[];
-    /**
-     * - Number of required signatures
-     */
-    threshold: number;
-};
-export type SafeDeploymentConfig = {
-    /**
-     * - Salt nonce for deterministic deployment
-     */
-    saltNonce?: string;
 };
 export type EvmMultisigSafeConfig = {
     /**
@@ -447,17 +396,9 @@ export type EvmMultisigSafeConfig = {
      */
     safeApiKey?: string;
     /**
-     * - Existing Safe address (import mode)
+     * - Safe options (existing or predicted)
      */
-    safeAddress?: string;
-    /**
-     * - Safe account config (create mode)
-     */
-    safeAccountConfig?: SafeAccountConfig;
-    /**
-     * - Safe deployment config (create mode)
-     */
-    safeDeploymentConfig?: SafeDeploymentConfig;
+    options: ExistingSafeOptions | PredictedSafeOptions;
     /**
      * - Maximum fee for transfers
      */

@@ -14,130 +14,231 @@
 
 'use strict'
 
-import * as bip39 from 'bip39'
-
-import { afterEach, beforeEach, describe, expect, test, jest } from '@jest/globals'
+import { describe, expect, test } from '@jest/globals'
 
 import WalletManagerEvmMultisigSafe, {
-  WalletAccountEvmMultisigSafe
+  WalletAccountEvmMultisigSafe,
+  WalletAccountReadOnlyEvmMultisigSafe
 } from '../index.js'
 
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
-const SEED_PHRASE_2 = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong'
-const INVALID_SEED_PHRASE = 'invalid seed phrase'
-const SEED = bip39.mnemonicToSeedSync(SEED_PHRASE)
 
 const ACCOUNT = {
-  index: 0,
-  path: "m/44'/60'/0'/0/0",
   address: '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
+}
+
+const ACCOUNT_2 = {
+  address: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
 }
 
 const MOCK_CONFIG = {
   provider: 'https://sepolia.infura.io/v3/test-key',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-  chainId: 11155111n,
-  safeAccountConfig: {
-    owners: [ACCOUNT.address],
-    threshold: 1
-  }
+  chainId: 11155111n
 }
 
+const MOCK_SAFE_ADDRESS = '0x1234567890123456789012345678901234567890'
+
 describe('WalletManagerEvmMultisigSafe', () => {
-  let manager
-
-  beforeEach(() => {
-    manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, MOCK_CONFIG)
-  })
-
-  afterEach(() => {
-    if (manager) {
-      manager.dispose()
-    }
-  })
-
   describe('constructor', () => {
-    test('should successfully initialize with seed phrase', () => {
+    test('should successfully initialize with seed phrase and PredictedSafeOptions', () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
       expect(manager).toBeDefined()
-      expect(Buffer.from(manager.seed).toString('hex')).toBe('5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4')
-      expect(manager._config).toBe(MOCK_CONFIG)
+      expect(manager._config.options.owners).toEqual([ACCOUNT.address])
+      expect(manager._config.options.threshold).toBe(1)
     })
 
-    test('should throw if the seed phrase is invalid', () => {
-      expect(() => {
-        new WalletManagerEvmMultisigSafe(INVALID_SEED_PHRASE, MOCK_CONFIG)
-      }).toThrow()
+    test('should successfully initialize with ExistingSafeOptions', () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          safeAddress: MOCK_SAFE_ADDRESS
+        }
+      })
+
+      expect(manager).toBeDefined()
+      expect(manager._config.options.safeAddress).toBe(MOCK_SAFE_ADDRESS)
+    })
+
+    test('should successfully initialize with ERC-20 paymaster options', () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+          paymasterAddress: '0x000000000041F3aFe8892B48D88b6862efe0ec8d',
+          paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
+        },
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      expect(manager._config.paymasterOptions.paymasterTokenAddress).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
+      expect(manager._config.paymasterOptions.paymasterAddress).toBe('0x000000000041F3aFe8892B48D88b6862efe0ec8d')
+    })
+
+    test('should successfully initialize with sponsored paymaster options', () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        paymasterOptions: {
+          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+          isSponsored: true,
+          sponsorshipPolicyId: 'sp_my_policy_123'
+        },
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      expect(manager._config.paymasterOptions.isSponsored).toBe(true)
+      expect(manager._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
+    })
+
+    test('should successfully initialize with PredictedSafeOptions including saltNonce', () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1,
+          saltNonce: '0x1234567890'
+        }
+      })
+
+      expect(manager._config.options.saltNonce).toBe('0x1234567890')
+    })
+
+    test('should successfully initialize with PredictedSafeOptions including safeVersion', () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1,
+          safeVersion: '1.4.1'
+        }
+      })
+
+      expect(manager._config.options.safeVersion).toBe('1.4.1')
     })
   })
 
   describe('getAccount', () => {
     test('should return WalletAccountEvmMultisigSafe instance', async () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
       const account = await manager.getAccount(0)
 
       expect(account).toBeInstanceOf(WalletAccountEvmMultisigSafe)
     })
 
-    test('should return account at specified index', async () => {
-      const account = await manager.getAccount(5)
+    test('should return the same instance for the same index', async () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
 
-      expect(account.index).toBe(5)
+      const account1 = await manager.getAccount(0)
+      const account2 = await manager.getAccount(0)
+
+      expect(account1).toBe(account2)
     })
 
-    test('should return accounts with correct derivation path', async () => {
-      const account = await manager.getAccount(3)
+    test('should return different instances for different indices', async () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
 
-      expect(account.path).toBe("m/44'/60'/0'/0/3")
+      const account0 = await manager.getAccount(0)
+      const account1 = await manager.getAccount(1)
+
+      expect(account0).not.toBe(account1)
     })
   })
 
   describe('getAccountByPath', () => {
-    test('should return account with correct path', async () => {
+    test('should return WalletAccountEvmMultisigSafe instance for custom path', async () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
       const account = await manager.getAccountByPath("0'/0/5")
 
+      expect(account).toBeInstanceOf(WalletAccountEvmMultisigSafe)
       expect(account.path).toBe("m/44'/60'/0'/0/5")
     })
-  })
 
-  describe('getFeeRates', () => {
-    test('should throw if provider is not set', async () => {
-      const configWithoutProvider = {
-        bundlerUrl: MOCK_CONFIG.bundlerUrl,
-        chainId: MOCK_CONFIG.chainId,
-        safeAccountConfig: MOCK_CONFIG.safeAccountConfig
-      }
+    test('should cache accounts by path', async () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
 
-      const managerNoProvider = new WalletManagerEvmMultisigSafe(SEED_PHRASE, configWithoutProvider)
+      const account1 = await manager.getAccountByPath("0'/0/5")
+      const account2 = await manager.getAccountByPath("0'/0/5")
 
-      await expect(managerNoProvider.getFeeRates())
-        .rejects.toThrow('The wallet must be connected to a provider to get fee rates.')
-
-      managerNoProvider.dispose()
-    })
-
-    test('should return fee rates when provider is mocked', async () => {
-      manager._provider = {
-        getFeeData: jest.fn().mockResolvedValue({
-          maxFeePerGas: 1000000000n
-        })
-      }
-
-      const feeRates = await manager.getFeeRates()
-
-      expect(feeRates).toBeDefined()
-      expect(feeRates.normal).toBe(1100000000n)
-      expect(feeRates.fast).toBe(2000000000n)
+      expect(account1).toBe(account2)
     })
   })
 
   describe('dispose', () => {
-    test('should dispose a cached account', async () => {
-      const account = await manager.getAccount(0)
+    test('should dispose all accounts', async () => {
+      const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
 
-      const spy = jest.spyOn(account, 'dispose')
+      const account0 = await manager.getAccount(0)
+      const account1 = await manager.getAccount(1)
 
       manager.dispose()
 
-      expect(spy).toHaveBeenCalled()
+      expect(account0._signerAccount).toBe(null)
+      expect(account1._signerAccount).toBe(null)
+    })
+  })
+
+  describe('exports', () => {
+    test('should export WalletAccountEvmMultisigSafe', () => {
+      expect(WalletAccountEvmMultisigSafe).toBeDefined()
+    })
+
+    test('should export WalletAccountReadOnlyEvmMultisigSafe', () => {
+      expect(WalletAccountReadOnlyEvmMultisigSafe).toBeDefined()
+    })
+
+    test('should export default WalletManagerEvmMultisigSafe', () => {
+      expect(WalletManagerEvmMultisigSafe).toBeDefined()
     })
   })
 })

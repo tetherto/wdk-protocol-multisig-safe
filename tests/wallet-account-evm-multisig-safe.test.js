@@ -124,7 +124,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
   beforeEach(() => {
     account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
       ...MOCK_CONFIG,
-      safeAccountConfig: {
+      options: {
         owners: [ACCOUNT.address],
         threshold: 1
       }
@@ -151,7 +151,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
           paymasterTokenAddress: '0xUSDC'
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -170,7 +170,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           isSponsored: true,
           sponsorshipPolicyId: 'sp_my_policy_123'
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -179,6 +179,32 @@ describe('WalletAccountEvmMultisigSafe', () => {
       expect(sponsoredAccount._config.paymasterOptions.isSponsored).toBe(true)
       expect(sponsoredAccount._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
       sponsoredAccount.dispose()
+    })
+
+    test('should successfully initialize with ExistingSafeOptions', () => {
+      const existingAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        options: {
+          safeAddress: MOCK_SAFE_ADDRESS
+        }
+      })
+
+      expect(existingAccount._safeAddress).toBe(MOCK_SAFE_ADDRESS)
+      existingAccount.dispose()
+    })
+
+    test('should successfully initialize with PredictedSafeOptions including saltNonce', () => {
+      const predictedAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        options: {
+          owners: [ACCOUNT.address],
+          threshold: 1,
+          saltNonce: '0x1234'
+        }
+      })
+
+      expect(predictedAccount._config.options.saltNonce).toBe('0x1234')
+      predictedAccount.dispose()
     })
   })
 
@@ -230,7 +256,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should clear sensitive data', () => {
       const testAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -252,6 +278,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       expect(readOnlyAccount).toBeInstanceOf(WalletAccountReadOnlyEvmMultisigSafe)
       expect(readOnlyAccount._config.provider).toBe(MOCK_CONFIG.provider)
       expect(readOnlyAccount._config.chainId).toBe(MOCK_CONFIG.chainId)
+      expect(readOnlyAccount._config.options.safeAddress).toBe(MOCK_SAFE_ADDRESS)
     })
   })
 
@@ -309,7 +336,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
           paymasterTokenAddress: '0xUSDC'
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -339,7 +366,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
           isSponsored: true
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -368,7 +395,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
           paymasterTokenAddress: '0xUSDC'
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -398,7 +425,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
           isSponsored: true
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -594,7 +621,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
           isSponsored: true
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -630,7 +657,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
           paymasterTokenAddress: '0xUSDC'
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -697,7 +724,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
           isSponsored: true
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -737,7 +764,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
           paymasterTokenAddress: '0xUSDC'
         },
-        safeAccountConfig: {
+        options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }

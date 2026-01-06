@@ -69,7 +69,7 @@ const bobSeed = 'bob seed phrase here...'
 const aliceEoa = '0x...' // Alice's EOA address
 const bobEoa = '0x...'   // Bob's EOA address
 
-// Create Alice's multisig account
+// Create Alice's multisig account using PredictedSafeOptions
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
@@ -79,11 +79,9 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterAddress: '0x...',
     paymasterTokenAddress: '0x...' // USDC address
   },
-  safeAccountConfig: {
+  options: {
     owners: [aliceEoa, bobEoa],
-    threshold: 2
-  },
-  safeDeploymentConfig: {
+    threshold: 2,
     saltNonce: '0x...' // Optional: deterministic address
   }
 })
@@ -100,6 +98,7 @@ console.log('Is Deployed:', isDeployed)
 ### Importing an Existing Safe
 
 ```javascript
+// Import using ExistingSafeOptions
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
@@ -109,7 +108,9 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterAddress: '0x...',
     paymasterTokenAddress: '0x...'
   },
-  safeAddress: '0x...' // Existing Safe address
+  options: {
+    safeAddress: '0x...' // Existing Safe address
+  }
 })
 
 // Get Safe info
@@ -193,7 +194,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     paymasterTokenAddress: '0x...' // USDC address
   },
-  safeAccountConfig: {
+  options: {
     owners: [aliceEoa, bobEoa],
     threshold: 2
   }
@@ -231,7 +232,9 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterAddress: '0x...',           // Optional: paymaster contract address
     paymasterTokenAddress: '0x...'       // USDC or other ERC-20 token address
   },
-  safeAddress: '0x...'
+  options: {
+    safeAddress: '0x...'
+  }
 })
 
 // Propose with token approval for gas
@@ -255,7 +258,9 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     isSponsored: true,                      // Enable sponsored mode
     sponsorshipPolicyId: 'sp_my_policy'     // Optional: sponsorship policy ID
   },
-  safeAddress: '0x...'
+  options: {
+    safeAddress: '0x...'
+  }
 })
 
 // No amountToApprove needed - sponsor pays gas!
@@ -283,7 +288,9 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     paymasterTokenAddress: '0xUSDC...'  // Default: pay gas with USDC
   },
-  safeAddress: '0x...'
+  options: {
+    safeAddress: '0x...'
+  }
 })
 
 // Override to sponsored mode for this specific transaction
@@ -307,7 +314,9 @@ const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     isSponsored: true  // Default: gasless
   },
-  safeAddress: '0x...'
+  options: {
+    safeAddress: '0x...'
+  }
 })
 
 // Override to ERC-20 paymaster for this specific transaction
@@ -381,7 +390,9 @@ const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  safeAddress: '0x...'
+  options: {
+    safeAddress: '0x...'
+  }
 })
 
 // Query Safe info
@@ -540,34 +551,22 @@ Read-only multisig Safe account for querying.
 ### Configuration Types
 
 ```typescript
+// Main configuration
 interface EvmMultisigSafeConfig {
   // Required
   provider: string | Eip1193Provider
   bundlerUrl: string
   chainId: bigint
 
-  // Optional - Safe identification (one required)
-  safeAddress?: string              // Import existing Safe
-  safeAccountConfig?: {             // Create new Safe
-    owners: string[]
-    threshold: number
-  }
-  safeDeploymentConfig?: {          // Deployment options
-    saltNonce?: string
-  }
+  // Required - Safe options (one of the following)
+  options: ExistingSafeOptions | PredictedSafeOptions
 
   // Optional - ERC-4337
   entryPointAddress?: string
   safeModulesVersion?: string       // Default: '0.2.0'
 
   // Optional - Paymaster
-  paymasterOptions?: {
-    paymasterUrl: string
-    paymasterAddress?: string
-    paymasterTokenAddress?: string  // For ERC-20 paymaster mode
-    isSponsored?: boolean           // Enable sponsored (gasless) mode
-    sponsorshipPolicyId?: string    // Optional: sponsorship policy ID
-  }
+  paymasterOptions?: PaymasterOptions
 
   // Optional - Safe Transaction Service
   txServiceUrl?: string
@@ -575,6 +574,38 @@ interface EvmMultisigSafeConfig {
 
   // Optional - Fee limits
   transferMaxFee?: number | bigint
+}
+
+// Import existing Safe
+interface ExistingSafeOptions {
+  safeAddress: string
+}
+
+// Create new Safe
+interface PredictedSafeOptions {
+  owners: string[]
+  threshold: number
+  saltNonce?: string          // Optional: for deterministic address
+  safeVersion?: SafeVersion   // Optional: Safe contract version
+  deploymentType?: DeploymentType
+}
+
+// Paymaster configuration
+type PaymasterOptions = {
+  paymasterUrl: string
+  skipApproveTransaction?: boolean
+} & (SponsoredPaymasterOption | ERC20PaymasterOption)
+
+interface SponsoredPaymasterOption {
+  isSponsored: true
+  sponsorshipPolicyId?: string
+}
+
+interface ERC20PaymasterOption {
+  isSponsored?: false
+  paymasterAddress: string
+  paymasterTokenAddress: string
+  amountToApprove?: bigint
 }
 ```
 
