@@ -18,7 +18,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 - **Per-Transaction Paymaster Override**: Switch between ERC-20 and sponsored mode on a per-transaction basis
 - **Multi-Owner Management**: Add, remove, swap owners and change threshold
 - **Propose/Approve/Execute Flow**: Standard multisig transaction workflow
-- **Message Signing**: EIP-191 compliant multisig message signing
+- **Message Signing**: EIP-191 compliant multisig message signing with EIP-1271 verification
 - **Deterministic Addresses**: Predictable Safe addresses from owner configuration
 - **Auto-Execute**: Automatically execute transactions when threshold is met
 
@@ -77,7 +77,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   paymasterOptions: {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     paymasterAddress: '0x...',
-    paymasterTokenAddress: '0x...' // USDC address
+    paymasterTokenAddress: '0x...' // USDT address
   },
   options: {
     owners: [aliceEoa, bobEoa],
@@ -192,7 +192,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   chainId: 11155111n,
   paymasterOptions: {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterTokenAddress: '0x...' // USDC address
+    paymasterTokenAddress: '0x...' // USDT address
   },
   options: {
     owners: [aliceEoa, bobEoa],
@@ -220,7 +220,7 @@ const result = await alice.sendTransaction({
 
 ### ERC-20 Paymaster Mode
 
-The Safe pays gas fees using ERC-20 tokens (e.g., USDC). The Safe must hold sufficient tokens.
+The Safe pays gas fees using ERC-20 tokens (e.g., USDT). The Safe must hold sufficient tokens.
 
 ```javascript
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
@@ -230,7 +230,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   paymasterOptions: {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     paymasterAddress: '0x...',           // Optional: paymaster contract address
-    paymasterTokenAddress: '0x...'       // USDC or other ERC-20 token address
+    paymasterTokenAddress: '0x...'       // USDT or other ERC-20 token address
   },
   options: {
     safeAddress: '0x...'
@@ -279,14 +279,14 @@ console.log('UserOp Hash:', result.hash)
 
 You can override the paymaster mode on a per-transaction basis, regardless of the account's default configuration
 ```javascript
-// Account configured with ERC-20 paymaster (USDC)
+// Account configured with ERC-20 paymaster (USDT)
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
   paymasterOptions: {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterTokenAddress: '0xUSDC...'  // Default: pay gas with USDC
+    paymasterTokenAddress: '0xUSDT...'  // Default: pay gas with USDT
   },
   options: {
     safeAddress: '0x...'
@@ -322,12 +322,12 @@ const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
 // Override to ERC-20 paymaster for this specific transaction
 const quote = await bob.quoteSendTransaction(tx, {
   isSponsored: false,
-  paymasterTokenAddress: '0xUSDC...'
+  paymasterTokenAddress: '0xUSDT...'
 })
 
 const result = await bob.sendTransaction(tx, {
   isSponsored: false,
-  paymasterTokenAddress: '0xUSDC...',
+  paymasterTokenAddress: '0xUSDT...',
   amountToApprove: quote.fee * 150n / 100n
 })
 ```
@@ -368,17 +368,31 @@ const proposal = await alice.updateOwners(
 ### Message Signing
 
 ```javascript
-// Alice proposes a message
-const proposal = await alice.proposeMessage('Hello from Safe!')
-console.log('Message Hash:', proposal.messageHash)
+// Alice signs (proposes) a message
+const result = await alice.sign('Hello from Safe!')
+console.log('Alice Signature:', result.signature)
+console.log('Message Hash:', result.safeMessage.messageHash)
+console.log('Confirmations:', result.safeMessage.confirmations.length)
 
-// Bob approves
-const approval = await bob.approveMessage(proposal.messageHash)
-console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
+// Bob signs (approves) the message
+const approval = await bob.sign('Hello from Safe!', { isApproval: true })
+console.log('Bob Signature:', approval.signature)
+console.log('Confirmations:', approval.safeMessage.confirmations.length)
 
-// Get message with combined signature
-const message = await alice.getMessage(proposal.messageHash)
-console.log('Combined Signature:', message.preparedSignature)
+// Get combined signature when fully signed
+if (approval.safeMessage.preparedSignature) {
+  console.log('Combined Signature:', approval.safeMessage.preparedSignature)
+
+  // Verify the combined signature on-chain (EIP-1271)
+  const isValid = await alice.verify('Hello from Safe!', approval.safeMessage.preparedSignature)
+  console.log('Signature valid:', isValid)
+}
+
+// Get message status anytime
+const message = await alice.getMessage(result.safeMessage.messageHash)
+console.log('Message:', message.message)
+console.log('Proposed by:', message.proposedBy)
+console.log('Signers:', message.confirmations.map(c => c.owner))
 ```
 
 ### Read-Only Account
@@ -479,7 +493,7 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `isDeployed()` | Check if Safe is deployed | `Promise<boolean>` |
 | **Transaction Methods** |
 | `sendTransaction(tx, options?)` | Send transaction (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
-| `transfer(options, proposeOptions?)` | Transfer native token (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
+| `transfer(options, proposeOptions?)` | Transfer ERC-20 tokens (auto-execute if threshold met) | `Promise<MultisigTransferResult>` |
 | `quoteSendTransaction(tx, options?)` | Estimate transaction fee | `Promise<{fee: bigint}>` |
 | `quoteTransfer(options, proposeOptions?)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
 | **Multisig Flow** |
@@ -496,11 +510,10 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `changeThreshold(threshold, options?)` | Change threshold | `Promise<ProposeResult>` |
 | `updateOwners(owners, threshold, options?)` | Batch update | `Promise<ProposeResult>` |
 | **Message Signing** |
-| `proposeMessage(message)` | Propose multisig message | `Promise<MessageProposalResult>` |
-| `approveMessage(messageHash)` | Approve message | `Promise<ApprovalResult>` |
-| `getMessage(messageHash)` | Get message status | `Promise<Object \| null>` |
-| `sign(message)` | Throws error - use `proposeMessage()` | `Promise<never>` |
-| `verify(message, signature)` | Throws error - use `getMessage()` | `Promise<never>` |
+| `sign(message, options?)` | Sign message (propose or approve) | `Promise<{signature, safeMessage}>` |
+| `verify(message, signature)` | Verify signature (EIP-1271) | `Promise<boolean>` |
+| `getMessage(messageHash)` | Get message status | `Promise<SafeMessage \| null>` |
+| `getPendingMessages()` | Get pending messages | `Promise<{results: SafeMessage[]}>` |
 | **Other** |
 | `deploy()` | Deploy Safe (requires ETH in signer's EOA) | `Promise<{deployed: boolean, txHash: string \| null}>` |
 | `validateSignerIsOwner()` | Validate signer is owner | `Promise<void>` |
@@ -542,7 +555,7 @@ Read-only multisig Safe account for querying.
 | `isReadyToExecute(hash)` | Check if ready | `Promise<boolean>` |
 | `getTransactionHashByUserOpHash(hash)` | Get on-chain tx hash | `Promise<string \| null>` |
 | **Messages** |
-| `getMessage(messageHash)` | Get message details | `Promise<Object \| null>` |
+| `getMessage(messageHash)` | Get message details | `Promise<SafeMessage \| null>` |
 | `getPendingMessages()` | Get pending messages | `Promise<Object>` |
 | **Quotes** |
 | `quoteSendTransaction(tx, options?)` | Estimate fee | `Promise<{fee: bigint}>` |
@@ -585,8 +598,8 @@ interface ExistingSafeOptions {
 interface PredictedSafeOptions {
   owners: string[]
   threshold: number
-  saltNonce?: string          // Optional: for deterministic address
-  safeVersion?: SafeVersion   // Optional: Safe contract version
+  saltNonce?: string
+  safeVersion?: SafeVersion
   deploymentType?: DeploymentType
 }
 

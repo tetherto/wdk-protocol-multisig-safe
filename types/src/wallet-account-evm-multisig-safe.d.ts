@@ -22,10 +22,13 @@
  * @property {string} hash - The UserOperation hash
  */
 /**
- * @typedef {Object} MessageProposalResult
- * @property {string} messageHash - The Safe message hash
- * @property {number} confirmations - Number of confirmations
- * @property {number} threshold - Required threshold
+ * @typedef {Object} SignOptions
+ * @property {boolean} [isApproval] - If true, approve existing message; otherwise propose new
+ */
+/**
+ * @typedef {Object} SignResult
+ * @property {string} signature - This owner's signature
+ * @property {SafeMessage} safeMessage - Full SafeMessage object from Safe Transaction Service
  */
 /**
  * Result of a multisig transaction (sendTransaction/transfer).
@@ -86,39 +89,23 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     get keyPair(): KeyPair;
     /**
-     * Not supported for Safe multisig accounts.
-     * Use {@link proposeMessage} for multisig message signing.
+     * Signs a message with the multisig Safe.
+     * Proposes a new message or approves an existing one.
      *
-     * @param {string} _message - The message to sign (unused)
-     * @returns {Promise<never>}
-     * @throws {Error} Always throws
+     * @param {string} message - The message to sign
+     * @param {SignOptions} [options] - Options
+     * @returns {Promise<SignResult>} The sign result
      */
-    sign(_message: string): Promise<never>;
+    sign(message: string, options?: SignOptions): Promise<SignResult>;
     /**
-     * Not supported for Safe multisig accounts.
-     * Use {@link getMessage} to retrieve multisig message signatures.
+     * Verifies a message signature using EIP-1271.
+     * The Safe contract implements isValidSignature to verify combined multisig signatures.
      *
-     * @param {string} _message - The original message (unused)
-     * @param {string} _signature - The signature to verify (unused)
-     * @returns {Promise<never>}
-     * @throws {Error} Always throws
+     * @param {string} message - The original message
+     * @param {string} signature - The combined signature (preparedSignature from SafeMessage)
+     * @returns {Promise<boolean>} True if signature is valid
      */
-    verify(_message: string, _signature: string): Promise<never>;
-    /**
-     * Proposes a message for multisig signing.
-     * Creates a SafeMessage, signs it, and uploads to Safe Transaction Service.
-     *
-     * @param {string} message - The message to sign.
-     * @returns {Promise<MessageProposalResult>} The proposal result.
-     */
-    proposeMessage(message: string): Promise<MessageProposalResult>;
-    /**
-     * Approves (co-signs) an existing message proposal.
-     *
-     * @param {string} messageHash - The Safe message hash to approve.
-     * @returns {Promise<ApprovalResult>} The approval result.
-     */
-    approveMessage(messageHash: string): Promise<ApprovalResult>;
+    verify(message: string, signature: string): Promise<boolean>;
     /**
      * Validates that the signer is an owner of the Safe.
      *
@@ -277,19 +264,21 @@ export type ExecuteResult = {
      */
     hash: string;
 };
-export type MessageProposalResult = {
+export type SignOptions = {
     /**
-     * - The Safe message hash
+     * - If true, approve existing message; otherwise propose new
      */
-    messageHash: string;
+    isApproval?: boolean;
+};
+export type SignResult = {
     /**
-     * - Number of confirmations
+     * - This owner's signature
      */
-    confirmations: number;
+    signature: string;
     /**
-     * - Required threshold
+     * - Full SafeMessage object from Safe Transaction Service
      */
-    threshold: number;
+    safeMessage: SafeMessage;
 };
 /**
  * Result of a multisig transaction (sendTransaction/transfer).

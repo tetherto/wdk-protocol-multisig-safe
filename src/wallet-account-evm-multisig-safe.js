@@ -54,10 +54,14 @@ const FEE_TOLERANCE_COEFFICIENT = 120n
  */
 
 /**
- * @typedef {Object} MessageProposalResult
- * @property {string} messageHash - The Safe message hash
- * @property {number} confirmations - Number of confirmations
- * @property {number} threshold - Required threshold
+ * @typedef {Object} SignOptions
+ * @property {boolean} [isApproval] - If true, approve existing message; otherwise propose new
+ */
+
+/**
+ * @typedef {Object} SignResult
+ * @property {string} signature - This owner's signature
+ * @property {SafeMessage} safeMessage - Full SafeMessage object from Safe Transaction Service
  */
 
 /**
@@ -144,49 +148,20 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Not supported for Safe multisig accounts.
-   * Use {@link proposeMessage} for multisig message signing.
+   * Signs a message with the multisig Safe.
+   * Proposes a new message or approves an existing one.
    *
-   * @param {string} _message - The message to sign (unused)
-   * @returns {Promise<never>}
-   * @throws {Error} Always throws
+   * @param {string} message - The message to sign
+   * @param {SignOptions} [options] - Options
+   * @returns {Promise<SignResult>} The sign result
    */
-  async sign (_message) {
-    throw new Error(
-      'sign() is not supported for Safe multisig accounts.'
-    )
-  }
-
-  /**
-   * Not supported for Safe multisig accounts.
-   * Use {@link getMessage} to retrieve multisig message signatures.
-   *
-   * @param {string} _message - The original message (unused)
-   * @param {string} _signature - The signature to verify (unused)
-   * @returns {Promise<never>}
-   * @throws {Error} Always throws
-   */
-  async verify (_message, _signature) {
-    throw new Error(
-      'verify() is not supported for Safe multisig accounts.'
-    )
-  }
-
-  /**
-   * Proposes a message for multisig signing.
-   * Creates a SafeMessage, signs it, and uploads to Safe Transaction Service.
-   *
-   * @param {string} message - The message to sign.
-   * @returns {Promise<MessageProposalResult>} The proposal result.
-   */
-  async proposeMessage (message) {
+  async sign (message, options = {}) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
     const protocolKit = safe4337Pack.protocolKit
     const apiKit = await this._getApiKit()
     const safeAddress = await this.getAddress()
-    const threshold = await this.getThreshold()
 
     const safeMessage = protocolKit.createMessage(message)
     const signedMessage = await protocolKit.signMessage(safeMessage)
@@ -198,58 +173,43 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('Failed to generate signature')
     }
 
-    await apiKit.addMessage(safeAddress, {
-      message,
-      signature: signature.data
-    })
-
     const messageHash = await protocolKit.getSafeMessageHash(
       hashMessage(message)
     )
 
+    if (options.isApproval) {
+      await apiKit.addMessageSignature(messageHash, signature.data)
+    } else {
+      await apiKit.addMessage(safeAddress, {
+        message,
+        signature: signature.data
+      })
+    }
+
+    const safeMessageResponse = await apiKit.getMessage(messageHash)
+
     return {
-      messageHash,
-      confirmations: 1,
-      threshold
+      signature: signature.data,
+      safeMessage: safeMessageResponse
     }
   }
 
   /**
-   * Approves (co-signs) an existing message proposal.
+   * Verifies a message signature using EIP-1271.
+   * The Safe contract implements isValidSignature to verify combined multisig signatures.
    *
-   * @param {string} messageHash - The Safe message hash to approve.
-   * @returns {Promise<ApprovalResult>} The approval result.
+   * @param {string} message - The original message
+   * @param {string} signature - The combined signature (preparedSignature from SafeMessage)
+   * @returns {Promise<boolean>} True if signature is valid
    */
-  async approveMessage (messageHash) {
-    await this.validateSignerIsOwner()
-
+  async verify (message, signature) {
     const safe4337Pack = await this._getSafe4337Pack()
     const protocolKit = safe4337Pack.protocolKit
-    const apiKit = await this._getApiKit()
 
-    const messageResponse = await apiKit.getMessage(messageHash)
+    const messageHash = hashMessage(message)
+    const isValid = await protocolKit.isValidSignature(messageHash, signature)
 
-    if (!messageResponse) {
-      throw new Error(`Message not found: ${messageHash}`)
-    }
-
-    const safeMessage = protocolKit.createMessage(messageResponse.message)
-    const signedMessage = await protocolKit.signMessage(safeMessage)
-
-    const signerAddress = await this.getSignerAddress()
-    const signature = signedMessage.getSignature(signerAddress.toLowerCase())
-
-    if (!signature) {
-      throw new Error('Failed to generate signature')
-    }
-
-    await apiKit.addMessageSignature(messageHash, signature.data)
-
-    const updatedMessage = await apiKit.getMessage(messageHash)
-    const confirmations = updatedMessage.confirmations?.length || 0
-    const threshold = await this.getThreshold()
-
-    return { confirmations, threshold }
+    return isValid
   }
 
   /**

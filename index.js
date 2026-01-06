@@ -61,6 +61,8 @@
 // Re-export types from full account module
 // ============================================
 
+/** @typedef {import('./src/wallet-account-evm-multisig-safe.js').SignOptions} SignOptions */
+/** @typedef {import('./src/wallet-account-evm-multisig-safe.js').SignResult} SignResult */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').ProposeResult} ProposeResult */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').ApprovalResult} ApprovalResult */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').ExecuteResult} ExecuteResult */
