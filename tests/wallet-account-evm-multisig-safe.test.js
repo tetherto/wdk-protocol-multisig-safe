@@ -482,7 +482,8 @@ describe('WalletAccountEvmMultisigSafe', () => {
       await sponsoredAccount.propose(tx, { amountToApprove: 500000n })
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeUndefined()
+      expect(callArgs.options.amountToApprove).toBeUndefined()
+      expect(callArgs.options.feeEstimator).toBeDefined()
 
       sponsoredAccount.dispose()
     })
@@ -512,7 +513,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       await erc20Account.propose(tx, { isSponsored: true, amountToApprove: 500000n })
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeUndefined()
+      expect(callArgs.options.amountToApprove).toBeUndefined()
 
       erc20Account.dispose()
     })
@@ -632,6 +633,60 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
   })
 
+  describe('deploy', () => {
+    test('should return hash and fee on successful deployment', async () => {
+            const createSafeDeploymentTransaction = jest.fn().mockResolvedValue({
+        to: '0xDeployFactory',
+        value: '0',
+        data: '0xdeploydata'
+      })
+      const sendTransaction = jest.fn().mockResolvedValue({ hash: MOCK_TX_HASH, fee: 210000n })
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isSafeDeployed: jest.fn().mockResolvedValue(false),
+          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
+          getThreshold: jest.fn().mockResolvedValue(1),
+          createSafeDeploymentTransaction
+        }
+      })
+      account._safe4337Pack = mockPack
+      account._signerAccount = {
+        ...account._signerAccount,
+        sendTransaction,
+        dispose: jest.fn()
+      }
+
+      const result = await account.deploy()
+
+      expect(result).toBeDefined()
+      expect(result.hash).toBe(MOCK_TX_HASH)
+      expect(result.fee).toBe(210000n)
+
+            expect(createSafeDeploymentTransaction).toHaveBeenCalled()
+      expect(sendTransaction).toHaveBeenCalledWith({
+        to: '0xDeployFactory',
+        value: 0n,
+        data: '0xdeploydata'
+      })
+    })
+
+    test('should throw if Safe is already deployed', async () => {
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isSafeDeployed: jest.fn().mockResolvedValue(true),
+          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
+          getThreshold: jest.fn().mockResolvedValue(1)
+        }
+      })
+      account._safe4337Pack = mockPack
+
+      await expect(account.deploy())
+        .rejects.toThrow('Safe is already deployed')
+    })
+  })
+  
   describe('sendTransaction', () => {
     test('should return MultisigTransactionResult', async () => {
       const mockPack = createMockSafe4337Pack({
@@ -744,7 +799,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       await sponsoredAccount.sendTransaction(tx)
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeUndefined()
+      expect(callArgs.options.amountToApprove).toBeUndefined()
 
       sponsoredAccount.dispose()
     })
@@ -781,7 +836,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       await erc20Account.sendTransaction(tx, { isSponsored: true })
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeUndefined()
+      expect(callArgs.options.amountToApprove).toBeUndefined()
 
       erc20Account.dispose()
     })
@@ -851,7 +906,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       await sponsoredAccount.transfer(transferOptions)
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeUndefined()
+      expect(callArgs.options.amountToApprove).toBeUndefined()
 
       sponsoredAccount.dispose()
     })
@@ -892,7 +947,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       await erc20Account.transfer(transferOptions, { isSponsored: true })
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeUndefined()
+      expect(callArgs.options.amountToApprove).toBeUndefined()
 
       erc20Account.dispose()
     })

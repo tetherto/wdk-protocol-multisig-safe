@@ -114,14 +114,13 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     validateSignerIsOwner(): Promise<void>;
     /**
-     * Deploys the Safe if not already deployed.
+     * Deploys the Safe.
+     * Requires native ETH in the signer's EOA account to pay for gas.
      *
-     * @returns {Promise<{deployed: boolean, txHash: string | null}>} Deployment result
+     * @returns {Promise<TransactionResult>} Deployment result with transaction hash and fee
+     * @throws {Error} If Safe is already deployed
      */
-    deploy(): Promise<{
-        deployed: boolean;
-        txHash: string | null;
-    }>;
+    deploy(): Promise<TransactionResult>;
     /**
      * Sends a transaction - proposes for multisig approval.
      * Auto-executes if threshold is met after proposing.

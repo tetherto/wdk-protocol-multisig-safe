@@ -20,8 +20,6 @@ import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js'
 
-const FEE_TOLERANCE_COEFFICIENT = 120n
-
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccount} IWalletAccount */
@@ -236,28 +234,27 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Deploys the Safe if not already deployed.
+   * Deploys the Safe.
+   * Requires native ETH in the signer's EOA account to pay for gas.
    *
-   * @returns {Promise<{deployed: boolean, txHash: string | null}>} Deployment result
+   * @returns {Promise<TransactionResult>} Deployment result with transaction hash and fee
+   * @throws {Error} If Safe is already deployed
    */
   async deploy () {
     const isDeployed = await this.isDeployed()
 
     if (isDeployed) {
-      return { deployed: true, txHash: null }
+      throw new Error('Safe is already deployed')
     }
 
     const safe4337Pack = await this._getSafe4337Pack()
-
     const deploymentTx = await safe4337Pack.protocolKit.createSafeDeploymentTransaction()
 
-    const txHash = await this._signerAccount.sendTransaction({
+    return await this._signerAccount.sendTransaction({
       to: deploymentTx.to,
       value: BigInt(deploymentTx.value),
       data: deploymentTx.data
     })
-
-    return { deployed: true, txHash: txHash.hash }
   }
 
   /**
@@ -270,20 +267,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    */
   async sendTransaction (tx, options = {}) {
     const { fee } = await this.quoteSendTransaction(tx, options)
-
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transaction.')
     }
 
-    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
-
-    const proposeOptions = { ...options }
-    if (!isSponsored && !proposeOptions.amountToApprove) {
-      proposeOptions.amountToApprove = fee * FEE_TOLERANCE_COEFFICIENT / 100n
-    }
-
-    const proposeResult = await this.propose(tx, proposeOptions)
-
+    const proposeResult = await this.propose(tx, options)
     if (proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.safeOperationHash)
       return {
@@ -320,14 +308,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
-    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
-
-    const proposeOptions = { ...options }
-    if (!isSponsored && !proposeOptions.amountToApprove) {
-      proposeOptions.amountToApprove = fee * FEE_TOLERANCE_COEFFICIENT / 100n
-    }
-
-    const proposeResult = await this.propose(tx, proposeOptions)
+    const proposeResult = await this.propose(tx, options)
 
     if (proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.safeOperationHash)
@@ -361,31 +342,9 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack(options)
-    const address = await this.getAddress()
     const threshold = await this.getThreshold()
 
-    const transactions = Array.isArray(transaction) ? transaction : [transaction]
-
-    const formattedTxs = transactions.map(tx => ({
-      to: tx.to,
-      value: tx.value?.toString() || '0',
-      data: tx.data || '0x'
-    }))
-
-    const createTxOptions = {
-      transactions: formattedTxs.map(tx => ({ from: address, ...tx }))
-    }
-
-    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
-
-    if (options.amountToApprove && !isSponsored) {
-      createTxOptions.options = {
-        amountToApprove: BigInt(options.amountToApprove.toString())
-      }
-    }
-
-    const safeOperation = await safe4337Pack.createTransaction(createTxOptions)
-
+    const safeOperation = await this._createSafeOperation(transaction, options)
     const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperation)
     const safeOperationHash = signedSafeOperation.getHash()
 

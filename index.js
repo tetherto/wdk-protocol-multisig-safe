@@ -40,12 +40,12 @@
 /** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 
 // ============================================
-// Re-export types from @jonpdunne/relay-kit
+// Re-export types from @wdk-safe-global/relay-kit
 // ============================================
 
-/** @typedef {import('@jonpdunne/relay-kit').PaymasterOptions} PaymasterOptions */
-/** @typedef {import('@jonpdunne/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
-/** @typedef {import('@jonpdunne/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
 
 // ============================================
 // Re-export types from read-only module

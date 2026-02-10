@@ -204,10 +204,14 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
 const signerEoa = await alice.getSignerAddress()
 console.log('Fund this address with ETH for deployment:', signerEoa)
 
+// Get deployment fee estimate
+const { fee } = await alice.quoteDeploy()
+console.log('Estimated deployment fee:', fee)
+
 // Deploy the Safe (requires ETH in signer's EOA)
 const deployResult = await alice.deploy()
-console.log('Deployed:', deployResult.deployed)
 console.log('TX Hash:', deployResult.txHash)
+console.log('Fee:', deployResult.fee)
 
 // After deployment, transactions can use paymaster or sponsored mode
 // No more ETH needed in the Safe or signer's EOA!
@@ -515,7 +519,7 @@ new WalletAccountEvmMultisigSafe(seed, path, config)
 | `getMessage(messageHash)` | Get message status | `Promise<SafeMessage \| null>` |
 | `getPendingMessages()` | Get pending messages | `Promise<{results: SafeMessage[]}>` |
 | **Other** |
-| `deploy()` | Deploy Safe (requires ETH in signer's EOA) | `Promise<{deployed: boolean, txHash: string \| null}>` |
+| `deploy()` | Deploy Safe (requires ETH in signer's EOA) | `Promise<TransactionResult>` |
 | `validateSignerIsOwner()` | Validate signer is owner | `Promise<void>` |
 | `toReadOnlyAccount()` | Convert to read-only | `Promise<WalletAccountReadOnlyEvmMultisigSafe>` |
 | `dispose()` | Clear sensitive data | `void` |
@@ -558,6 +562,7 @@ Read-only multisig Safe account for querying.
 | `getMessage(messageHash)` | Get message details | `Promise<SafeMessage \| null>` |
 | `getPendingMessages()` | Get pending messages | `Promise<Object>` |
 | **Quotes** |
+| `quoteDeploy()` | Estimate deployment fee | `Promise<{fee: bigint}>` |
 | `quoteSendTransaction(tx, options?)` | Estimate fee | `Promise<{fee: bigint}>` |
 | `quoteTransfer(options, proposeOptions?)` | Estimate transfer fee | `Promise<{fee: bigint}>` |
 

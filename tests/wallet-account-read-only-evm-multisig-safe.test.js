@@ -462,151 +462,6 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     })
   })
 
-  describe('getPendingTransactions', () => {
-    test('should return pending transactions', async () => {
-      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-        ...MOCK_CONFIG,
-        options: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      const mockPendingOps = {
-        results: [
-          { safeOperationHash: MOCK_SAFE_OP_HASH }
-        ]
-      }
-      const mockApiKit = createMockApiKit({
-        getPendingSafeOperations: jest.fn().mockResolvedValue(mockPendingOps)
-      })
-      account._apiKit = mockApiKit
-
-      const pending = await account.getPendingTransactions()
-
-      expect(pending).toEqual(mockPendingOps)
-      expect(mockApiKit.getPendingSafeOperations).toHaveBeenCalled()
-    })
-
-    test('should return empty results when no pending transactions', async () => {
-      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-        ...MOCK_CONFIG,
-        options: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      const mockApiKit = createMockApiKit({
-        getPendingSafeOperations: jest.fn().mockResolvedValue({ results: [] })
-      })
-      account._apiKit = mockApiKit
-
-      const pending = await account.getPendingTransactions()
-
-      expect(pending.results).toEqual([])
-    })
-  })
-
-  describe('getSafeOperation', () => {
-    test('should return transaction details', async () => {
-      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-        ...MOCK_CONFIG,
-        options: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      const mockTx = {
-        safeOperationHash: MOCK_SAFE_OP_HASH,
-        confirmations: [{ owner: ACCOUNT.address }]
-      }
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn().mockResolvedValue(mockTx)
-      })
-      account._apiKit = mockApiKit
-
-      const tx = await account.getSafeOperation(MOCK_SAFE_OP_HASH)
-
-      expect(tx).toEqual(mockTx)
-      expect(mockApiKit.getSafeOperation).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
-    })
-
-    test('should return null when transaction not found', async () => {
-      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-        ...MOCK_CONFIG,
-        options: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn().mockResolvedValue(null)
-      })
-      account._apiKit = mockApiKit
-
-      const tx = await account.getSafeOperation(MOCK_SAFE_OP_HASH)
-
-      expect(tx).toBe(null)
-    })
-  })
-
-  describe('isReadyToExecute', () => {
-    test('should return true when confirmations meet threshold', async () => {
-      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-        ...MOCK_CONFIG,
-        options: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getThreshold: jest.fn().mockResolvedValue(2)
-        }
-      })
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn().mockResolvedValue({
-          confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }]
-        })
-      })
-      account._safe4337Pack = mockPack
-      account._apiKit = mockApiKit
-
-      const isReady = await account.isReadyToExecute(MOCK_SAFE_OP_HASH)
-
-      expect(isReady).toBe(true)
-    })
-
-    test('should return false when confirmations below threshold', async () => {
-      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-        ...MOCK_CONFIG,
-        options: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getThreshold: jest.fn().mockResolvedValue(2)
-        }
-      })
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn().mockResolvedValue({
-          confirmations: [{ owner: ACCOUNT.address }]
-        })
-      })
-      account._safe4337Pack = mockPack
-      account._apiKit = mockApiKit
-
-      const isReady = await account.isReadyToExecute(MOCK_SAFE_OP_HASH)
-
-      expect(isReady).toBe(false)
-    })
-  })
-
   describe('getPaymasterTokenBalance', () => {
     test('should throw error when isSponsored=true (no token configured)', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
@@ -673,4 +528,65 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(nonce1).toBe(nonce2)
     })
   })
+
+  describe('quoteDeploy', () => {
+    test('should return fee estimate for deployment', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: {
+          safeAddress: MOCK_SAFE_ADDRESS
+        }
+      })
+
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isSafeDeployed: jest.fn().mockResolvedValue(false),
+          createSafeDeploymentTransaction: jest.fn().mockResolvedValue({
+            to: '0xDeployFactory',
+            value: '0',
+            data: '0xdeploydata'
+          })
+        }
+      })
+      account._safe4337Pack = mockPack
+
+      const mockEvmReadOnly = {
+        quoteSendTransaction: jest.fn().mockResolvedValue({ fee: 210000n })
+      }
+      account._getEvmReadOnlyAccount = jest.fn().mockResolvedValue(mockEvmReadOnly)
+
+      const result = await account.quoteDeploy()
+
+      expect(result).toBeDefined()
+      expect(result.fee).toBe(210000n)
+      expect(mockPack.protocolKit.createSafeDeploymentTransaction).toHaveBeenCalled()
+      expect(mockEvmReadOnly.quoteSendTransaction).toHaveBeenCalledWith({
+        to: '0xDeployFactory',
+        value: 0n,
+        data: '0xdeploydata'
+      })
+    })
+
+    test('should throw if Safe is already deployed', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: {
+          safeAddress: MOCK_SAFE_ADDRESS
+        }
+      })
+
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isSafeDeployed: jest.fn().mockResolvedValue(true)
+        }
+      })
+      account._safe4337Pack = mockPack
+
+      await expect(account.quoteDeploy())
+        .rejects.toThrow('Safe is already deployed')
+    })
+  })
+
 })

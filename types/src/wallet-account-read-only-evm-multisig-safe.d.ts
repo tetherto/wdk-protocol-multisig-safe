@@ -12,9 +12,9 @@
 /** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
 /** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
 /** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
-/** @typedef {import('@jonpdunne/relay-kit').PaymasterOptions} PaymasterOptions */
-/** @typedef {import('@jonpdunne/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
-/** @typedef {import('@jonpdunne/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
 /**
  * @typedef {Object} ProposeOptions
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
@@ -259,6 +259,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getPendingMessages(options?: ListOptions): Promise<SafeMessageListResponse>;
     /**
+     * Estimates the gas cost for deploying the Safe.
+     *
+     * @returns {Promise<{fee: bigint}>} Estimated deployment fee in wei
+     * @throws {Error} If Safe is already deployed
+     */
+    quoteDeploy(): Promise<{
+        fee: bigint;
+    }>;
+    /**
      * Estimates the fee for a transaction.
      *
      * @param {EvmTransaction} tx - The transaction
@@ -341,9 +350,9 @@ export type TransferListResponse = import("@safe-global/api-kit").TransferListRe
 export type ListOptions = import("@safe-global/api-kit").ListOptions;
 export type SafeOperationResponse = import("@safe-global/types-kit").SafeOperationResponse;
 export type SafeMessage = import("@safe-global/types-kit").SafeMessage;
-export type PaymasterOptions = import("@jonpdunne/relay-kit").PaymasterOptions;
-export type ExistingSafeOptions = import("@jonpdunne/relay-kit").ExistingSafeOptions;
-export type PredictedSafeOptions = import("@jonpdunne/relay-kit").PredictedSafeOptions;
+export type PaymasterOptions = import("@wdk-safe-global/relay-kit").PaymasterOptions;
+export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingSafeOptions;
+export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;
 export type ProposeOptions = {
     /**
      * - Amount to approve for paymaster (ignored in sponsored mode)
@@ -446,5 +455,5 @@ export type SafesByOwnerConfig = {
 };
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
-import { Safe4337Pack } from '@jonpdunne/relay-kit';
+import { Safe4337Pack } from '@wdk-safe-global/relay-kit';
 import SafeApiKit from '@safe-global/api-kit';
