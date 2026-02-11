@@ -20,8 +20,11 @@ import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
 import { IWalletAccountMultisig } from '@tetherto/wdk-wallet'
 
+<<<<<<< HEAD
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js'
 
+=======
+>>>>>>> 5280206 (Add fee estimator config (#2))
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccount} IWalletAccount */
