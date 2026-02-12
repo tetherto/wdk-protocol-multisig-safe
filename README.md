@@ -627,6 +627,43 @@ interface ERC20PaymasterOption {
 }
 ```
 
+## 🔐 Security Notes
+
+### Safe API Key
+
+Safe requires authenticated API access. Get your API key from the [Safe Developer Dashboard](https://developer.safe.global).
+
+- **Backend / Testing**: Pass `safeApiKey` directly in config. Safe for server-side use.
+- **Frontend**: Recommended to not expose `safeApiKey` in client code. Use `txServiceUrl` pointing to a backend proxy that injects the key server-side.
+
+```javascript
+// ❌ DON'T - exposes your API key in frontend bundle
+const config = {
+  safeApiKey: 'eyJhb...',  // Anyone can extract this
+  // ...
+}
+
+// ✅ DO - proxy injects the key server-side
+const config = {
+  txServiceUrl: 'https://your-backend.com/safe-proxy',
+  // ...
+}
+```
+
+### Sponsorship Policy
+
+When using sponsored (gasless) mode, the `sponsorshipPolicyId` is visible to the client. Without restrictions, anyone could use your policy to sponsor their own transactions.
+
+**Recommended**: Configure a sponsorship policy to control which transactions get sponsored:
+
+- **Webhook verification**: Validate each sponsorship request server-side before approving
+- **Policy rules**: Restrict by sender address, contract, gas limit, time window, etc.
+
+See Pimlico's guides:
+- [Sponsorship Policies](https://docs.pimlico.io/guides/how-to/sponsorship-policies)
+- [Webhook Verification](https://docs.pimlico.io/guides/how-to/sponsorship-policies/webhook)
+```
+
 ## 🛠️ Development
 
 ```bash
