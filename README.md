@@ -138,16 +138,16 @@ console.log('Estimated fee:', quote.fee)
 const proposal = await alice.propose(tx, {
   amountToApprove: quote.fee * 150n / 100n // 50% buffer
 })
-console.log('SafeOp Hash:', proposal.safeOperationHash)
+console.log('SafeOp Hash:', proposal.proposalId)
 console.log('Confirmations:', proposal.confirmations, '/', proposal.threshold)
 
 // Bob approves
 const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", config)
-const approval = await bob.approve(proposal.safeOperationHash)
+const approval = await bob.approve(proposal.proposalId)
 console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
 
 // Execute when threshold met
-const result = await alice.execute(proposal.safeOperationHash)
+const result = await alice.execute(proposal.proposalId)
 console.log('UserOp Hash:', result.hash)
 
 // Get on-chain transaction hash
@@ -269,13 +269,13 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
 
 // No amountToApprove needed - sponsor pays gas!
 const proposal = await alice.propose(tx)
-console.log('SafeOp Hash:', proposal.safeOperationHash)
+console.log('SafeOp Hash:', proposal.proposalId)
 
 // Bob approves
-const approval = await bob.approve(proposal.safeOperationHash)
+const approval = await bob.approve(proposal.proposalId)
 
 // Execute - completely gasless for the Safe
-const result = await alice.execute(proposal.safeOperationHash)
+const result = await alice.execute(proposal.proposalId)
 console.log('UserOp Hash:', result.hash)
 ```
 
@@ -431,7 +431,7 @@ After executing a transaction, you receive a UserOp hash. To get the on-chain tr
 
 ```javascript
 // Execute transaction
-const result = await alice.execute(proposal.safeOperationHash)
+const result = await alice.execute(proposal.proposalId)
 console.log('UserOp Hash:', result.hash)
 
 // Get on-chain tx hash (may need to wait for confirmation)
