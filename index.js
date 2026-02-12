@@ -15,6 +15,13 @@
 'use strict'
 
 // ============================================
+// Re-export types from @tetherto/wdk-wallet
+// ============================================
+/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
+
+// ============================================
 // Re-export types from @tetherto/wdk-wallet-evm
 // ============================================
 

@@ -18,6 +18,8 @@ import { hashMessage } from 'ethers'
 
 import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
+import { IWalletAccountMultisig } from '@tetherto/wdk-wallet'
+
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
@@ -35,7 +37,7 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 
 /**
  * @typedef {Object} ProposeResult
- * @property {string} safeOperationHash - The Safe operation hash
+ * @property {string} proposalId - The Safe operation hash
  * @property {number} confirmations - Number of confirmations
  * @property {number} threshold - Required threshold
  */
@@ -78,7 +80,7 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
  * Provides full transaction and message signing operations.
  *
  * @extends WalletAccountReadOnlyEvmMultisigSafe
- * @implements {IWalletAccount}
+ * @implements {IWalletAccountMultisig}
  */
 export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe {
   /**
@@ -273,7 +275,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
     const proposeResult = await this.propose(tx, options)
     if (proposeResult.confirmations >= proposeResult.threshold) {
-      const execResult = await this.execute(proposeResult.safeOperationHash)
+      const execResult = await this.execute(proposeResult.proposalId)
       return {
         hash: execResult.hash,
         fee,
@@ -284,7 +286,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     }
 
     return {
-      hash: proposeResult.safeOperationHash,
+      hash: proposeResult.proposalId,
       fee,
       confirmations: proposeResult.confirmations,
       threshold: proposeResult.threshold,
@@ -311,7 +313,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     const proposeResult = await this.propose(tx, options)
 
     if (proposeResult.confirmations >= proposeResult.threshold) {
-      const execResult = await this.execute(proposeResult.safeOperationHash)
+      const execResult = await this.execute(proposeResult.proposalId)
       return {
         hash: execResult.hash,
         fee,
@@ -322,7 +324,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     }
 
     return {
-      hash: proposeResult.safeOperationHash,
+      hash: proposeResult.proposalId,
       fee,
       confirmations: proposeResult.confirmations,
       threshold: proposeResult.threshold,
@@ -346,13 +348,13 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
     const safeOperation = await this._createSafeOperation(transaction, options)
     const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperation)
-    const safeOperationHash = signedSafeOperation.getHash()
+    const proposalId = signedSafeOperation.getHash()
 
     const apiKit = await this._getApiKit()
     await apiKit.addSafeOperation(signedSafeOperation)
 
     return {
-      safeOperationHash,
+      proposalId,
       confirmations: 1,
       threshold
     }
@@ -361,19 +363,19 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   /**
    * Approves (signs) an existing proposal.
    *
-   * @param {string} safeOperationHash - The Safe operation hash to approve
+   * @param {string} proposalId - The Safe operation hash to approve
    * @returns {Promise<ApprovalResult>} Approval result
    */
-  async approve (safeOperationHash) {
+  async approve (proposalId) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
     const apiKit = await this._getApiKit()
 
-    const safeOperationResponse = await apiKit.getSafeOperation(safeOperationHash)
+    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
 
     if (!safeOperationResponse) {
-      throw new Error(`SafeOperation not found: ${safeOperationHash}`)
+      throw new Error(`SafeOperation not found: ${proposalId}`)
     }
 
     const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperationResponse)
@@ -393,30 +395,30 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('Failed to generate signature')
     }
 
-    await apiKit.confirmSafeOperation(safeOperationHash, signature)
+    await apiKit.confirmSafeOperation(proposalId, signature)
 
-    const updatedOperation = await apiKit.getSafeOperation(safeOperationHash)
+    const updatedOperation = await apiKit.getSafeOperation(proposalId)
     const confirmations = updatedOperation.confirmations?.length || 0
     const threshold = await this.getThreshold()
 
-    return { confirmations, threshold }
+    return { proposalId, confirmations, threshold }
   }
 
   /**
    * Rejects a proposal by creating a rejection transaction.
    * A rejection is a zero-value transaction to the Safe itself with the same nonce.
    *
-   * @param {string} safeOperationHash - The Safe operation hash to reject
+   * @param {string} proposalId - The Safe operation hash to reject
    * @returns {Promise<ProposeResult>} The rejection proposal result
    */
-  async reject (safeOperationHash) {
+  async reject (proposalId) {
     await this.validateSignerIsOwner()
 
     const apiKit = await this._getApiKit()
-    const safeOperationResponse = await apiKit.getSafeOperation(safeOperationHash)
+    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
 
     if (!safeOperationResponse) {
-      throw new Error(`SafeOperation not found: ${safeOperationHash}`)
+      throw new Error(`SafeOperation not found: ${proposalId}`)
     }
 
     const safeAddress = await this.getAddress()
@@ -433,17 +435,17 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   /**
    * Executes a fully signed Safe operation via the bundler.
    *
-   * @param {string} safeOperationHash - The Safe operation hash to execute
+   * @param {string} proposalId - The Safe operation hash to execute
    * @returns {Promise<ExecuteResult>} The execution result
    */
-  async execute (safeOperationHash) {
+  async execute (proposalId) {
     const safe4337Pack = await this._getSafe4337Pack()
     const apiKit = await this._getApiKit()
 
-    const safeOperationResponse = await apiKit.getSafeOperation(safeOperationHash)
+    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
 
     if (!safeOperationResponse) {
-      throw new Error(`SafeOperation not found: ${safeOperationHash}`)
+      throw new Error(`SafeOperation not found: ${proposalId}`)
     }
 
     const confirmations = safeOperationResponse.confirmations?.length || 0

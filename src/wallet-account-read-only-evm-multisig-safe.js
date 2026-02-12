@@ -18,6 +18,8 @@ import { keccak256, toUtf8Bytes } from 'ethers'
 
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
 
+import { IWalletAccountMultisigReadOnly } from '@tetherto/wdk-wallet'
+
 import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
 import { Safe4337Pack, GenericFeeEstimator } from '@wdk-safe-global/relay-kit'
@@ -122,6 +124,7 @@ function createApiKitConfig (config) {
  * Provides query-only operations for Safe multisig wallets.
  *
  * @extends WalletAccountReadOnly
+ * @implements {IWalletAccountMultisigReadOnly}
  */
 export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly {
   /**
@@ -437,14 +440,14 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Returns a specific Safe operation by hash.
    *
-   * @param {string} safeOperationHash - The Safe operation hash
+   * @param {string} proposalId - The Safe operation hash
    * @returns {Promise<SafeOperationResponse | null>} The operation or null if not found
    */
-  async getSafeOperation (safeOperationHash) {
+  async getProposal (proposalId) {
     const apiKit = await this._getApiKit()
 
     try {
-      return await apiKit.getSafeOperation(safeOperationHash)
+      return await apiKit.getSafeOperation(proposalId)
     } catch (error) {
       if (error.message?.includes('not found')) {
         return null
@@ -485,11 +488,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   /**
    * Checks if a Safe operation is ready to be executed.
    *
-   * @param {string} safeOperationHash - The Safe operation hash
+   * @param {string} proposalId - The Safe operation hash
    * @returns {Promise<boolean>} True if confirmations >= threshold
    */
-  async isReadyToExecute (safeOperationHash) {
-    const operation = await this.getSafeOperation(safeOperationHash)
+  async isReadyToExecute (proposalId) {
+    const operation = await this.getSafeOperation(proposalId)
 
     if (!operation) {
       return false

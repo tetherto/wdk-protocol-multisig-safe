@@ -48,7 +48,7 @@ const createMockSafe4337Pack = (overrides = {}) => ({
 })
 
 const createMockApiKit = (overrides = {}) => ({
-  getSafeOperation: jest.fn().mockResolvedValue({
+  getProposal: jest.fn().mockResolvedValue({
     confirmations: [{ owner: ACCOUNT.address }],
     preparedSignature: '0xsignature'
   }),

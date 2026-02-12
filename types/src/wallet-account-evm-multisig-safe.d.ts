@@ -8,7 +8,7 @@
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
 /**
  * @typedef {Object} ProposeResult
- * @property {string} safeOperationHash - The Safe operation hash
+ * @property {string} proposalId - The Safe operation hash
  * @property {number} confirmations - Number of confirmations
  * @property {number} threshold - Required threshold
  */
@@ -45,9 +45,9 @@
  * Provides full transaction and message signing operations.
  *
  * @extends WalletAccountReadOnlyEvmMultisigSafe
- * @implements {IWalletAccount}
+ * @implements {IWalletAccountMultisig}
  */
-export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe implements IWalletAccount {
+export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe implements IWalletAccountMultisig {
     /**
      * Creates a new EVM multisig Safe wallet account.
      *
@@ -98,15 +98,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     sign(message: string, options?: SignOptions): Promise<SignResult>;
     /**
-     * Verifies a message signature using EIP-1271.
-     * The Safe contract implements isValidSignature to verify combined multisig signatures.
-     *
-     * @param {string} message - The original message
-     * @param {string} signature - The combined signature (preparedSignature from SafeMessage)
-     * @returns {Promise<boolean>} True if signature is valid
-     */
-    verify(message: string, signature: string): Promise<boolean>;
-    /**
      * Validates that the signer is an owner of the Safe.
      *
      * @returns {Promise<void>}
@@ -151,25 +142,25 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     /**
      * Approves (signs) an existing proposal.
      *
-     * @param {string} safeOperationHash - The Safe operation hash to approve
+     * @param {string} proposalId - The Safe operation hash to approve
      * @returns {Promise<ApprovalResult>} Approval result
      */
-    approve(safeOperationHash: string): Promise<ApprovalResult>;
+    approve(proposalId: string): Promise<ApprovalResult>;
     /**
      * Rejects a proposal by creating a rejection transaction.
      * A rejection is a zero-value transaction to the Safe itself with the same nonce.
      *
-     * @param {string} safeOperationHash - The Safe operation hash to reject
+     * @param {string} proposalId - The Safe operation hash to reject
      * @returns {Promise<ProposeResult>} The rejection proposal result
      */
-    reject(safeOperationHash: string): Promise<ProposeResult>;
+    reject(proposalId: string): Promise<ProposeResult>;
     /**
      * Executes a fully signed Safe operation via the bundler.
      *
-     * @param {string} safeOperationHash - The Safe operation hash to execute
+     * @param {string} proposalId - The Safe operation hash to execute
      * @returns {Promise<ExecuteResult>} The execution result
      */
-    execute(safeOperationHash: string): Promise<ExecuteResult>;
+    execute(proposalId: string): Promise<ExecuteResult>;
     /**
      * Proposes adding a new owner to the Safe.
      *
@@ -237,7 +228,7 @@ export type ProposeResult = {
     /**
      * - The Safe operation hash
      */
-    safeOperationHash: string;
+    proposalId: string;
     /**
      * - Number of confirmations
      */
@@ -304,4 +295,5 @@ export type MultisigTransactionResult = {
      */
     executed: boolean;
 };
+import { IWalletAccountMultisig } from '@tetherto/wdk-wallet';
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';

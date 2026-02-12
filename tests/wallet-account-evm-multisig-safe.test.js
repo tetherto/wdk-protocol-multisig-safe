@@ -382,7 +382,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
   })
 
   describe('propose', () => {
-    test('should return propose result with safeOperationHash', async () => {
+    test('should return propose result with proposalId', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
       account._safe4337Pack = mockPack
@@ -394,7 +394,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const result = await account.propose(tx)
 
       expect(result).toBeDefined()
-      expect(result.safeOperationHash).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
     })
@@ -1019,28 +1019,28 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const result = await account.addOwner(ACCOUNT_2.address)
 
       expect(result).toBeDefined()
-      expect(result.safeOperationHash).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
 
     test('removeOwner should return propose result', async () => {
       const result = await account.removeOwner(ACCOUNT_2.address)
 
       expect(result).toBeDefined()
-      expect(result.safeOperationHash).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
 
     test('swapOwner should return propose result', async () => {
       const result = await account.swapOwner(ACCOUNT.address, ACCOUNT_2.address)
 
       expect(result).toBeDefined()
-      expect(result.safeOperationHash).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
 
     test('changeThreshold should return propose result', async () => {
       const result = await account.changeThreshold(2)
 
       expect(result).toBeDefined()
-      expect(result.safeOperationHash).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
   })
 })

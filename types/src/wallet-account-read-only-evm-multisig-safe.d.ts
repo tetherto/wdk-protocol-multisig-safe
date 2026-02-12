@@ -58,8 +58,9 @@ export const DEFAULT_SAFE_VERSION: "1.4.1";
  * Provides query-only operations for Safe multisig wallets.
  *
  * @extends WalletAccountReadOnly
+ * @implements {IWalletAccountMultisigReadOnly}
  */
-export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly {
+export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly implements IWalletAccountMultisigReadOnly {
     /**
      * Gets all Safe addresses owned by an address.
      * Useful for discovering user's Safes during wallet login/import.
@@ -160,7 +161,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      *
      * @returns {Promise<string>} The Safe address
      */
-    getAddress(): Promise<string>;
+     getAddress(): Promise<string>;
     /**
      * Checks if the Safe is deployed on-chain.
      *
@@ -208,10 +209,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     /**
      * Returns a specific Safe operation by hash.
      *
-     * @param {string} safeOperationHash - The Safe operation hash
+     * @param {string} proposalId - The Safe operation hash
      * @returns {Promise<SafeOperationResponse | null>} The operation or null if not found
      */
-    getSafeOperation(safeOperationHash: string): Promise<SafeOperationResponse | null>;
+    getProposal(proposalId: string): Promise<SafeOperationResponse | null>;
     /**
      * Returns the transaction history for the Safe.
      * Includes executed multisig transactions.
@@ -232,10 +233,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     /**
      * Checks if a Safe operation is ready to be executed.
      *
-     * @param {string} safeOperationHash - The Safe operation hash
+     * @param {string} proposalId - The Safe operation hash
      * @returns {Promise<boolean>} True if confirmations >= threshold
      */
-    isReadyToExecute(safeOperationHash: string): Promise<boolean>;
+    isReadyToExecute(proposalId: string): Promise<boolean>;
     /**
      * Gets the on-chain transaction hash for a UserOperation.
      *
@@ -288,10 +289,28 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
         fee: bigint;
     }>;
     /**
+     * Creates a GenericFeeEstimator for non-Pimlico bundlers.
+     *
+     * @protected
+     * @returns {GenericFeeEstimator} The fee estimator
+     */
+    protected _createFeeEstimator(): GenericFeeEstimator;
+    /**
+     * Creates a SafeOperation from transactions.
+     * This is the shared method used by both fee estimation and propose
+     * to ensure they operate on the same transaction structure.
+     *
+     * @protected
+     * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
+     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @returns {Promise<Object>} The SafeOperation object
+     */
+    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], options?: ProposeOptions): Promise<any>;
+    /**
      * Estimates UserOperation gas cost.
      *
      * @private
-     * @param {EvmTransaction[]} transactions - Array of transactions
+     * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
      * @param {ProposeOptions} [options] - Options for paymaster override
      * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
      */
@@ -454,6 +473,8 @@ export type SafesByOwnerConfig = {
     safeApiKey?: string;
 };
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
+import { IWalletAccountMultisigReadOnly } from '@tetherto/wdk-wallet';
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
 import { Safe4337Pack } from '@wdk-safe-global/relay-kit';
 import SafeApiKit from '@safe-global/api-kit';
+import { GenericFeeEstimator } from '@wdk-safe-global/relay-kit';
