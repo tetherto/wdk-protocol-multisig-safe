@@ -637,13 +637,13 @@ Safe requires authenticated API access. Get your API key from the [Safe Develope
 - **Frontend**: Recommended to not expose `safeApiKey` in client code. Use `txServiceUrl` pointing to a backend proxy that injects the key server-side.
 
 ```javascript
-// ❌ DON'T - exposes your API key in frontend bundle
+// DON'T - exposes your API key in frontend bundle
 const config = {
   safeApiKey: 'eyJhb...',  // Anyone can extract this
   // ...
 }
 
-// ✅ DO - proxy injects the key server-side
+// DO - proxy injects the key server-side
 const config = {
   txServiceUrl: 'https://your-backend.com/safe-proxy',
   // ...
