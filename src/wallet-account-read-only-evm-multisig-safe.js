@@ -108,9 +108,7 @@ function createApiKitConfig (config) {
 
   if (config.txServiceUrl) {
     apiKitConfig.txServiceUrl = config.txServiceUrl
-  }
-
-  if (config.safeApiKey) {
+  }else if (config.safeApiKey) {
     apiKitConfig.apiKey = config.safeApiKey
   }
 
@@ -193,58 +191,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
     /** @private */
     this._signerAddress = signerAddress
-  }
-
-  /**
-   * Gets all Safe addresses owned by an address.
-   * Useful for discovering user's Safes during wallet login/import.
-   *
-   * @static
-   * @param {string} ownerAddress - The owner's EOA address
-   * @param {SafesByOwnerConfig} config - Configuration object
-   * @returns {Promise<string[]>} Array of Safe addresses
-   *
-   */
-  static async getSafesByOwner (ownerAddress, config) {
-    if (!ownerAddress) {
-      throw new Error('ownerAddress is required')
-    }
-
-    const apiKit = new SafeApiKit(createApiKitConfig(config))
-    const response = await apiKit.getSafesByOwner(ownerAddress)
-
-    return response.safes || []
-  }
-
-  /**
-   * Gets Safe information without creating an instance.
-   *
-   * @static
-   * @param {string} safeAddress - The Safe address
-   * @param {SafesByOwnerConfig} config - Configuration object
-   * @returns {Promise<SafeInfo>} Safe information
-   *
-   */
-  static async getSafeInfo (safeAddress, config) {
-    if (!safeAddress) {
-      throw new Error('safeAddress is required')
-    }
-
-    if (!config?.chainId) {
-      throw new Error('chainId is required')
-    }
-
-    const apiKit = new SafeApiKit(createApiKitConfig(config))
-    const safeInfo = await apiKit.getSafeInfo(safeAddress)
-
-    return {
-      address: safeInfo.address,
-      owners: safeInfo.owners,
-      threshold: safeInfo.threshold,
-      isCreated: true,
-      nonce: safeInfo.nonce?.toString() || '0',
-      version: safeInfo.version || 'unknown'
-    }
   }
 
   /**
@@ -865,6 +811,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   async _getEvmReadOnlyAccount () {
     const address = await this.getAddress()
     return new WalletAccountReadOnlyEvm(address, this._config)
+  }
+
+  /**
+ * Resets cached internal state.
+ * @protected
+ */
+  _resetState () {
+    this._owners = null
+    this._threshold = null
   }
 
   /**

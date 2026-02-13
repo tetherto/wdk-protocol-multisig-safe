@@ -61,27 +61,6 @@ export const DEFAULT_SAFE_VERSION: "1.4.1";
  */
 export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly implements IWalletAccountMultisigReadOnly {
     /**
-     * Gets all Safe addresses owned by an address.
-     * Useful for discovering user's Safes during wallet login/import.
-     *
-     * @static
-     * @param {string} ownerAddress - The owner's EOA address
-     * @param {SafesByOwnerConfig} config - Configuration object
-     * @returns {Promise<string[]>} Array of Safe addresses
-     *
-     */
-    static getSafesByOwner(ownerAddress: string, config: SafesByOwnerConfig): Promise<string[]>;
-    /**
-     * Gets Safe information without creating an instance.
-     *
-     * @static
-     * @param {string} safeAddress - The Safe address
-     * @param {SafesByOwnerConfig} config - Configuration object
-     * @returns {Promise<SafeInfo>} Safe information
-     *
-     */
-    static getSafeInfo(safeAddress: string, config: SafesByOwnerConfig): Promise<SafeInfo>;
-    /**
      * Generates a deterministic salt nonce from owners and threshold.
      *
      * @static
@@ -352,6 +331,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @returns {Promise<WalletAccountReadOnlyEvm>} The read-only EVM account
      */
     private _getEvmReadOnlyAccount;
+    /**
+   * Resets cached internal state.
+   * @protected
+   */
+    protected _resetState(): void;
     /**
      * Validates the configuration.
      *

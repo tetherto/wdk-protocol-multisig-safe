@@ -492,25 +492,6 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     })
   })
 
-  describe('static getSafesByOwner', () => {
-    test('should throw error when ownerAddress is missing', async () => {
-      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(null, { chainId: 11155111n }))
-        .rejects.toThrow('ownerAddress is required')
-    })
-  })
-
-  describe('static getSafeInfo', () => {
-    test('should throw error when safeAddress is missing', async () => {
-      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafeInfo(null, { chainId: 11155111n }))
-        .rejects.toThrow('safeAddress is required')
-    })
-
-    test('should throw error when chainId is missing', async () => {
-      await expect(WalletAccountReadOnlyEvmMultisigSafe.getSafeInfo(MOCK_SAFE_ADDRESS, {}))
-        .rejects.toThrow('chainId is required')
-    })
-  })
-
   describe('generateDeterministicSaltNonce', () => {
     test('should generate a deterministic salt nonce', () => {
       const owners = ['0xAAA', '0xBBB']

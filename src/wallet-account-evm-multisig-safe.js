@@ -280,9 +280,9 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       value: BigInt(deploymentTx.value),
       data: deploymentTx.data
     })
-    // reset cached state
-    this._owners = null
-    this._threshold = null
+
+    this._resetState()
+
     return result
   }
 
@@ -488,6 +488,8 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     const userOpHash = await safe4337Pack.executeTransaction({
       executable: safeOperationResponse
     })
+
+    this._resetState()
 
     return {
       hash: userOpHash
