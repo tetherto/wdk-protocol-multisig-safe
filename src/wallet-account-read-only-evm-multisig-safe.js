@@ -386,24 +386,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Gets the on-chain transaction hash for a UserOperation.
-   *
-   * @param {string} userOpHash - The UserOperation hash
-   * @returns {Promise<string | null>} The transaction hash or null if not found
-   *
-   */
-  async getTransactionHashByUserOpHash (userOpHash) {
-    const safe4337Pack = await this._getSafe4337Pack()
-
-    try {
-      const receipt = await safe4337Pack.getUserOperationReceipt(userOpHash)
-      return receipt?.receipt?.transactionHash || null
-    } catch (e) {
-      return null
-    }
-  }
-
-  /**
    * Gets a message and its signatures from Safe Transaction Service.
    *
    * @param {string} messageHash - The Safe message hash

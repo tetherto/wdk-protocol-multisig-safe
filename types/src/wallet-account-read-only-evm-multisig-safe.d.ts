@@ -118,7 +118,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * 
      * @returns {Promise<string>} The Safe address
      */
-    getAddress(): Promise<string>;
+    getSafeAddress(): Promise<string>;
     /**
      * Checks if the Safe is deployed on-chain.
      *
@@ -176,14 +176,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @returns {Promise<boolean>} True if confirmations >= threshold
      */
     isReadyToExecute(proposalId: string): Promise<boolean>;
-    /**
-     * Gets the on-chain transaction hash for a UserOperation.
-     *
-     * @param {string} userOpHash - The UserOperation hash
-     * @returns {Promise<string | null>} The transaction hash or null if not found
-     *
-     */
-    getTransactionHashByUserOpHash(userOpHash: string): Promise<string | null>;
     /**
      * Gets a message and its signatures from Safe Transaction Service.
      *

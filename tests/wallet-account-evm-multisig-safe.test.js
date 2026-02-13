@@ -954,29 +954,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
   })
 
-  describe('getTransactionHashByUserOpHash', () => {
-    test('should return transaction hash from userOpHash', async () => {
-      const mockPack = createMockSafe4337Pack()
-      account._safe4337Pack = mockPack
-
-      const txHash = await account.getTransactionHashByUserOpHash(MOCK_USER_OP_HASH)
-
-      expect(txHash).toBe(MOCK_TX_HASH)
-      expect(mockPack.getUserOperationReceipt).toHaveBeenCalledWith(MOCK_USER_OP_HASH)
-    })
-
-    test('should return null when receipt not found', async () => {
-      const mockPack = createMockSafe4337Pack({
-        getUserOperationReceipt: jest.fn().mockResolvedValue(null)
-      })
-      account._safe4337Pack = mockPack
-
-      const txHash = await account.getTransactionHashByUserOpHash(MOCK_USER_OP_HASH)
-
-      expect(txHash).toBe(null)
-    })
-  })
-
   describe('getMessage', () => {
     test('should return MessageInfo with signature', async () => {
       const mockPack = createMockSafe4337Pack()
