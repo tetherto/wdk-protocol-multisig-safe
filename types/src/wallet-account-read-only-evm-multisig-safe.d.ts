@@ -1,4 +1,8 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
+/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisigReadOnly} IWalletAccountMultisigReadOnly */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
@@ -11,7 +15,6 @@
 /** @typedef {import('@safe-global/api-kit').TransferListResponse} TransferListResponse */
 /** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
 /** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
-/** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 /** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
@@ -36,13 +39,9 @@
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
 /**
- * @typedef {Object} SafeInfo
- * @property {string} address - Safe address
- * @property {string[]} owners - Array of owner addresses
- * @property {number} threshold - Number of required signatures
+ * @typedef {MultisigInfo} SafeInfo
  * @property {string} nonce - Current nonce
  * @property {string} version - Safe contract version
- * @property {boolean} isDeployed - Whether Safe is deployed
  */
 /**
  * @typedef {Object} SafesByOwnerConfig
@@ -158,10 +157,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     getSignerAddress(): Promise<string | null>;
     /**
      * Returns the Safe address.
-     *
+     * 
      * @returns {Promise<string>} The Safe address
      */
-     getAddress(): Promise<string>;
+    getAddress(): Promise<string>;
     /**
      * Checks if the Safe is deployed on-chain.
      *
@@ -180,6 +179,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @returns {Promise<number>} The threshold
      */
     getThreshold(): Promise<number>;
+    /**
+     * Returns the multisig wallet info.
+     *
+     * @returns {Promise<MultisigInfo>} The multisig info
+     */
+    getMultisigInfo(): Promise<MultisigInfo>;
     /**
      * Returns the Safe's current nonce.
      *
@@ -210,9 +215,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Returns a specific Safe operation by hash.
      *
      * @param {string} proposalId - The Safe operation hash
-     * @returns {Promise<SafeOperationResponse | null>} The operation or null if not found
+     * @returns {Promise<MultisigProposal | null>} The proposal or null if not found
      */
-    getProposal(proposalId: string): Promise<SafeOperationResponse | null>;
+    getProposal(proposalId: string): Promise<MultisigProposal | null>;
     /**
      * Returns the transaction history for the Safe.
      * Includes executed multisig transactions.
@@ -249,9 +254,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Gets a message and its signatures from Safe Transaction Service.
      *
      * @param {string} messageHash - The Safe message hash
-     * @returns {Promise<SafeMessage | null>} The message with signatures or null if not found
+     * @returns {Promise<MessageInfo | null>} The message info or null if not found
      */
-    getMessage(messageHash: string): Promise<SafeMessage | null>;
+    getMessage(messageHash: string): Promise<MessageInfo | null>;
     /**
      * Returns pending messages awaiting signatures.
      *
@@ -356,6 +361,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     private _validateConfig;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
+export type IWalletAccountMultisigReadOnly = import("@tetherto/wdk-wallet").IWalletAccountMultisigReadOnly;
+export type MultisigInfo = import("@tetherto/wdk-wallet").MultisigInfo;
+export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
+export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
@@ -368,7 +377,6 @@ export type SafeMessageListResponse = import("@safe-global/api-kit").SafeMessage
 export type TransferListResponse = import("@safe-global/api-kit").TransferListResponse;
 export type ListOptions = import("@safe-global/api-kit").ListOptions;
 export type SafeOperationResponse = import("@safe-global/types-kit").SafeOperationResponse;
-export type SafeMessage = import("@safe-global/types-kit").SafeMessage;
 export type PaymasterOptions = import("@wdk-safe-global/relay-kit").PaymasterOptions;
 export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingSafeOptions;
 export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;
@@ -432,32 +440,7 @@ export type EvmMultisigSafeConfig = {
      */
     transferMaxFee?: number | bigint;
 };
-export type SafeInfo = {
-    /**
-     * - Safe address
-     */
-    address: string;
-    /**
-     * - Array of owner addresses
-     */
-    owners: string[];
-    /**
-     * - Number of required signatures
-     */
-    threshold: number;
-    /**
-     * - Current nonce
-     */
-    nonce: string;
-    /**
-     * - Safe contract version
-     */
-    version: string;
-    /**
-     * - Whether Safe is deployed
-     */
-    isDeployed: boolean;
-};
+export type SafeInfo = MultisigInfo;
 export type SafesByOwnerConfig = {
     /**
      * - Chain ID
@@ -473,7 +456,6 @@ export type SafesByOwnerConfig = {
     safeApiKey?: string;
 };
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
-import { IWalletAccountMultisigReadOnly } from '@tetherto/wdk-wallet';
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
 import { Safe4337Pack } from '@wdk-safe-global/relay-kit';
 import SafeApiKit from '@safe-global/api-kit';

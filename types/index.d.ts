@@ -3,6 +3,7 @@ export { default as WalletAccountEvmMultisigSafe } from "./src/wallet-account-ev
 export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
 export type MultisigResult = import("@tetherto/wdk-wallet").MultisigResult;
 export type MultisigExecuteResult = import("@tetherto/wdk-wallet").MultisigExecuteResult;
+export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
 export type FeeRates = import("@tetherto/wdk-wallet-evm").FeeRates;
 export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
@@ -26,11 +27,6 @@ export type EvmMultisigSafeReadOnlyConfig = import("./src/wallet-account-read-on
 export type SafeInfo = import("./src/wallet-account-read-only-evm-multisig-safe.js").SafeInfo;
 export type SafesByOwnerConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").SafesByOwnerConfig;
 export type ProposeOptions = import("./src/wallet-account-read-only-evm-multisig-safe.js").ProposeOptions;
-export type SignOptions = import("./src/wallet-account-evm-multisig-safe.js").SignOptions;
-export type SignResult = import("./src/wallet-account-evm-multisig-safe.js").SignResult;
-export type ProposeResult = import("./src/wallet-account-evm-multisig-safe.js").ProposeResult;
-export type ApprovalResult = import("./src/wallet-account-evm-multisig-safe.js").ApprovalResult;
-export type ExecuteResult = import("./src/wallet-account-evm-multisig-safe.js").ExecuteResult;
 export type MessageProposalResult = import("./src/wallet-account-evm-multisig-safe.js").MessageProposalResult;
 export type MultisigTransactionResult = import("./src/wallet-account-evm-multisig-safe.js").MultisigTransactionResult;
 export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION } from "./src/wallet-account-read-only-evm-multisig-safe.js";

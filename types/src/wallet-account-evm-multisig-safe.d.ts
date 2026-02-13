@@ -1,35 +1,14 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccount} IWalletAccount */
+/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
-/**
- * @typedef {Object} ProposeResult
- * @property {string} proposalId - The Safe operation hash
- * @property {number} confirmations - Number of confirmations
- * @property {number} threshold - Required threshold
- */
-/**
- * @typedef {Object} ApprovalResult
- * @property {number} confirmations - Number of confirmations
- * @property {number} threshold - Required threshold
- */
-/**
- * @typedef {Object} ExecuteResult
- * @property {string} hash - The UserOperation hash
- */
-/**
- * @typedef {Object} SignOptions
- * @property {boolean} [isApproval] - If true, approve existing message; otherwise propose new
- */
-/**
- * @typedef {Object} SignResult
- * @property {string} signature - This owner's signature
- * @property {SafeMessage} safeMessage - Full SafeMessage object from Safe Transaction Service
- */
 /**
  * Result of a multisig transaction (sendTransaction/transfer).
  *
@@ -89,14 +68,27 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     get keyPair(): KeyPair;
     /**
+     * Signs a message
+     *
+     * @param {string} message - The message to sign
+     * @returns {Promise<string>} The signature
+     */
+    sign(message: string): Promise<string>;
+    /**
      * Signs a message with the multisig Safe.
      * Proposes a new message or approves an existing one.
      *
      * @param {string} message - The message to sign
-     * @param {SignOptions} [options] - Options
-     * @returns {Promise<SignResult>} The sign result
+     * @returns {Promise<MessageProposal>} The sign result
      */
-    sign(message: string, options?: SignOptions): Promise<SignResult>;
+    proposeMessage(message: string): Promise<MessageProposal>;
+    /**
+    * Approves an existing message proposal.
+    *
+    * @param {string} messageHash - The message hash to approve
+    * @returns {Promise<MessageProposal>} The approval result
+    */
+    approveMessage(messageHash: string): Promise<MessageProposal>;
     /**
      * Validates that the signer is an owner of the Safe.
      *
@@ -136,75 +128,75 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      *
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
      * @param {ProposeOptions} [options] - Propose options
-     * @returns {Promise<ProposeResult>} The proposal result
+     * @returns {Promise<MultisigResult>} The proposal result
      */
-    propose(transaction: EvmTransaction | EvmTransaction[], options?: ProposeOptions): Promise<ProposeResult>;
+    propose(transaction: EvmTransaction | EvmTransaction[], options?: ProposeOptions): Promise<MultisigResult>;
     /**
      * Approves (signs) an existing proposal.
      *
      * @param {string} proposalId - The Safe operation hash to approve
-     * @returns {Promise<ApprovalResult>} Approval result
+     * @returns {Promise<MultisigResult>} Approval result
      */
-    approve(proposalId: string): Promise<ApprovalResult>;
+    approve(proposalId: string): Promise<MultisigResult>;
     /**
      * Rejects a proposal by creating a rejection transaction.
      * A rejection is a zero-value transaction to the Safe itself with the same nonce.
      *
      * @param {string} proposalId - The Safe operation hash to reject
-     * @returns {Promise<ProposeResult>} The rejection proposal result
+     * @returns {Promise<MultisigResult>} The rejection proposal result
      */
-    reject(proposalId: string): Promise<ProposeResult>;
+    reject(proposalId: string): Promise<MultisigResult>;
     /**
      * Executes a fully signed Safe operation via the bundler.
      *
      * @param {string} proposalId - The Safe operation hash to execute
-     * @returns {Promise<ExecuteResult>} The execution result
+     * @returns {Promise<MultisigExecuteResult>} The execution result
      */
-    execute(proposalId: string): Promise<ExecuteResult>;
+    execute(proposalId: string): Promise<MultisigExecuteResult>;
     /**
      * Proposes adding a new owner to the Safe.
      *
      * @param {string} ownerAddress - Address of new owner
      * @param {number} [newThreshold] - New threshold (defaults to current)
      * @param {ProposeOptions} [options] - Propose options
-     * @returns {Promise<ProposeResult>} The proposal result
+     * @returns {Promise<MultisigResult>} The proposal result
      */
-    addOwner(ownerAddress: string, newThreshold?: number, options?: ProposeOptions): Promise<ProposeResult>;
+    addOwner(ownerAddress: string, newThreshold?: number, options?: ProposeOptions): Promise<MultisigResult>;
     /**
      * Proposes removing an owner from the Safe.
      *
      * @param {string} ownerAddress - Address of owner to remove
      * @param {number} [newThreshold] - New threshold (defaults to current or adjusted)
      * @param {ProposeOptions} [options] - Propose options
-     * @returns {Promise<ProposeResult>} The proposal result
+     * @returns {Promise<MultisigResult>} The proposal result
      */
-    removeOwner(ownerAddress: string, newThreshold?: number, options?: ProposeOptions): Promise<ProposeResult>;
+    removeOwner(ownerAddress: string, newThreshold?: number, options?: ProposeOptions): Promise<MultisigResult>;
     /**
      * Proposes swapping an owner with a new address.
      *
      * @param {string} oldOwnerAddress - Address of owner to remove
      * @param {string} newOwnerAddress - Address of new owner
      * @param {ProposeOptions} [options] - Propose options
-     * @returns {Promise<ProposeResult>} The proposal result
+     * @returns {Promise<MultisigResult>} The proposal result
      */
-    swapOwner(oldOwnerAddress: string, newOwnerAddress: string, options?: ProposeOptions): Promise<ProposeResult>;
+    swapOwner(oldOwnerAddress: string, newOwnerAddress: string, options?: ProposeOptions): Promise<MultisigResult>;
     /**
      * Proposes changing the Safe threshold.
      *
      * @param {number} newThreshold - New threshold value
      * @param {ProposeOptions} [options] - Propose options
-     * @returns {Promise<ProposeResult>} The proposal result
+     * @returns {Promise<MultisigResult>} The proposal result
      */
-    changeThreshold(newThreshold: number, options?: ProposeOptions): Promise<ProposeResult>;
+    changeThreshold(newThreshold: number, options?: ProposeOptions): Promise<MultisigResult>;
     /**
      * Proposes updating all owners and threshold in a batch.
      *
      * @param {string[]} newOwners - Array of new owner addresses
      * @param {number} newThreshold - New threshold value
      * @param {ProposeOptions} [options] - Propose options
-     * @returns {Promise<ProposeResult>} The proposal result
+     * @returns {Promise<MultisigResult>} The proposal result
      */
-    updateOwners(newOwners: string[], newThreshold: number, options?: ProposeOptions): Promise<ProposeResult>;
+    updateOwners(newOwners: string[], newThreshold: number, options?: ProposeOptions): Promise<MultisigResult>;
     /**
      * Returns a read-only copy of this account.
      *
@@ -217,59 +209,16 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     dispose(): void;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
-export type IWalletAccount = import("@tetherto/wdk-wallet").IWalletAccount;
+export type IWalletAccountMultisig = import("@tetherto/wdk-wallet").IWalletAccountMultisig;
+export type MultisigResult = import("@tetherto/wdk-wallet").MultisigResult;
+export type MultisigExecuteResult = import("@tetherto/wdk-wallet").MultisigExecuteResult;
+export type MessageProposal = import("@tetherto/wdk-wallet").MessageProposal;
 export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type EvmMultisigSafeConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
 export type ProposeOptions = import("./wallet-account-read-only-evm-multisig-safe.js").ProposeOptions;
-export type ProposeResult = {
-    /**
-     * - The Safe operation hash
-     */
-    proposalId: string;
-    /**
-     * - Number of confirmations
-     */
-    confirmations: number;
-    /**
-     * - Required threshold
-     */
-    threshold: number;
-};
-export type ApprovalResult = {
-    /**
-     * - Number of confirmations
-     */
-    confirmations: number;
-    /**
-     * - Required threshold
-     */
-    threshold: number;
-};
-export type ExecuteResult = {
-    /**
-     * - The UserOperation hash
-     */
-    hash: string;
-};
-export type SignOptions = {
-    /**
-     * - If true, approve existing message; otherwise propose new
-     */
-    isApproval?: boolean;
-};
-export type SignResult = {
-    /**
-     * - This owner's signature
-     */
-    signature: string;
-    /**
-     * - Full SafeMessage object from Safe Transaction Service
-     */
-    safeMessage: SafeMessage;
-};
 /**
  * Result of a multisig transaction (sendTransaction/transfer).
  */
@@ -295,5 +244,4 @@ export type MultisigTransactionResult = {
      */
     executed: boolean;
 };
-import { IWalletAccountMultisig } from '@tetherto/wdk-wallet';
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';

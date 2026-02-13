@@ -18,13 +18,14 @@ import { hashMessage } from 'ethers'
 
 import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
-import { IWalletAccountMultisig } from '@tetherto/wdk-wallet'
-
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccount} IWalletAccount */
+/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
 
@@ -34,35 +35,6 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
-
-/**
- * @typedef {Object} ProposeResult
- * @property {string} proposalId - The Safe operation hash
- * @property {number} confirmations - Number of confirmations
- * @property {number} threshold - Required threshold
- */
-
-/**
- * @typedef {Object} ApprovalResult
- * @property {number} confirmations - Number of confirmations
- * @property {number} threshold - Required threshold
- */
-
-/**
- * @typedef {Object} ExecuteResult
- * @property {string} hash - The UserOperation hash
- */
-
-/**
- * @typedef {Object} SignOptions
- * @property {boolean} [isApproval] - If true, approve existing message; otherwise propose new
- */
-
-/**
- * @typedef {Object} SignResult
- * @property {string} signature - This owner's signature
- * @property {SafeMessage} safeMessage - Full SafeMessage object from Safe Transaction Service
- */
 
 /**
  * Result of a multisig transaction (sendTransaction/transfer).
@@ -148,14 +120,41 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
+   * Signs a message
+   *
+   * @param {string} message - The message to sign
+   * @returns {Promise<string>} The signature
+   */
+  async sign (message) {
+    const result = await this.proposeMessage(message)
+    return result.signature
+  }
+
+  /**
+   * Verifies a message's signature.
+   *
+   * @param {string} message - The original message.
+   * @param {string} signature - The signature to verify.
+   * @returns {Promise<boolean>} True if the signature is valid.
+   */
+  async verify (message, signature) {
+    const safe4337Pack = await this._getSafe4337Pack()
+    const protocolKit = safe4337Pack.protocolKit
+
+    const messageHash = hashMessage(message)
+    const isValid = await protocolKit.isValidSignature(messageHash, signature)
+
+    return isValid
+  }
+
+  /**
    * Signs a message with the multisig Safe.
    * Proposes a new message or approves an existing one.
    *
    * @param {string} message - The message to sign
-   * @param {SignOptions} [options] - Options
-   * @returns {Promise<SignResult>} The sign result
+   * @returns {Promise<MessageProposal>} The sign result
    */
-  async sign (message, options = {}) {
+  async proposeMessage (message) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
@@ -177,39 +176,63 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       hashMessage(message)
     )
 
-    if (options.isApproval) {
-      await apiKit.addMessageSignature(messageHash, signature.data)
-    } else {
-      await apiKit.addMessage(safeAddress, {
-        message,
-        signature: signature.data
-      })
-    }
+    await apiKit.addMessage(safeAddress, {
+      message,
+      signature: signature.data
+    })
 
     const safeMessageResponse = await apiKit.getMessage(messageHash)
-
+    const threshold = await this.getThreshold()
     return {
+      messageHash,
       signature: signature.data,
-      safeMessage: safeMessageResponse
+      confirmations: safeMessageResponse.confirmations?.length || 0,
+      threshold,
+      combinedSignature: safeMessageResponse.preparedSignature || null
     }
   }
 
   /**
-   * Verifies a message signature using EIP-1271.
-   * The Safe contract implements isValidSignature to verify combined multisig signatures.
-   *
-   * @param {string} message - The original message
-   * @param {string} signature - The combined signature (preparedSignature from SafeMessage)
-   * @returns {Promise<boolean>} True if signature is valid
-   */
-  async verify (message, signature) {
+  * Approves an existing message proposal.
+  *
+  * @param {string} messageHash - The message hash to approve
+  * @returns {Promise<MessageProposal>} The approval result
+  */
+  async approveMessage (messageHash) {
+    await this.validateSignerIsOwner()
+
     const safe4337Pack = await this._getSafe4337Pack()
     const protocolKit = safe4337Pack.protocolKit
+    const apiKit = await this._getApiKit()
 
-    const messageHash = hashMessage(message)
-    const isValid = await protocolKit.isValidSignature(messageHash, signature)
+    const existingMessage = await apiKit.getMessage(messageHash)
 
-    return isValid
+    if (!existingMessage) {
+      throw new Error(`Message not found: ${messageHash}`)
+    }
+
+    const safeMessage = protocolKit.createMessage(existingMessage.message)
+    const signedMessage = await protocolKit.signMessage(safeMessage)
+
+    const signerAddress = await this.getSignerAddress()
+    const signature = signedMessage.getSignature(signerAddress.toLowerCase())
+
+    if (!signature) {
+      throw new Error('Failed to generate signature')
+    }
+
+    await apiKit.addMessageSignature(messageHash, signature.data)
+
+    const safeMessageResponse = await apiKit.getMessage(messageHash)
+    const threshold = await this.getThreshold()
+
+    return {
+      messageHash,
+      signature: signature.data,
+      confirmations: safeMessageResponse.confirmations?.length || 0,
+      threshold,
+      combinedSignature: safeMessageResponse.preparedSignature || null
+    }
   }
 
   /**
@@ -338,7 +361,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    *
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
    * @param {ProposeOptions} [options] - Propose options
-   * @returns {Promise<ProposeResult>} The proposal result
+   * @returns {Promise<MultisigResult>} The proposal result
    */
   async propose (transaction, options = {}) {
     await this.validateSignerIsOwner()
@@ -364,7 +387,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Approves (signs) an existing proposal.
    *
    * @param {string} proposalId - The Safe operation hash to approve
-   * @returns {Promise<ApprovalResult>} Approval result
+   * @returns {Promise<MultisigResult>} Approval result
    */
   async approve (proposalId) {
     await this.validateSignerIsOwner()
@@ -409,7 +432,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * A rejection is a zero-value transaction to the Safe itself with the same nonce.
    *
    * @param {string} proposalId - The Safe operation hash to reject
-   * @returns {Promise<ProposeResult>} The rejection proposal result
+   * @returns {Promise<MultisigResult>} The rejection proposal result
    */
   async reject (proposalId) {
     await this.validateSignerIsOwner()
@@ -436,7 +459,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Executes a fully signed Safe operation via the bundler.
    *
    * @param {string} proposalId - The Safe operation hash to execute
-   * @returns {Promise<ExecuteResult>} The execution result
+   * @returns {Promise<MultisigExecuteResult>} The execution result
    */
   async execute (proposalId) {
     const safe4337Pack = await this._getSafe4337Pack()
@@ -473,7 +496,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * @param {string} ownerAddress - Address of new owner
    * @param {number} [newThreshold] - New threshold (defaults to current)
    * @param {ProposeOptions} [options] - Propose options
-   * @returns {Promise<ProposeResult>} The proposal result
+   * @returns {Promise<MultisigResult>} The proposal result
    */
   async addOwner (ownerAddress, newThreshold, options = {}) {
     const safe4337Pack = await this._getSafe4337Pack()
@@ -497,7 +520,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * @param {string} ownerAddress - Address of owner to remove
    * @param {number} [newThreshold] - New threshold (defaults to current or adjusted)
    * @param {ProposeOptions} [options] - Propose options
-   * @returns {Promise<ProposeResult>} The proposal result
+   * @returns {Promise<MultisigResult>} The proposal result
    */
   async removeOwner (ownerAddress, newThreshold, options = {}) {
     const safe4337Pack = await this._getSafe4337Pack()
@@ -527,7 +550,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * @param {string} oldOwnerAddress - Address of owner to remove
    * @param {string} newOwnerAddress - Address of new owner
    * @param {ProposeOptions} [options] - Propose options
-   * @returns {Promise<ProposeResult>} The proposal result
+   * @returns {Promise<MultisigResult>} The proposal result
    */
   async swapOwner (oldOwnerAddress, newOwnerAddress, options = {}) {
     const safe4337Pack = await this._getSafe4337Pack()
@@ -549,7 +572,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    *
    * @param {number} newThreshold - New threshold value
    * @param {ProposeOptions} [options] - Propose options
-   * @returns {Promise<ProposeResult>} The proposal result
+   * @returns {Promise<MultisigResult>} The proposal result
    */
   async changeThreshold (newThreshold, options = {}) {
     const safe4337Pack = await this._getSafe4337Pack()
@@ -569,7 +592,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * @param {string[]} newOwners - Array of new owner addresses
    * @param {number} newThreshold - New threshold value
    * @param {ProposeOptions} [options] - Propose options
-   * @returns {Promise<ProposeResult>} The proposal result
+   * @returns {Promise<MultisigResult>} The proposal result
    */
   async updateOwners (newOwners, newThreshold, options = {}) {
     const safe4337Pack = await this._getSafe4337Pack()

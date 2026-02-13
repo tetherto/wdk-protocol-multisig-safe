@@ -18,8 +18,6 @@ import { keccak256, toUtf8Bytes } from 'ethers'
 
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
 
-import { IWalletAccountMultisigReadOnly } from '@tetherto/wdk-wallet'
-
 import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
 import { Safe4337Pack, GenericFeeEstimator } from '@wdk-safe-global/relay-kit'
@@ -27,6 +25,11 @@ import { Safe4337Pack, GenericFeeEstimator } from '@wdk-safe-global/relay-kit'
 import SafeApiKit from '@safe-global/api-kit'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
+
+/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisigReadOnly} IWalletAccountMultisigReadOnly */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
@@ -43,7 +46,6 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
 
 /** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
-/** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 
 /** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
@@ -72,13 +74,9 @@ import SafeApiKit from '@safe-global/api-kit'
  */
 
 /**
- * @typedef {Object} SafeInfo
- * @property {string} address - Safe address
- * @property {string[]} owners - Array of owner addresses
- * @property {number} threshold - Number of required signatures
+ * @typedef {MultisigInfo} SafeInfo
  * @property {string} nonce - Current nonce
  * @property {string} version - Safe contract version
- * @property {boolean} isDeployed - Whether Safe is deployed
  */
 
 /**
@@ -243,9 +241,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       address: safeInfo.address,
       owners: safeInfo.owners,
       threshold: safeInfo.threshold,
+      isCreated: true,
       nonce: safeInfo.nonce?.toString() || '0',
-      version: safeInfo.version || 'unknown',
-      isDeployed: true
+      version: safeInfo.version || 'unknown'
     }
   }
 
@@ -362,6 +360,25 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
+   * Returns the multisig wallet info.
+   *
+   * @returns {Promise<MultisigInfo>} The multisig info
+   */
+  async getMultisigInfo () {
+    const address = await this.getAddress()
+    const owners = await this.getOwners()
+    const threshold = await this.getThreshold()
+    const isCreated = await this.isDeployed()
+
+    return {
+      address,
+      owners,
+      threshold,
+      isCreated
+    }
+  }
+
+  /**
    * Returns the Safe's current nonce.
    *
    * @returns {Promise<number>} The nonce
@@ -441,13 +458,26 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Returns a specific Safe operation by hash.
    *
    * @param {string} proposalId - The Safe operation hash
-   * @returns {Promise<SafeOperationResponse | null>} The operation or null if not found
+   * @returns {Promise<MultisigProposal | null>} The proposal or null if not found
    */
   async getProposal (proposalId) {
     const apiKit = await this._getApiKit()
 
     try {
-      return await apiKit.getSafeOperation(proposalId)
+      const safeOperation = await apiKit.getSafeOperation(proposalId)
+
+      if (!safeOperation) {
+        return null
+      }
+
+      const threshold = await this.getThreshold()
+
+      return {
+        ...safeOperation,
+        proposalId,
+        confirmations: safeOperation.confirmations?.length || 0,
+        threshold
+      }
     } catch (error) {
       if (error.message?.includes('not found')) {
         return null
@@ -526,13 +556,23 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Gets a message and its signatures from Safe Transaction Service.
    *
    * @param {string} messageHash - The Safe message hash
-   * @returns {Promise<SafeMessage | null>} The message with signatures or null if not found
+   * @returns {Promise<MessageInfo | null>} The message info or null if not found
    */
   async getMessage (messageHash) {
     const apiKit = await this._getApiKit()
 
     try {
-      return await apiKit.getMessage(messageHash)
+      const safeMessage = await apiKit.getMessage(messageHash)
+      const threshold = await this.getThreshold()
+
+      return {
+        ...safeMessage,
+        messageHash: safeMessage.messageHash,
+        message: safeMessage.message,
+        confirmations: safeMessage.confirmations?.length || 0,
+        threshold,
+        combinedSignature: safeMessage.preparedSignature || null
+      }
     } catch (error) {
       if (error.message?.includes('not found')) {
         return null
