@@ -32,21 +32,7 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').ApproveOptions} ApproveOptions */
-
-// ============================================
-// Re-export types from @safe-global packages
-// ============================================
-
-/** @typedef {import('@safe-global/api-kit').GetSafeOperationListOptions} GetSafeOperationListOptions */
-/** @typedef {import('@safe-global/api-kit').GetSafeOperationListResponse} GetSafeOperationListResponse */
-/** @typedef {import('@safe-global/api-kit').SafeMultisigTransactionListResponse} SafeMultisigTransactionListResponse */
-/** @typedef {import('@safe-global/api-kit').SafeMessageListResponse} SafeMessageListResponse */
-/** @typedef {import('@safe-global/api-kit').TransferListResponse} TransferListResponse */
-/** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
-/** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
-/** @typedef {import('@safe-global/types-kit').SafeMessage} SafeMessage */
 
 // ============================================
 // Re-export types from @wdk-safe-global/relay-kit

@@ -4,17 +4,7 @@
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
-/** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet-evm').TransferResult} TransferResult */
-/** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
-/** @typedef {import('@safe-global/api-kit').GetSafeOperationListOptions} GetSafeOperationListOptions */
-/** @typedef {import('@safe-global/api-kit').GetSafeOperationListResponse} GetSafeOperationListResponse */
-/** @typedef {import('@safe-global/api-kit').SafeMultisigTransactionListResponse} SafeMultisigTransactionListResponse */
-/** @typedef {import('@safe-global/api-kit').SafeMessageListResponse} SafeMessageListResponse */
-/** @typedef {import('@safe-global/api-kit').TransferListResponse} TransferListResponse */
-/** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
-/** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
 /** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
@@ -173,36 +163,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getPaymasterTokenBalance(): Promise<bigint>;
     /**
-     * Returns pending Safe operations awaiting signatures.
-     *
-     * @param {GetSafeOperationListOptions} [options] - Query options
-     * @returns {Promise<GetSafeOperationListResponse>} Pending operations from Safe Transaction Service
-     */
-    getPendingTransactions(options?: GetSafeOperationListOptions): Promise<GetSafeOperationListResponse>;
-    /**
      * Returns a specific Safe operation by hash.
      *
      * @param {string} proposalId - The Safe operation hash
      * @returns {Promise<MultisigProposal | null>} The proposal or null if not found
      */
     getProposal(proposalId: string): Promise<MultisigProposal | null>;
-    /**
-     * Returns the transaction history for the Safe.
-     * Includes executed multisig transactions.
-     *
-     * @param {ListOptions} [options] - Query options (limit, offset)
-     * @returns {Promise<SafeMultisigTransactionListResponse>} Transaction history from Safe Transaction
-     *
-     */
-    getTransactionHistory(options?: ListOptions): Promise<SafeMultisigTransactionListResponse>;
-    /**
-     * Returns incoming transfers to the Safe.
-     * Includes ETH and ERC-20 token transfers.
-     *
-     * @param {ListOptions} [options] - Query options (limit, offset)
-     * @returns {Promise<TransferListResponse>} Incoming transfers from Safe Transaction Service
-     */
-    getIncomingTransactions(options?: ListOptions): Promise<TransferListResponse>;
     /**
      * Checks if a Safe operation is ready to be executed.
      *
@@ -225,13 +191,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @returns {Promise<MessageInfo | null>} The message info or null if not found
      */
     getMessage(messageHash: string): Promise<MessageInfo | null>;
-    /**
-     * Returns pending messages awaiting signatures.
-     *
-     * @param {ListOptions} [options] - Query options (limit, offset)
-     * @returns {Promise<SafeMessageListResponse>} Pending messages from Safe Transaction Service
-     */
-    getPendingMessages(options?: ListOptions): Promise<SafeMessageListResponse>;
     /**
      * Estimates the gas cost for deploying the Safe.
      *
@@ -339,17 +298,7 @@ export type MultisigInfo = import("@tetherto/wdk-wallet").MultisigInfo;
 export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
 export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
-export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
-export type TransferResult = import("@tetherto/wdk-wallet-evm").TransferResult;
-export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
-export type GetSafeOperationListOptions = import("@safe-global/api-kit").GetSafeOperationListOptions;
-export type GetSafeOperationListResponse = import("@safe-global/api-kit").GetSafeOperationListResponse;
-export type SafeMultisigTransactionListResponse = import("@safe-global/api-kit").SafeMultisigTransactionListResponse;
-export type SafeMessageListResponse = import("@safe-global/api-kit").SafeMessageListResponse;
-export type TransferListResponse = import("@safe-global/api-kit").TransferListResponse;
-export type ListOptions = import("@safe-global/api-kit").ListOptions;
-export type SafeOperationResponse = import("@safe-global/types-kit").SafeOperationResponse;
 export type PaymasterOptions = import("@wdk-safe-global/relay-kit").PaymasterOptions;
 export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingSafeOptions;
 export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;

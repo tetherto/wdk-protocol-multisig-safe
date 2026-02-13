@@ -32,20 +32,7 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
-/** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet-evm').TransferResult} TransferResult */
-
-/** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
-
-/** @typedef {import('@safe-global/api-kit').GetSafeOperationListOptions} GetSafeOperationListOptions */
-/** @typedef {import('@safe-global/api-kit').GetSafeOperationListResponse} GetSafeOperationListResponse */
-/** @typedef {import('@safe-global/api-kit').SafeMultisigTransactionListResponse} SafeMultisigTransactionListResponse */
-/** @typedef {import('@safe-global/api-kit').SafeMessageListResponse} SafeMessageListResponse */
-/** @typedef {import('@safe-global/api-kit').TransferListResponse} TransferListResponse */
-/** @typedef {import('@safe-global/api-kit').ListOptions} ListOptions */
-
-/** @typedef {import('@safe-global/types-kit').SafeOperationResponse} SafeOperationResponse */
 
 /** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
@@ -77,30 +64,6 @@ import SafeApiKit from '@safe-global/api-kit'
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
 export const DEFAULT_SAFE_VERSION = '1.4.1'
-
-/**
- * Creates SafeApiKit configuration from config object.
- *
- * @private
- * @param {Object} config - Configuration object
- * @param {bigint} config.chainId - Chain ID
- * @param {string} [config.txServiceUrl] - Custom Safe Transaction Service URL
- * @param {string} [config.safeApiKey] - Safe API key
- * @returns {Object} SafeApiKit configuration
- */
-function createApiKitConfig (config) {
-  const apiKitConfig = {
-    chainId: config.chainId
-  }
-
-  if (config.txServiceUrl) {
-    apiKitConfig.txServiceUrl = config.txServiceUrl
-  }else if (config.safeApiKey) {
-    apiKitConfig.apiKey = config.safeApiKey
-  }
-
-  return apiKitConfig
-}
 
 /**
  * Read-only EVM multisig Safe wallet account.
@@ -375,19 +338,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns pending Safe operations awaiting signatures.
-   *
-   * @param {GetSafeOperationListOptions} [options] - Query options
-   * @returns {Promise<GetSafeOperationListResponse>} Pending operations from Safe Transaction Service
-   */
-  async getPendingTransactions (options) {
-    const apiKit = await this._getApiKit()
-    const address = await this.getAddress()
-
-    return await apiKit.getPendingSafeOperations(address, options)
-  }
-
-  /**
    * Returns a specific Safe operation by hash.
    *
    * @param {string} proposalId - The Safe operation hash
@@ -417,35 +367,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       }
       throw error
     }
-  }
-
-  /**
-   * Returns the transaction history for the Safe.
-   * Includes executed multisig transactions.
-   *
-   * @param {ListOptions} [options] - Query options (limit, offset)
-   * @returns {Promise<SafeMultisigTransactionListResponse>} Transaction history from Safe Transaction
-   *
-   */
-  async getTransactionHistory (options) {
-    const apiKit = await this._getApiKit()
-    const safeAddress = await this.getAddress()
-
-    return await apiKit.getMultisigTransactions(safeAddress, options)
-  }
-
-  /**
-   * Returns incoming transfers to the Safe.
-   * Includes ETH and ERC-20 token transfers.
-   *
-   * @param {ListOptions} [options] - Query options (limit, offset)
-   * @returns {Promise<TransferListResponse>} Incoming transfers from Safe Transaction Service
-   */
-  async getIncomingTransactions (options) {
-    const apiKit = await this._getApiKit()
-    const safeAddress = await this.getAddress()
-
-    return await apiKit.getIncomingTransactions(safeAddress, options)
   }
 
   /**
@@ -509,19 +430,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       }
       throw error
     }
-  }
-
-  /**
-   * Returns pending messages awaiting signatures.
-   *
-   * @param {ListOptions} [options] - Query options (limit, offset)
-   * @returns {Promise<SafeMessageListResponse>} Pending messages from Safe Transaction Service
-   */
-  async getPendingMessages (options) {
-    const apiKit = await this._getApiKit()
-    const safeAddress = await this.getAddress()
-
-    return await apiKit.getMessages(safeAddress, options)
   }
 
   /**
@@ -783,7 +691,16 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    */
   async _getApiKit () {
     if (!this._apiKit) {
-      this._apiKit = new SafeApiKit(createApiKitConfig(this._config))
+      const apiKitConfig = {
+        chainId: this._config.chainId
+      }
+
+      if (this._config.txServiceUrl) {
+        apiKitConfig.txServiceUrl = this._config.txServiceUrl
+      } else if (this._config.safeApiKey) {
+        apiKitConfig.apiKey = this._config.safeApiKey
+      }
+      this._apiKit = new SafeApiKit(apiKitConfig)
     }
 
     return this._apiKit
