@@ -43,8 +43,8 @@ const aliceSeed = 'alice seed phrase here...'
 const bobSeed = 'bob seed phrase here...'
 
 // Get owner addresses first
-const aliceEoa = '0x...' // Alice's EOA address
-const bobEoa = '0x...'   // Bob's EOA address
+const aliceEoa = '0x...'
+const bobEoa = '0x...'
 
 // Create Alice's multisig account using PredictedSafeOptions
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
@@ -56,10 +56,11 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterAddress: '0x...',
     paymasterTokenAddress: '0x...' // USDT address
   },
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     owners: [aliceEoa, bobEoa],
     threshold: 2,
-    saltNonce: '0x...' // Optional: deterministic address
+    saltNonce: '0x...' // Optional
   }
 })
 
@@ -85,6 +86,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterAddress: '0x...',
     paymasterTokenAddress: '0x...'
   },
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     safeAddress: '0x...' // Existing Safe address
   }
@@ -168,6 +170,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     paymasterTokenAddress: '0x...' // USDT address
   },
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     owners: [aliceEoa, bobEoa],
     threshold: 2
@@ -207,8 +210,8 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   chainId: 11155111n,
   paymasterOptions: {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterAddress: '0x...',           // Optional: paymaster contract address
-    paymasterTokenAddress: '0x...'       // USDT or other ERC-20 token address
+    paymasterAddress: '0x...', 
+    paymasterTokenAddress: '0x...' 
   },
   options: {
     safeAddress: '0x...'
@@ -218,7 +221,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
 // Propose with token approval for gas
 const quote = await alice.quoteSendTransaction(tx)
 const proposal = await alice.propose(tx, {
-  amountToApprove: quote.fee * 150n / 100n  // Approve tokens for gas payment
+  amountToApprove: quote.fee * 150n / 100n 
 })
 ```
 
@@ -233,9 +236,10 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   chainId: 11155111n,
   paymasterOptions: {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    isSponsored: true,                      // Enable sponsored mode
-    sponsorshipPolicyId: 'sp_my_policy'     // Optional: sponsorship policy ID
+    isSponsored: true, 
+    sponsorshipPolicyId: 'sp_my_policy' 
   },
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     safeAddress: '0x...'
   }
@@ -266,6 +270,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     paymasterTokenAddress: '0xUSDT...'  // Default: pay gas with USDT
   },
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     safeAddress: '0x...'
   }
@@ -292,6 +297,7 @@ const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
     paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
     isSponsored: true  // Default: gasless
   },
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     safeAddress: '0x...'
   }
@@ -339,7 +345,7 @@ const proposal = await alice.changeThreshold(2)
 // Batch update owners and threshold
 const proposal = await alice.updateOwners(
   ['0xOwner1...', '0xOwner2...', '0xOwner3...'],
-  2 // new threshold
+  2
 )
 ```
 
@@ -381,6 +387,7 @@ const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
+  safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   options: {
     safeAddress: '0x...'
   }
@@ -393,22 +400,6 @@ const balance = await readOnly.getBalance()
 
 // Get fee estimates
 const quote = await readOnly.quoteSendTransaction(tx)
-```
-
-### Tracking Transactions
-
-After executing a transaction, you receive a UserOp hash. To get the on-chain transaction hash:
-
-```javascript
-// Execute transaction
-const result = await alice.execute(proposal.proposalId)
-console.log('UserOp Hash:', result.hash)
-
-// Get on-chain tx hash (may need to wait for confirmation)
-const txHash = await alice.getTransactionHashByUserOpHash(result.hash)
-console.log('TX Hash:', txHash)
-
-// If null, the transaction is still pending. Retry after a few seconds.
 ```
 
 **UserOp Explorers:**
