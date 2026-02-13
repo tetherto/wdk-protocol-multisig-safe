@@ -30,29 +30,6 @@ npm install @tetherto/wdk-wallet-evm-multisig-safe
 
 ## 🚀 Quick Start
 
-### Discovering User's Safes
-
-```javascript
-import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
-
-// Find all Safes owned by a user
-const userEoa = '0x1234...'
-const safes = await WalletAccountReadOnlyEvmMultisigSafe.getSafesByOwner(userEoa, {
-  chainId: 11155111n  // Sepolia
-})
-
-console.log('User owns these Safes:', safes)
-
-// Get info about a specific Safe before importing
-const safeInfo = await WalletAccountReadOnlyEvmMultisigSafe.getSafeInfo(safes[0], {
-  chainId: 11155111n
-})
-
-console.log('Safe owners:', safeInfo.owners)
-console.log('Threshold:', safeInfo.threshold)
-console.log('Version:', safeInfo.version)
-```
-
 ### Creating a New 2-of-2 Multisig Safe
 
 ```javascript
