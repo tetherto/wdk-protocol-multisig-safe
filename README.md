@@ -127,9 +127,6 @@ console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
 const result = await alice.execute(proposal.proposalId)
 console.log('UserOp Hash:', result.hash)
 
-// Get on-chain transaction hash
-const txHash = await alice.getTransactionHashByUserOpHash(result.hash)
-console.log('TX Hash:', txHash)
 ```
 
 ### Using sendTransaction (Auto-Execute)
@@ -393,9 +390,6 @@ const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
 const owners = await readOnly.getOwners()
 const threshold = await readOnly.getThreshold()
 const balance = await readOnly.getBalance()
-
-// Get pending transactions
-const pending = await readOnly.getPendingTransactions()
 
 // Get fee estimates
 const quote = await readOnly.quoteSendTransaction(tx)
