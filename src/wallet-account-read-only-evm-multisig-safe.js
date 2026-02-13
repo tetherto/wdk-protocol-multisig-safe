@@ -522,16 +522,13 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @returns {Promise<boolean>} True if confirmations >= threshold
    */
   async isReadyToExecute (proposalId) {
-    const operation = await this.getSafeOperation(proposalId)
+    const operation = await this.getProposal(proposalId)
 
     if (!operation) {
       return false
     }
 
-    const threshold = await this.getThreshold()
-    const confirmations = operation.confirmations?.length || 0
-
-    return confirmations >= threshold
+    return operation.confirmations >= operation.threshold
   }
 
   /**

@@ -21,7 +21,6 @@
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 
 // ============================================
 // Re-export types from @tetherto/wdk-wallet-evm
@@ -70,7 +69,6 @@
 // Re-export types from full account module
 // ============================================
 
-/** @typedef {import('./src/wallet-account-evm-multisig-safe.js').MessageProposalResult} MessageProposalResult */
 /** @typedef {import('./src/wallet-account-evm-multisig-safe.js').MultisigTransactionResult} MultisigTransactionResult */
 
 // ============================================

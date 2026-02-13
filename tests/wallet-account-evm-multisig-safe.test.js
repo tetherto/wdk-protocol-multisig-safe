@@ -239,17 +239,14 @@ describe('WalletAccountEvmMultisigSafe', () => {
   })
 
   describe('sign', () => {
-    test('should propose new message by default', async () => {
+   test('should return signature string', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
         getMessage: jest.fn().mockResolvedValue({
           messageHash: MOCK_MESSAGE_HASH,
           message: 'Hello!',
           confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: null,
-          proposedBy: ACCOUNT.address,
-          created: '2024-01-01T00:00:00Z',
-          modified: '2024-01-01T00:00:00Z'
+          preparedSignature: null
         })
       })
       account._safe4337Pack = mockPack
@@ -259,72 +256,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       const result = await account.sign('Hello!')
 
-      expect(result).toBeDefined()
-      expect(result.signature).toBe('0xmocksignature')
-      expect(result.safeMessage).toBeDefined()
-      expect(result.safeMessage.messageHash).toBe(MOCK_MESSAGE_HASH)
-      expect(mockApiKit.addMessage).toHaveBeenCalledWith(
-        MOCK_SAFE_ADDRESS,
-        expect.objectContaining({
-          message: 'Hello!',
-          signature: '0xmocksignature'
-        })
-      )
-    })
-
-    test('should approve existing message when isApproval is true', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getMessage: jest.fn().mockResolvedValue({
-          messageHash: MOCK_MESSAGE_HASH,
-          message: 'Hello!',
-          confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
-          preparedSignature: '0xcombinedsig',
-          proposedBy: ACCOUNT.address,
-          created: '2024-01-01T00:00:00Z',
-          modified: '2024-01-01T00:00:00Z'
-        })
-      })
-      account._safe4337Pack = mockPack
-      account._apiKit = mockApiKit
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      const result = await account.sign('Hello!', { isApproval: true })
-
-      expect(result).toBeDefined()
-      expect(result.signature).toBe('0xmocksignature')
-      expect(result.safeMessage.confirmations).toHaveLength(2)
-      expect(result.safeMessage.preparedSignature).toBe('0xcombinedsig')
-      expect(mockApiKit.addMessageSignature).toHaveBeenCalledWith(
-        MOCK_MESSAGE_HASH,
-        '0xmocksignature'
-      )
-    })
-
-    test('should return safeMessage with all fields', async () => {
-      const mockSafeMessage = {
-        messageHash: MOCK_MESSAGE_HASH,
-        message: 'Hello!',
-        confirmations: [{ owner: ACCOUNT.address }],
-        preparedSignature: null,
-        proposedBy: ACCOUNT.address,
-        created: '2024-01-01T00:00:00Z',
-        modified: '2024-01-01T00:00:00Z',
-        safe: MOCK_SAFE_ADDRESS
-      }
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getMessage: jest.fn().mockResolvedValue(mockSafeMessage)
-      })
-      account._safe4337Pack = mockPack
-      account._apiKit = mockApiKit
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      const result = await account.sign('Hello!')
-
-      expect(result.safeMessage).toEqual(mockSafeMessage)
+      expect(result).toBe('0xmocksignature')
     })
   })
 
@@ -348,6 +280,75 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const result = await account.verify('Hello!', '0xinvalidsignature')
 
       expect(result).toBe(false)
+    })
+  })
+
+  describe('proposeMessage', () => {
+    test('should propose new message and return MessageProposal', async () => {
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getMessage: jest.fn().mockResolvedValue({
+          messageHash: MOCK_MESSAGE_HASH,
+          message: 'Hello!',
+          confirmations: [{ owner: ACCOUNT.address }],
+          preparedSignature: null
+        })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      const result = await account.proposeMessage('Hello!')
+
+      expect(result).toBeDefined()
+      expect(result.messageHash).toBe(MOCK_MESSAGE_HASH)
+      expect(result.signature).toBe('0xmocksignature')
+      expect(result.confirmations).toBe(1)
+      expect(result.threshold).toBe(1)
+      expect(result.combinedSignature).toBeNull()
+      expect(mockApiKit.addMessage).toHaveBeenCalledWith(
+        MOCK_SAFE_ADDRESS,
+        expect.objectContaining({
+          message: 'Hello!',
+          signature: '0xmocksignature'
+        })
+      )
+    })
+  })
+
+  describe('approveMessage', () => {
+    test('should approve existing message and return MessageProposal', async () => {
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getMessage: jest.fn()
+          .mockResolvedValueOnce({
+            message: 'Hello!',
+            confirmations: [{ owner: ACCOUNT.address }],
+            preparedSignature: null
+          })
+          .mockResolvedValueOnce({
+            messageHash: MOCK_MESSAGE_HASH,
+            message: 'Hello!',
+            confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
+            preparedSignature: '0xcombinedsig'
+          })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      const result = await account.approveMessage(MOCK_MESSAGE_HASH)
+
+      expect(result).toBeDefined()
+      expect(result.signature).toBe('0xmocksignature')
+      expect(result.confirmations).toBe(2)
+      expect(result.combinedSignature).toBe('0xcombinedsig')
+      expect(mockApiKit.addMessageSignature).toHaveBeenCalledWith(
+        MOCK_MESSAGE_HASH,
+        '0xmocksignature'
+      )
     })
   })
 
@@ -977,31 +978,40 @@ describe('WalletAccountEvmMultisigSafe', () => {
   })
 
   describe('getMessage', () => {
-    test('should return message with signature', async () => {
+    test('should return MessageInfo with signature', async () => {
+      const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
         getMessage: jest.fn().mockResolvedValue({
           messageHash: MOCK_MESSAGE_HASH,
+          message: 'Hello!',
           confirmations: [{ owner: ACCOUNT.address }],
           preparedSignature: '0xpreparedsig'
         })
       })
+      account._safe4337Pack = mockPack
       account._apiKit = mockApiKit
 
       const result = await account.getMessage(MOCK_MESSAGE_HASH)
 
       expect(result).toBeDefined()
-      expect(result.preparedSignature).toBe('0xpreparedsig')
+      expect(result.messageHash).toBe(MOCK_MESSAGE_HASH)
+      expect(result.message).toBe('Hello!')
+      expect(result.confirmations).toBe(1)
+      expect(result.threshold).toBe(1)
+      expect(result.combinedSignature).toBe('0xpreparedsig')
     })
 
     test('should return null when message not found', async () => {
+      const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
-        getMessage: jest.fn().mockResolvedValue(null)
+        getMessage: jest.fn().mockRejectedValue(new Error('not found'))
       })
+      account._safe4337Pack = mockPack
       account._apiKit = mockApiKit
 
       const result = await account.getMessage(MOCK_MESSAGE_HASH)
 
-      expect(result).toBe(null)
+      expect(result).toBeNull()
     })
   })
 

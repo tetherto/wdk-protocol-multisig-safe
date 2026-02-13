@@ -275,11 +275,15 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     const safe4337Pack = await this._getSafe4337Pack()
     const deploymentTx = await safe4337Pack.protocolKit.createSafeDeploymentTransaction()
 
-    return await this._signerAccount.sendTransaction({
+    const result = await this._signerAccount.sendTransaction({
       to: deploymentTx.to,
       value: BigInt(deploymentTx.value),
       data: deploymentTx.data
     })
+    // reset cached state
+    this._owners = null
+    this._threshold = null
+    return result
   }
 
   /**
