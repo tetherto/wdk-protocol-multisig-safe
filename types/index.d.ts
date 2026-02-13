@@ -25,7 +25,6 @@ export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingS
 export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;
 export type EvmMultisigSafeConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
 export type EvmMultisigSafeReadOnlyConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeReadOnlyConfig;
-export type SafesByOwnerConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").SafesByOwnerConfig;
 export type ProposeOptions = import("./src/wallet-account-read-only-evm-multisig-safe.js").ProposeOptions;
 export type MultisigTransactionResult = import("./src/wallet-account-evm-multisig-safe.js").MultisigTransactionResult;
 export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION } from "./src/wallet-account-read-only-evm-multisig-safe.js";

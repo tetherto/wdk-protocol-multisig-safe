@@ -73,19 +73,6 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
 
-/**
- * @typedef {MultisigInfo} SafeInfo
- * @property {string} nonce - Current nonce
- * @property {string} version - Safe contract version
- */
-
-/**
- * @typedef {Object} SafesByOwnerConfig
- * @property {bigint} chainId - Chain ID
- * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
- * @property {string} [safeApiKey] - Safe API key
- */
-
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
