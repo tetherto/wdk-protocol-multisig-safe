@@ -18,7 +18,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 - **Per-Transaction Paymaster Override**: Switch between ERC-20 and sponsored mode on a per-transaction basis
 - **Multi-Owner Management**: Add, remove, swap owners and change threshold
 - **Propose/Approve/Execute Flow**: Standard multisig transaction workflow
-- **Message Signing**: EIP-191 compliant multisig message signing with EIP-1271 verification
+- **Message Signing**: Propose/approve flow for multisig message signing with EIP-1271 verification
 - **Deterministic Addresses**: Predictable Safe addresses from owner configuration
 - **Auto-Execute**: Automatically execute transactions when threshold is met
 
@@ -370,33 +370,32 @@ const proposal = await alice.updateOwners(
 ```
 
 ### Message Signing
-
 ```javascript
-// Alice signs (proposes) a message
-const result = await alice.sign('Hello from Safe!')
+// Alice proposes signing a message
+const result = await alice.proposeMessage('Hello from Safe!')
 console.log('Alice Signature:', result.signature)
-console.log('Message Hash:', result.safeMessage.messageHash)
-console.log('Confirmations:', result.safeMessage.confirmations.length)
+console.log('Message Hash:', result.messageHash)
+console.log('Confirmations:', result.confirmations, '/', result.threshold)
 
-// Bob signs (approves) the message
-const approval = await bob.sign('Hello from Safe!', { isApproval: true })
+// Bob approves the message
+const approval = await bob.approveMessage(result.messageHash)
 console.log('Bob Signature:', approval.signature)
-console.log('Confirmations:', approval.safeMessage.confirmations.length)
+console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
 
 // Get combined signature when fully signed
-if (approval.safeMessage.preparedSignature) {
-  console.log('Combined Signature:', approval.safeMessage.preparedSignature)
+if (approval.combinedSignature) {
+  console.log('Combined Signature:', approval.combinedSignature)
 
   // Verify the combined signature on-chain (EIP-1271)
-  const isValid = await alice.verify('Hello from Safe!', approval.safeMessage.preparedSignature)
+  const isValid = await alice.verify('Hello from Safe!', approval.combinedSignature)
   console.log('Signature valid:', isValid)
 }
 
 // Get message status anytime
-const message = await alice.getMessage(result.safeMessage.messageHash)
+const message = await alice.getMessage(result.messageHash)
 console.log('Message:', message.message)
-console.log('Proposed by:', message.proposedBy)
-console.log('Signers:', message.confirmations.map(c => c.owner))
+console.log('Confirmations:', message.confirmations, '/', message.threshold)
+console.log('Combined Signature:', message.combinedSignature)
 ```
 
 ### Read-Only Account
