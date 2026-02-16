@@ -372,7 +372,7 @@ if (approval.combinedSignature) {
 }
 
 // Get message status anytime
-const message = await alice.getMessage(result.messageHash)
+const [message] = await alice.getMessages([result.messageHash])
 console.log('Message:', message.message)
 console.log('Confirmations:', message.confirmations, '/', message.threshold)
 console.log('Combined Signature:', message.combinedSignature)
@@ -397,6 +397,15 @@ const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
 const owners = await readOnly.getOwners()
 const threshold = await readOnly.getThreshold()
 const balance = await readOnly.getBalance()
+
+// Get fee estimates
+const quote = await readOnly.quoteSendTransaction(tx)
+
+// Get proposals status
+const proposals = await readOnly.getProposals([proposalHash1, proposalHash2])
+
+// Get messages status
+const messages = await readOnly.getMessages([messageHash1, messageHash2])
 
 // Get fee estimates
 const quote = await readOnly.quoteSendTransaction(tx)

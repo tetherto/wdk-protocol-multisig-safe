@@ -34,6 +34,7 @@ const MOCK_CONFIG = {
 
 const MOCK_SAFE_ADDRESS = '0x1234567890123456789012345678901234567890'
 const MOCK_SAFE_OP_HASH = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
+const MOCK_MESSAGE_HASH = '0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678'
 
 const createMockSafe4337Pack = (overrides = {}) => ({
   protocolKit: {
@@ -570,4 +571,145 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     })
   })
 
+  describe('getMessages', () => {
+    test('should return array of MessageInfo', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getMessage: jest.fn().mockResolvedValue({
+          messageHash: MOCK_MESSAGE_HASH,
+          message: 'Hello!',
+          confirmations: [{ owner: ACCOUNT.address }],
+          preparedSignature: '0xpreparedsig'
+        })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+
+      const result = await account.getMessages([MOCK_MESSAGE_HASH])
+
+      expect(result).toHaveLength(1)
+      expect(result[0].messageHash).toBe(MOCK_MESSAGE_HASH)
+      expect(result[0].message).toBe('Hello!')
+      expect(result[0].confirmations).toBe(1)
+      expect(result[0].threshold).toBe(1)
+      expect(result[0].combinedSignature).toBe('0xpreparedsig')
+    })
+
+    test('should return null for messages not found', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getMessage: jest.fn().mockRejectedValue(new Error('not found'))
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+
+      const result = await account.getMessages([MOCK_MESSAGE_HASH])
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toBeNull()
+    })
+
+    test('should preserve positional mapping', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getMessage: jest.fn()
+          .mockRejectedValueOnce(new Error('not found'))
+          .mockResolvedValueOnce({
+            messageHash: 'hash2',
+            message: 'Second',
+            confirmations: [{ owner: ACCOUNT.address }],
+            preparedSignature: null
+          })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+
+      const result = await account.getMessages(['hash1', 'hash2'])
+
+      expect(result).toHaveLength(2)
+      expect(result[0]).toBeNull()
+      expect(result[1].message).toBe('Second')
+    })
+  })
+
+  describe('getProposals', () => {
+    test('should return array of proposals', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }]
+        })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+
+      const result = await account.getProposals([MOCK_SAFE_OP_HASH])
+
+      expect(result).toHaveLength(1)
+      expect(result[0].proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(result[0].confirmations).toBe(1)
+      expect(result[0].threshold).toBe(1)
+    })
+
+    test('should return null for proposals not found', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockRejectedValue(new Error('not found'))
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+
+      const result = await account.getProposals([MOCK_SAFE_OP_HASH])
+
+      expect(result).toHaveLength(1)
+      expect(result[0]).toBeNull()
+    })
+
+    test('should preserve positional mapping', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        options: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn()
+          .mockResolvedValueOnce({
+            confirmations: [{ owner: ACCOUNT.address }]
+          })
+          .mockRejectedValueOnce(new Error('not found'))
+          .mockResolvedValueOnce({
+            confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }]
+          })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+
+      const result = await account.getProposals(['hash1', 'hash2', 'hash3'])
+
+      expect(result).toHaveLength(3)
+      expect(result[0].confirmations).toBe(1)
+      expect(result[1]).toBeNull()
+      expect(result[2].confirmations).toBe(2)
+    })
+  })
 })

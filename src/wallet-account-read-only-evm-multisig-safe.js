@@ -26,7 +26,7 @@ import SafeApiKit from '@safe-global/api-kit'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisigReadOnly} IWalletAccountMultisigReadOnly */
+/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
@@ -70,7 +70,7 @@ export const DEFAULT_SAFE_VERSION = '1.4.1'
  * Provides query-only operations for Safe multisig wallets.
  *
  * @extends WalletAccountReadOnly
- * @implements {IWalletAccountMultisigReadOnly}
+ * @implements {IWalletAccountReadOnlyMultisig}
  */
 export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly {
   /**
@@ -338,35 +338,35 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns a specific Safe operation by hash.
+   * Returns a list of proposals by their identifiers.
    *
-   * @param {string} proposalId - The Safe operation hash
-   * @returns {Promise<MultisigProposal | null>} The proposal or null if not found
+   * @param {string[]} proposalIds - The list of proposal identifiers
+   * @returns {Promise<(MultisigProposal | null)[]>} The proposal details, or null for proposals not found
    */
-  async getProposal (proposalId) {
+  async getProposals (proposalIds) {
     const apiKit = await this._getApiKit()
+    const threshold = await this.getThreshold()
 
-    try {
-      const safeOperation = await apiKit.getSafeOperation(proposalId)
+    return Promise.all(proposalIds.map(async (proposalId) => {
+      try {
+        const safeOperation = await apiKit.getSafeOperation(proposalId)
 
-      if (!safeOperation) {
-        return null
+        if (!safeOperation) {
+          return null
+        }
+
+        return {
+          proposalId,
+          confirmations: safeOperation.confirmations?.length || 0,
+          threshold
+        }
+      } catch (error) {
+        if (error.message?.includes('not found')) {
+          return null
+        }
+        throw error
       }
-
-      const threshold = await this.getThreshold()
-
-      return {
-        ...safeOperation,
-        proposalId,
-        confirmations: safeOperation.confirmations?.length || 0,
-        threshold
-      }
-    } catch (error) {
-      if (error.message?.includes('not found')) {
-        return null
-      }
-      throw error
-    }
+    }))
   }
 
   /**
@@ -386,32 +386,33 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Gets a message and its signatures from Safe Transaction Service.
+   * Returns a list of message proposals by their hashes.
    *
-   * @param {string} messageHash - The Safe message hash
-   * @returns {Promise<MessageInfo | null>} The message info or null if not found
+   * @param {string[]} messageHashes - The list of message hashes
+   * @returns {Promise<(MessageInfo | null)[]>} The message details, or null for messages not found
    */
-  async getMessage (messageHash) {
+  async getMessages (messageHashes) {
     const apiKit = await this._getApiKit()
+    const threshold = await this.getThreshold()
 
-    try {
-      const safeMessage = await apiKit.getMessage(messageHash)
-      const threshold = await this.getThreshold()
+    return Promise.all(messageHashes.map(async (messageHash) => {
+      try {
+        const safeMessage = await apiKit.getMessage(messageHash)
 
-      return {
-        ...safeMessage,
-        messageHash: safeMessage.messageHash,
-        message: safeMessage.message,
-        confirmations: safeMessage.confirmations?.length || 0,
-        threshold,
-        combinedSignature: safeMessage.preparedSignature || null
+        return {
+          messageHash: safeMessage.messageHash,
+          message: safeMessage.message,
+          confirmations: safeMessage.confirmations?.length || 0,
+          threshold,
+          combinedSignature: safeMessage.preparedSignature || null
+        }
+      } catch (error) {
+        if (error.message?.includes('not found')) {
+          return null
+        }
+        throw error
       }
-    } catch (error) {
-      if (error.message?.includes('not found')) {
-        return null
-      }
-      throw error
-    }
+    }))
   }
 
   /**

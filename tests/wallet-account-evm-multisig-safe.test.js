@@ -954,44 +954,6 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
   })
 
-  describe('getMessage', () => {
-    test('should return MessageInfo with signature', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getMessage: jest.fn().mockResolvedValue({
-          messageHash: MOCK_MESSAGE_HASH,
-          message: 'Hello!',
-          confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: '0xpreparedsig'
-        })
-      })
-      account._safe4337Pack = mockPack
-      account._apiKit = mockApiKit
-
-      const result = await account.getMessage(MOCK_MESSAGE_HASH)
-
-      expect(result).toBeDefined()
-      expect(result.messageHash).toBe(MOCK_MESSAGE_HASH)
-      expect(result.message).toBe('Hello!')
-      expect(result.confirmations).toBe(1)
-      expect(result.threshold).toBe(1)
-      expect(result.combinedSignature).toBe('0xpreparedsig')
-    })
-
-    test('should return null when message not found', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getMessage: jest.fn().mockRejectedValue(new Error('not found'))
-      })
-      account._safe4337Pack = mockPack
-      account._apiKit = mockApiKit
-
-      const result = await account.getMessage(MOCK_MESSAGE_HASH)
-
-      expect(result).toBeNull()
-    })
-  })
-
   describe('Owner Management', () => {
     beforeEach(() => {
       const mockPack = createMockSafe4337Pack()

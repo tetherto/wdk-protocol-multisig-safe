@@ -1,5 +1,5 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisigReadOnly} IWalletAccountMultisigReadOnly */
+/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
@@ -36,9 +36,9 @@ export const DEFAULT_SAFE_VERSION: "1.4.1";
  * Provides query-only operations for Safe multisig wallets.
  *
  * @extends WalletAccountReadOnly
- * @implements {IWalletAccountMultisigReadOnly}
+ * @implements {IWalletAccountReadOnlyMultisig}
  */
-export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly implements IWalletAccountMultisigReadOnly {
+export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly implements IWalletAccountReadOnlyMultisig {
     /**
      * Generates a deterministic salt nonce from owners and threshold.
      *
@@ -163,12 +163,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getPaymasterTokenBalance(): Promise<bigint>;
     /**
-     * Returns a specific Safe operation by hash.
+     * Returns a list of proposals by their identifiers.
      *
-     * @param {string} proposalId - The Safe operation hash
-     * @returns {Promise<MultisigProposal | null>} The proposal or null if not found
+     * @param {string[]} proposalIds - The list of proposal identifiers
+     * @returns {Promise<(MultisigProposal | null)[]>} The proposal details, or null for proposals not found
      */
-    getProposal(proposalId: string): Promise<MultisigProposal | null>;
+    getProposals(proposalIds: string[]): Promise<(MultisigProposal | null)[]>;
     /**
      * Checks if a Safe operation is ready to be executed.
      *
@@ -177,12 +177,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     isReadyToExecute(proposalId: string): Promise<boolean>;
     /**
-     * Gets a message and its signatures from Safe Transaction Service.
+     * Returns a list of message proposals by their hashes.
      *
-     * @param {string} messageHash - The Safe message hash
-     * @returns {Promise<MessageInfo | null>} The message info or null if not found
+     * @param {string[]} messageHashes - The list of message hashes
+     * @returns {Promise<(MessageInfo | null)[]>} The message details, or null for messages not found
      */
-    getMessage(messageHash: string): Promise<MessageInfo | null>;
+    getMessages(messageHashes: string[]): Promise<(MessageInfo | null)[]>;
     /**
      * Estimates the gas cost for deploying the Safe.
      *
@@ -285,7 +285,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     private _validateConfig;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
-export type IWalletAccountMultisigReadOnly = import("@tetherto/wdk-wallet").IWalletAccountMultisigReadOnly;
+export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet").IWalletAccountReadOnlyMultisig;
 export type MultisigInfo = import("@tetherto/wdk-wallet").MultisigInfo;
 export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
 export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
