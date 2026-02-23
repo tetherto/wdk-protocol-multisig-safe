@@ -25,6 +25,8 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
 /** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
@@ -288,20 +290,21 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
   /**
    * Sends a transaction - proposes for multisig approval.
-   * Auto-executes if threshold is met after proposing.
+   * Auto-executes if `autoExecute` is true and threshold is met after proposing.
    *
    * @param {EvmTransaction} tx - The transaction to send
-   * @param {ProposeOptions} [options] - Propose options (paymaster override)
+   * @param {MultisigSendOptions & ProposeOptions} [options] - Send and propose options
    * @returns {Promise<MultisigTransactionResult>} The transaction result
    */
   async sendTransaction (tx, options = {}) {
-    const { fee } = await this.quoteSendTransaction(tx, options)
+    const { autoExecute = false, ...proposeOptions } = options
+    const { fee } = await this.quoteSendTransaction(tx, proposeOptions)
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transaction.')
     }
 
-    const proposeResult = await this.propose(tx, options)
-    if (proposeResult.confirmations >= proposeResult.threshold) {
+    const proposeResult = await this.propose(tx, proposeOptions)
+    if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.proposalId)
       return {
         hash: execResult.hash,
@@ -323,23 +326,24 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
   /**
    * Transfers a token to another address.
-   * Auto-executes if threshold is met after proposing.
+   * Auto-executes if `autoExecute` is true and threshold is met after proposing.
    *
    * @param {TransferOptions} transferOptions - Transfer options
-   * @param {ProposeOptions} [options] - Propose options (paymaster override)
+   * @param {MultisigSendOptions & ProposeOptions} [options] - Send and propose options
    * @returns {Promise<MultisigTransactionResult>} The transfer result
    */
   async transfer (transferOptions, options = {}) {
+    const { autoExecute = false, ...proposeOptions } = options
     const tx = await WalletAccountEvm._getTransferTransaction(transferOptions)
-    const { fee } = await this.quoteSendTransaction(tx, options)
+    const { fee } = await this.quoteSendTransaction(tx, proposeOptions)
 
     if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
-    const proposeResult = await this.propose(tx, options)
+    const proposeResult = await this.propose(tx, proposeOptions)
 
-    if (proposeResult.confirmations >= proposeResult.threshold) {
+    if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.proposalId)
       return {
         hash: execResult.hash,
@@ -500,11 +504,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Proposes adding a new owner to the Safe.
    *
    * @param {string} ownerAddress - Address of new owner
-   * @param {number} [newThreshold] - New threshold (defaults to current)
-   * @param {ProposeOptions} [options] - Propose options
+   * @param {MultisigOptions & ProposeOptions} [options] - Options with optional threshold and propose options
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async addOwner (ownerAddress, newThreshold, options = {}) {
+  async addOwner (ownerAddress, options = {}) {
+    const { threshold: newThreshold, ...proposeOptions } = options
     const safe4337Pack = await this._getSafe4337Pack()
     const threshold = newThreshold || await this.getThreshold()
 
@@ -517,18 +521,18 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
-    }, options)
+    }, proposeOptions)
   }
 
   /**
    * Proposes removing an owner from the Safe.
    *
    * @param {string} ownerAddress - Address of owner to remove
-   * @param {number} [newThreshold] - New threshold (defaults to current or adjusted)
-   * @param {ProposeOptions} [options] - Propose options
+   * @param {MultisigOptions & ProposeOptions} [options] - Options with optional threshold and propose options
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async removeOwner (ownerAddress, newThreshold, options = {}) {
+  async removeOwner (ownerAddress, options = {}) {
+    const { threshold: newThreshold, ...proposeOptions } = options
     const safe4337Pack = await this._getSafe4337Pack()
     const owners = await this.getOwners()
     const currentThreshold = await this.getThreshold()
@@ -547,7 +551,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
-    }, options)
+    }, proposeOptions)
   }
 
   /**

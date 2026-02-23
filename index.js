@@ -20,6 +20,8 @@
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
 

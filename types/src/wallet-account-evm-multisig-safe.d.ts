@@ -106,22 +106,22 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     deploy(): Promise<TransactionResult>;
     /**
      * Sends a transaction - proposes for multisig approval.
-     * Auto-executes if threshold is met after proposing.
+     * Auto-executes if `autoExecute` is true and threshold is met after proposing.
      *
      * @param {EvmTransaction} tx - The transaction to send
-     * @param {ProposeOptions} [options] - Propose options (paymaster override)
+     * @param {MultisigSendOptions & ProposeOptions} [options] - Send and propose options
      * @returns {Promise<MultisigTransactionResult>} The transaction result
      */
-    sendTransaction(tx: EvmTransaction, options?: ProposeOptions): Promise<MultisigTransactionResult>;
+    sendTransaction(tx: EvmTransaction, options?: MultisigSendOptions & ProposeOptions): Promise<MultisigTransactionResult>;
     /**
      * Transfers a token to another address.
-     * Auto-executes if threshold is met after proposing.
+     * Auto-executes if `autoExecute` is true and threshold is met after proposing.
      *
      * @param {TransferOptions} transferOptions - Transfer options
-     * @param {ProposeOptions} [options] - Propose options (paymaster override)
+     * @param {MultisigSendOptions & ProposeOptions} [options] - Send and propose options
      * @returns {Promise<MultisigTransactionResult>} The transfer result
      */
-    transfer(transferOptions: TransferOptions, options?: ProposeOptions): Promise<MultisigTransactionResult>;
+    transfer(transferOptions: TransferOptions, options?: MultisigSendOptions & ProposeOptions): Promise<MultisigTransactionResult>;
     /**
      * Proposes a new transaction for multisig approval.
      * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
@@ -157,20 +157,18 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * Proposes adding a new owner to the Safe.
      *
      * @param {string} ownerAddress - Address of new owner
-     * @param {number} [newThreshold] - New threshold (defaults to current)
-     * @param {ProposeOptions} [options] - Propose options
+     * @param {MultisigOptions & ProposeOptions} [options] - Options with optional threshold and propose options
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    addOwner(ownerAddress: string, newThreshold?: number, options?: ProposeOptions): Promise<MultisigResult>;
+    addOwner(ownerAddress: string, options?: MultisigOptions & ProposeOptions): Promise<MultisigResult>;
     /**
      * Proposes removing an owner from the Safe.
      *
      * @param {string} ownerAddress - Address of owner to remove
-     * @param {number} [newThreshold] - New threshold (defaults to current or adjusted)
-     * @param {ProposeOptions} [options] - Propose options
+     * @param {MultisigOptions & ProposeOptions} [options] - Options with optional threshold and propose options
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    removeOwner(ownerAddress: string, newThreshold?: number, options?: ProposeOptions): Promise<MultisigResult>;
+    removeOwner(ownerAddress: string, options?: MultisigOptions & ProposeOptions): Promise<MultisigResult>;
     /**
      * Proposes swapping an owner with a new address.
      *
@@ -212,6 +210,8 @@ export type Eip1193Provider = import("ethers").Eip1193Provider;
 export type IWalletAccountMultisig = import("@tetherto/wdk-wallet").IWalletAccountMultisig;
 export type MultisigResult = import("@tetherto/wdk-wallet").MultisigResult;
 export type MultisigExecuteResult = import("@tetherto/wdk-wallet").MultisigExecuteResult;
+export type MultisigSendOptions = import("@tetherto/wdk-wallet").MultisigSendOptions;
+export type MultisigOptions = import("@tetherto/wdk-wallet").MultisigOptions;
 export type MessageProposal = import("@tetherto/wdk-wallet").MessageProposal;
 export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;

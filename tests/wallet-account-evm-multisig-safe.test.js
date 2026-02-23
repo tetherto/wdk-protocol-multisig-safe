@@ -705,7 +705,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      const result = await account.sendTransaction(tx)
+      const result = await account.sendTransaction(tx, { autoExecute: true })
 
       expect(result).toBeDefined()
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
@@ -736,7 +736,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      const result = await account.sendTransaction(tx)
+      const result = await account.sendTransaction(tx, { autoExecute: true })
 
       expect(result.executed).toBe(true)
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
@@ -864,7 +864,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         recipient: ACCOUNT_2.address,
         amount: 1000n
       }
-      const result = await account.transfer(transferOptions)
+      const result = await account.transfer(transferOptions, { autoExecute: true })
 
       expect(result).toBeDefined()
       expect(result.hash).toBe(MOCK_USER_OP_HASH)

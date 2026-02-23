@@ -20,7 +20,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 - **Propose/Approve/Execute Flow**: Standard multisig transaction workflow
 - **Message Signing**: Propose/approve flow for multisig message signing with EIP-1271 verification
 - **Deterministic Addresses**: Predictable Safe addresses from owner configuration
-- **Auto-Execute**: Automatically execute transactions when threshold is met
+- **Auto-Execute**: Optionally auto-execute transactions when threshold is met (`autoExecute: true`)
 
 ## ⬇️ Installation
 
@@ -133,16 +133,15 @@ console.log('UserOp Hash:', result.hash)
 
 ### Using sendTransaction (Auto-Execute)
 
-For convenience, `sendTransaction` and `transfer` automatically execute when threshold is met:
+`sendTransaction` and `transfer` accept an optional `autoExecute` flag. When `autoExecute: true` and the threshold is met after proposing, the transaction is executed automatically:
 
 ```javascript
-// For 1-of-1 Safe: executes immediately
-// For 2-of-3 Safe: returns proposal for approval
+// With autoExecute: true, executes immediately if threshold is met
 const result = await alice.sendTransaction({
   to: '0x...',
   value: '1000000000000000000', // 1 ETH
   data: '0x'
-})
+}, { autoExecute: true })
 
 console.log('Hash:', result.hash)
 console.log('Fee:', result.fee)
@@ -328,13 +327,16 @@ const result = await bob.sendTransaction(tx, {
 ### Owner Management
 
 ```javascript
-// Add new owner
-const proposal = await alice.addOwner('0xNewOwner...', null, {
+// Add new owner (optionally set new threshold)
+const proposal = await alice.addOwner('0xNewOwner...', {
+  threshold: 2, // optional, defaults to current threshold
   amountToApprove: fee * 200n / 100n
 })
 
-// Remove owner
-const proposal = await alice.removeOwner('0xOwnerToRemove...')
+// Remove owner (optionally set new threshold)
+const proposal = await alice.removeOwner('0xOwnerToRemove...', {
+  threshold: 1 // optional, defaults to current (auto-adjusted if needed)
+})
 
 // Swap owner
 const proposal = await alice.swapOwner('0xOldOwner...', '0xNewOwner...')

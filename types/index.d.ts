@@ -3,6 +3,8 @@ export { default as WalletAccountEvmMultisigSafe } from "./src/wallet-account-ev
 export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
 export type MultisigResult = import("@tetherto/wdk-wallet").MultisigResult;
 export type MultisigExecuteResult = import("@tetherto/wdk-wallet").MultisigExecuteResult;
+export type MultisigSendOptions = import("@tetherto/wdk-wallet").MultisigSendOptions;
+export type MultisigOptions = import("@tetherto/wdk-wallet").MultisigOptions;
 export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
 export type MessageProposal = import("@tetherto/wdk-wallet").MessageProposal;
 export type FeeRates = import("@tetherto/wdk-wallet-evm").FeeRates;
