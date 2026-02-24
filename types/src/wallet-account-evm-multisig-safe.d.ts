@@ -14,7 +14,6 @@
  * EVM multisig Safe wallet account with signing capabilities.
  * Provides full transaction and message signing operations.
  *
- * @extends WalletAccountReadOnlyEvmMultisigSafe
  * @implements {IWalletAccountMultisig}
  */
 export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe implements IWalletAccountMultisig {

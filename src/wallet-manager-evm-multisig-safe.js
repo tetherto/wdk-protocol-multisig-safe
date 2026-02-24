@@ -31,7 +31,6 @@ import WalletAccountEvmMultisigSafe from './wallet-account-evm-multisig-safe.js'
 /**
  * Wallet manager for EVM multisig Safe wallets with ERC-4337 support.
  *
- * @extends WalletManager
  */
 export default class WalletManagerEvmMultisigSafe extends WalletManager {
   /**

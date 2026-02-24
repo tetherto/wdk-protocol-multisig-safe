@@ -43,7 +43,6 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
  * EVM multisig Safe wallet account with signing capabilities.
  * Provides full transaction and message signing operations.
  *
- * @extends WalletAccountReadOnlyEvmMultisigSafe
  * @implements {IWalletAccountMultisig}
  */
 export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe {
@@ -289,9 +288,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   async sendTransaction (tx, options = {}) {
     const { autoExecute = false, ...proposeOptions } = options
     const { fee } = await this.quoteSendTransaction(tx, proposeOptions)
-    if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
-      throw new Error('Exceeded maximum fee cost for transaction.')
-    }
 
     const proposeResult = await this.propose(tx, proposeOptions)
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {

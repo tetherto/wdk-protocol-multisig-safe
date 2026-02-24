@@ -35,7 +35,6 @@ export const DEFAULT_SAFE_VERSION: "1.4.1";
  * Read-only EVM multisig Safe wallet account.
  * Provides query-only operations for Safe multisig wallets.
  *
- * @extends WalletAccountReadOnly
  * @implements {IWalletAccountReadOnlyMultisig}
  */
 export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly implements IWalletAccountReadOnlyMultisig {
