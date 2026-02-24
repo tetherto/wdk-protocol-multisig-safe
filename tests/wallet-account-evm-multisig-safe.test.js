@@ -708,6 +708,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const result = await account.sendTransaction(tx, { autoExecute: true })
 
       expect(result).toBeDefined()
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
       expect(result.fee).toBe(350000000000000n)
       expect(result.confirmations).toBe(1)
@@ -766,7 +767,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const result = await account.sendTransaction(tx)
 
       expect(result.executed).toBe(false)
-      expect(result.hash).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
 
     test('should NOT pass amountToApprove in sponsored mode', async () => {
@@ -867,6 +868,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const result = await account.transfer(transferOptions, { autoExecute: true })
 
       expect(result).toBeDefined()
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
       expect(result.fee).toBe(350000000000000n)
       expect(result.executed).toBe(true)

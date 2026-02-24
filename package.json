@@ -31,20 +31,20 @@
     "test:integration:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest tests/integration --coverage"
   },
   "dependencies": {
-    "@tetherto/wdk-wallet": "github:quocle108/wdk-wallet#add-interface-multisig-account-wallet",
-    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.3",
-    "bare-node-runtime": "^1.1.4",
-    "@wdk-safe-global/relay-kit": "4.1.4",
     "@safe-global/api-kit": "4.0.1",
     "@safe-global/types-kit": "3.0.0",
+    "@tetherto/wdk-wallet": "github:quocle108/wdk-wallet#add-interface-multisig-account-wallet",
+    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.3",
+    "@wdk-safe-global/relay-kit": "4.1.4",
+    "bare-node-runtime": "^1.1.4",
     "ethers": "6.14.4"
   },
   "devDependencies": {
-    "standard": "17.1.2",
-    "typescript": "5.8.3",
-    "dotenv": "17.2.3",
     "cross-env": "7.0.3",
-    "jest": "29.7.0"
+    "dotenv": "17.2.3",
+    "jest": "29.7.0",
+    "standard": "17.1.2",
+    "typescript": "5.8.3"
   },
   "exports": {
     ".": {

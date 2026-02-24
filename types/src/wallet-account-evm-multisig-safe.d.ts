@@ -1,6 +1,7 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
@@ -9,16 +10,6 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
-/**
- * Result of a multisig transaction (sendTransaction/transfer).
- *
- * @typedef {Object} MultisigTransactionResult
- * @property {string} hash - Safe operation hash (if not executed) or UserOp hash (if executed)
- * @property {bigint} fee - Estimated fee in paymaster token units
- * @property {number} confirmations - Current number of confirmations
- * @property {number} threshold - Required threshold for execution
- * @property {boolean} executed - Whether transaction was executed
- */
 /**
  * EVM multisig Safe wallet account with signing capabilities.
  * Provides full transaction and message signing operations.
@@ -209,6 +200,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 export type Eip1193Provider = import("ethers").Eip1193Provider;
 export type IWalletAccountMultisig = import("@tetherto/wdk-wallet").IWalletAccountMultisig;
 export type MultisigResult = import("@tetherto/wdk-wallet").MultisigResult;
+export type MultisigTransactionResult = import("@tetherto/wdk-wallet").MultisigTransactionResult;
 export type MultisigExecuteResult = import("@tetherto/wdk-wallet").MultisigExecuteResult;
 export type MultisigSendOptions = import("@tetherto/wdk-wallet").MultisigSendOptions;
 export type MultisigOptions = import("@tetherto/wdk-wallet").MultisigOptions;
@@ -219,29 +211,4 @@ export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionRe
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type EvmMultisigSafeConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
 export type ProposeOptions = import("./wallet-account-read-only-evm-multisig-safe.js").ProposeOptions;
-/**
- * Result of a multisig transaction (sendTransaction/transfer).
- */
-export type MultisigTransactionResult = {
-    /**
-     * - Safe operation hash (if not executed) or UserOp hash (if executed)
-     */
-    hash: string;
-    /**
-     * - Estimated fee in paymaster token units
-     */
-    fee: bigint;
-    /**
-     * - Current number of confirmations
-     */
-    confirmations: number;
-    /**
-     * - Required threshold for execution
-     */
-    threshold: number;
-    /**
-     * - Whether transaction was executed
-     */
-    executed: boolean;
-};
 import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';

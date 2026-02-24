@@ -24,6 +24,7 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
@@ -37,17 +38,6 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
-
-/**
- * Result of a multisig transaction (sendTransaction/transfer).
- *
- * @typedef {Object} MultisigTransactionResult
- * @property {string} hash - Safe operation hash (if not executed) or UserOp hash (if executed)
- * @property {bigint} fee - Estimated fee in paymaster token units
- * @property {number} confirmations - Current number of confirmations
- * @property {number} threshold - Required threshold for execution
- * @property {boolean} executed - Whether transaction was executed
- */
 
 /**
  * EVM multisig Safe wallet account with signing capabilities.
@@ -307,6 +297,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.proposalId)
       return {
+        proposalId: proposeResult.proposalId,
         hash: execResult.hash,
         fee,
         confirmations: proposeResult.confirmations,
@@ -316,6 +307,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     }
 
     return {
+      proposalId: proposeResult.proposalId,
       hash: proposeResult.proposalId,
       fee,
       confirmations: proposeResult.confirmations,
@@ -346,6 +338,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.proposalId)
       return {
+        proposalId: proposeResult.proposalId,
         hash: execResult.hash,
         fee,
         confirmations: proposeResult.confirmations,
@@ -355,6 +348,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     }
 
     return {
+      proposalId: proposeResult.proposalId,
       hash: proposeResult.proposalId,
       fee,
       confirmations: proposeResult.confirmations,

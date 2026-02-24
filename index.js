@@ -19,6 +19,7 @@
 // ============================================
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
@@ -51,12 +52,6 @@
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeReadOnlyConfig} EvmMultisigSafeReadOnlyConfig */
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
-
-// ============================================
-// Re-export types from full account module
-// ============================================
-
-/** @typedef {import('./src/wallet-account-evm-multisig-safe.js').MultisigTransactionResult} MultisigTransactionResult */
 
 // ============================================
 // Export classes and constants
