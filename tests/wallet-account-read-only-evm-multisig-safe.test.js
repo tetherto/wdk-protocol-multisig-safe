@@ -66,7 +66,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should successfully initialize with safeAddress', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -78,7 +78,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should successfully initialize with PredictedSafeOptions', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address, ACCOUNT_2.address],
           threshold: 2
         }
@@ -91,7 +91,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should successfully initialize with signerAddress', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(ACCOUNT.address, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -103,7 +103,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should store config correctly', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -116,14 +116,14 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should throw if options is missing', () => {
       expect(() => {
         new WalletAccountReadOnlyEvmMultisigSafe(null, MOCK_CONFIG)
-      }).toThrow('options is required')
+      }).toThrow('safeOptions is required')
     })
 
     test('should throw if owners is not an array', () => {
       expect(() => {
         new WalletAccountReadOnlyEvmMultisigSafe(null, {
           ...MOCK_CONFIG,
-          options: {
+          safeOptions: {
             owners: ACCOUNT.address,
             threshold: 1
           }
@@ -135,7 +135,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(() => {
         new WalletAccountReadOnlyEvmMultisigSafe(null, {
           ...MOCK_CONFIG,
-          options: {
+          safeOptions: {
             owners: [ACCOUNT.address],
             threshold: 0
           }
@@ -147,7 +147,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(() => {
         new WalletAccountReadOnlyEvmMultisigSafe(null, {
           ...MOCK_CONFIG,
-          options: {
+          safeOptions: {
             owners: [ACCOUNT.address],
             threshold: -1
           }
@@ -159,7 +159,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(() => {
         new WalletAccountReadOnlyEvmMultisigSafe(null, {
           ...MOCK_CONFIG,
-          options: {
+          safeOptions: {
             owners: [ACCOUNT.address],
             threshold: 2
           }
@@ -170,7 +170,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should accept valid 2-of-3 config', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address, ACCOUNT_2.address, '0x3333333333333333333333333333333333333333'],
           threshold: 2
         }
@@ -182,7 +182,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should accept valid 1-of-1 config', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -194,7 +194,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should accept PredictedSafeOptions with saltNonce', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1,
           saltNonce: '0x1234567890'
@@ -202,13 +202,13 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       })
 
       expect(account).toBeDefined()
-      expect(account._config.options.saltNonce).toBe('0x1234567890')
+      expect(account._config.safeOptions.saltNonce).toBe('0x1234567890')
     })
 
     test('should accept PredictedSafeOptions with safeVersion', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1,
           safeVersion: '1.4.1'
@@ -216,20 +216,20 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       })
 
       expect(account).toBeDefined()
-      expect(account._config.options.safeVersion).toBe('1.4.1')
+      expect(account._config.safeOptions.safeVersion).toBe('1.4.1')
     })
 
     test('should successfully initialize with ERC-20 paymaster options', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterToken: { address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' },
-        options: {
+        paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
 
-      expect(account._config.paymasterToken.address).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
+      expect(account._config.paymasterTokenAddress).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
       expect(account._config.isSponsored).toBeUndefined()
     })
 
@@ -238,8 +238,8 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
         paymasterAddress: '0xPaymasterAddress',
-        paymasterToken: { address: '0xUSDC' },
-        options: {
+        paymasterTokenAddress: '0xUSDC',
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -253,7 +253,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
         sponsorshipPolicyId: 'sp_my_policy_123',
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -267,7 +267,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return cached safeAddress when provided via ExistingSafeOptions', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -280,7 +280,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return deterministic address when PredictedSafeOptions provided', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
@@ -296,7 +296,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return true when Safe is deployed', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -318,7 +318,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return false when Safe is not deployed', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -341,7 +341,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return owners from deployed Safe', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -366,7 +366,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       const configOwners = [ACCOUNT.address, ACCOUNT_2.address]
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: configOwners,
           threshold: 2
         }
@@ -390,7 +390,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return threshold from deployed Safe', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -413,7 +413,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return threshold from options when not deployed', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           owners: [ACCOUNT.address, ACCOUNT_2.address],
           threshold: 2
         }
@@ -437,7 +437,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return nonce from Safe', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -463,7 +463,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -475,7 +475,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should throw error when no paymaster token configured', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -507,7 +507,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return fee estimate for deployment', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -545,7 +545,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should throw if Safe is already deployed', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: {
+        safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
@@ -567,7 +567,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return array of MessageInfo', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: { safeAddress: MOCK_SAFE_ADDRESS }
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -594,7 +594,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return null for messages not found', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: { safeAddress: MOCK_SAFE_ADDRESS }
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -612,7 +612,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should preserve positional mapping', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: { safeAddress: MOCK_SAFE_ADDRESS }
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -640,7 +640,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return array of proposals', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: { safeAddress: MOCK_SAFE_ADDRESS }
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -662,7 +662,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should return null for proposals not found', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: { safeAddress: MOCK_SAFE_ADDRESS }
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -680,7 +680,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should preserve positional mapping', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        options: { safeAddress: MOCK_SAFE_ADDRESS }
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({

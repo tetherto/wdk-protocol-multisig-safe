@@ -17,15 +17,14 @@
  * @property {string} [paymasterUrl] - Paymaster service URL
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
- * @property {ExistingSafeOptions | PredictedSafeOptions} options - Safe options (existing or predicted)
+ * @property {ExistingSafeOptions | PredictedSafeOptions} safeOptions - Safe options (existing or predicted)
  */
 /**
  * @typedef {Object} EvmMultisigSafePaymasterTokenConfig
  * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
  * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
  * @property {string} paymasterAddress - Paymaster contract address
- * @property {Object} paymasterToken - The paymaster token configuration.
- * @property {string} paymasterToken.address - The address of the paymaster token.
+ * @property {string} paymasterTokenAddress - The address of the paymaster token.
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
  */
@@ -338,7 +337,7 @@ export type EvmMultisigSafeCommonConfig = {
     /**
      * - Safe options (existing or predicted)
      */
-    options: ExistingSafeOptions | PredictedSafeOptions;
+    safeOptions: ExistingSafeOptions | PredictedSafeOptions;
 };
 export type EvmMultisigSafePaymasterTokenConfig = {
     /**
@@ -354,11 +353,9 @@ export type EvmMultisigSafePaymasterTokenConfig = {
      */
     paymasterAddress: string;
     /**
-     * - The paymaster token configuration.
+     * - The address of the paymaster token.
      */
-    paymasterToken: {
-        address: string;
-    };
+    paymasterTokenAddress: string;
     /**
      * - Maximum fee for transfers
      */

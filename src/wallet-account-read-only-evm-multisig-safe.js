@@ -47,7 +47,7 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {string} [paymasterUrl] - Paymaster service URL
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
- * @property {ExistingSafeOptions | PredictedSafeOptions} options - Safe options (existing or predicted)
+ * @property {ExistingSafeOptions | PredictedSafeOptions} safeOptions - Safe options (existing or predicted)
  */
 
 /**
@@ -55,8 +55,7 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
  * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
  * @property {string} paymasterAddress - Paymaster contract address
- * @property {Object} paymasterToken - The paymaster token configuration.
- * @property {string} paymasterToken.address - The address of the paymaster token.
+ * @property {string} paymasterTokenAddress - The address of the paymaster token.
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
  */
@@ -115,7 +114,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @protected
      * @type {string | null}
      */
-    this._safeAddress = config.options?.safeAddress || null
+    this._safeAddress = config.safeOptions?.safeAddress || null
 
     /**
      * The Safe's implementation of the ERC-4337 standard.
@@ -195,8 +194,8 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       return this._safeAddress
     }
 
-    const options = this._config.options
-    const { owners, threshold, saltNonce } = options
+    const safeOptions = this._config.safeOptions
+    const { owners, threshold, saltNonce } = safeOptions
     const finalSaltNonce = saltNonce ||
       WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(owners, threshold)
 
@@ -239,10 +238,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       const safe4337Pack = await this._getSafe4337Pack()
       this._owners = await safe4337Pack.protocolKit.getOwners()
     } else {
-      if (!this._config.options?.owners) {
+      if (!this._config.safeOptions?.owners) {
         throw new Error('Safe is not deployed and no owners provided in options')
       }
-      this._owners = this._config.options.owners
+      this._owners = this._config.safeOptions.owners
     }
 
     return this._owners
@@ -264,10 +263,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       const safe4337Pack = await this._getSafe4337Pack()
       this._threshold = await safe4337Pack.protocolKit.getThreshold()
     } else {
-      if (!this._config.options?.threshold) {
+      if (!this._config.safeOptions?.threshold) {
         throw new Error('Safe is not deployed and no threshold provided in options')
       }
-      this._threshold = this._config.options.threshold
+      this._threshold = this._config.safeOptions.threshold
     }
 
     return this._threshold
@@ -346,7 +345,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @throws {Error} If no paymaster token is configured
    */
   async getPaymasterTokenBalance () {
-    const paymasterTokenAddress = this._config.paymasterToken?.address
+    const paymasterTokenAddress = this._config.paymasterTokenAddress
 
     if (!paymasterTokenAddress) {
       throw new Error('No paymaster token configured')
@@ -545,7 +544,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
     const mergedConfig = { ...this._config, ...config }
     const { isSponsored, useNativeCoins } = mergedConfig
-    const configTokenAddress = mergedConfig.paymasterToken?.address
+    const configTokenAddress = mergedConfig.paymasterTokenAddress
 
     const tokenAddress = (!isSponsored && !useNativeCoins) ? configTokenAddress : null
 
@@ -607,8 +606,8 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       if (config.sponsorshipPolicyId) {
         options.sponsorshipPolicyId = config.sponsorshipPolicyId
       }
-    } else if (config.paymasterToken?.address) {
-      options.paymasterTokenAddress = config.paymasterToken.address
+    } else if (config.paymasterTokenAddress) {
+      options.paymasterTokenAddress = config.paymasterTokenAddress
     }
 
     return options
@@ -631,7 +630,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
     const mergedConfig = { ...this._config, ...config }
 
-    const safeOptions = this._config.options
+    const safeOptions = this._config.safeOptions
 
     const initOptions = {
       provider: this._config.provider,
@@ -738,28 +737,28 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @param {EvmMultisigSafeConfig} config - The configuration to validate
    */
   _validateConfig (config) {
-    if (!config.options) {
-      throw new Error('options is required')
+    if (!config.safeOptions) {
+      throw new Error('safeOptions is required')
     }
 
-    const options = config.options
-    const hasPredictedSafe = !!options.owners
+    const safeOptions = config.safeOptions
+    const hasPredictedSafe = !!safeOptions.owners
 
     if (hasPredictedSafe) {
-      if (!Array.isArray(options.owners) || options.owners.length === 0) {
+      if (!Array.isArray(safeOptions.owners) || safeOptions.owners.length === 0) {
         throw new Error('options.owners is required and must not be empty')
       }
 
-      if (!options.threshold || options.threshold < 1) {
+      if (!safeOptions.threshold || safeOptions.threshold < 1) {
         throw new Error('options.threshold must be at least 1')
       }
 
-      if (options.threshold > options.owners.length) {
+      if (safeOptions.threshold > safeOptions.owners.length) {
         throw new Error('options.threshold cannot exceed number of owners')
       }
     }
 
-    const { isSponsored, useNativeCoins, paymasterUrl, paymasterToken } = config
+    const { isSponsored, useNativeCoins, paymasterUrl, paymasterTokenAddress } = config
 
     if (isSponsored && useNativeCoins) {
       throw new Error("Cannot use both 'isSponsored: true' and 'useNativeCoins: true'. Please use only one.")
@@ -769,8 +768,8 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       throw new Error('Missing required sponsorship configuration field: paymasterUrl.')
     }
 
-    if (!isSponsored && !useNativeCoins && paymasterUrl && !paymasterToken) {
-      throw new Error('Missing required paymaster token configuration field: paymasterToken.')
+    if (!isSponsored && !useNativeCoins && paymasterUrl && !paymasterTokenAddress) {
+      throw new Error('Missing required paymaster token configuration field: paymasterTokenAddress.')
     }
   }
 }

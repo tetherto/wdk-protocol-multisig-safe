@@ -51,13 +51,11 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterAddress: '0x...',
-    paymasterTokenAddress: '0x...' // USDT address
-  },
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterAddress: '0x...',
+  paymasterTokenAddress: '0x...', // USDT address
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     owners: [aliceEoa, bobEoa],
     threshold: 2,
     saltNonce: '0x...' // Optional
@@ -81,13 +79,11 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterAddress: '0x...',
-    paymasterTokenAddress: '0x...'
-  },
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterAddress: '0x...',
+  paymasterTokenAddress: '0x...',
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     safeAddress: '0x...' // Existing Safe address
   }
 })
@@ -165,12 +161,10 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterTokenAddress: '0x...' // USDT address
-  },
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterTokenAddress: '0x...', // USDT address
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     owners: [aliceEoa, bobEoa],
     threshold: 2
   }
@@ -207,12 +201,10 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterAddress: '0x...', 
-    paymasterTokenAddress: '0x...' 
-  },
-  options: {
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterAddress: '0x...',
+  paymasterTokenAddress: '0x...',
+  safeOptions: {
     safeAddress: '0x...'
   }
 })
@@ -233,13 +225,11 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    isSponsored: true, 
-    sponsorshipPolicyId: 'sp_my_policy' 
-  },
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  isSponsored: true,
+  sponsorshipPolicyId: 'sp_my_policy',
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     safeAddress: '0x...'
   }
 })
@@ -265,12 +255,10 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    paymasterTokenAddress: '0xUSDT...'  // Default: pay gas with USDT
-  },
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterTokenAddress: '0xUSDT...', // Default: pay gas with USDT
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     safeAddress: '0x...'
   }
 })
@@ -292,12 +280,10 @@ const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
   provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterOptions: {
-    paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
-    isSponsored: true  // Default: gasless
-  },
+  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  isSponsored: true, // Default: gasless
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     safeAddress: '0x...'
   }
 })
@@ -390,7 +376,7 @@ const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
   bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
-  options: {
+  safeOptions: {
     safeAddress: '0x...'
   }
 })

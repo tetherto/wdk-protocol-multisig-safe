@@ -655,7 +655,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
     return new WalletAccountReadOnlyEvmMultisigSafe(null, {
       ...this._config,
-      options: { safeAddress: address }
+      safeOptions: { safeAddress: address }
     })
   }
 
