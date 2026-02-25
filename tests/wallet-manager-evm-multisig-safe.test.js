@@ -70,37 +70,33 @@ describe('WalletManagerEvmMultisigSafe', () => {
     test('should successfully initialize with ERC-20 paymaster options', () => {
       const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
-        paymasterOptions: {
-          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-          paymasterAddress: '0x000000000041F3aFe8892B48D88b6862efe0ec8d',
-          paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
-        },
+        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+        paymasterAddress: '0x000000000041F3aFe8892B48D88b6862efe0ec8d',
+        paymasterToken: { address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' },
         options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
       })
 
-      expect(manager._config.paymasterOptions.paymasterTokenAddress).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
-      expect(manager._config.paymasterOptions.paymasterAddress).toBe('0x000000000041F3aFe8892B48D88b6862efe0ec8d')
+      expect(manager._config.paymasterToken.address).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
+      expect(manager._config.paymasterAddress).toBe('0x000000000041F3aFe8892B48D88b6862efe0ec8d')
     })
 
     test('should successfully initialize with sponsored paymaster options', () => {
       const manager = new WalletManagerEvmMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
-        paymasterOptions: {
-          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
-          isSponsored: true,
-          sponsorshipPolicyId: 'sp_my_policy_123'
-        },
+        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+        isSponsored: true,
+        sponsorshipPolicyId: 'sp_my_policy_123',
         options: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
       })
 
-      expect(manager._config.paymasterOptions.isSponsored).toBe(true)
-      expect(manager._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
+      expect(manager._config.isSponsored).toBe(true)
+      expect(manager._config.sponsorshipPolicyId).toBe('sp_my_policy_123')
     })
 
     test('should successfully initialize with PredictedSafeOptions including saltNonce', () => {

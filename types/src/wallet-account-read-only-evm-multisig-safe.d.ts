@@ -5,30 +5,46 @@
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
 /**
- * @typedef {Object} ProposeOptions
- * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
- * @property {boolean} [isSponsored] - Override to use sponsored mode
- * @property {string} [sponsorshipPolicyId] - Override sponsorship policy
- * @property {string} [paymasterTokenAddress] - Override token for ERC-20 paymaster
- */
-/**
- * @typedef {Object} EvmMultisigSafeConfig
+ * @typedef {Object} EvmMultisigSafeCommonConfig
  * @property {string | Eip1193Provider} provider - RPC URL or EIP-1193 provider
  * @property {string} bundlerUrl - ERC-4337 bundler URL
  * @property {bigint} chainId - Chain ID
  * @property {string} [entryPointAddress] - EntryPoint contract address
  * @property {string} [safeModulesVersion='0.2.0'] - Safe modules version
- * @property {PaymasterOptions} [paymasterOptions] - Paymaster configuration
+ * @property {string} [paymasterUrl] - Paymaster service URL
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
  * @property {ExistingSafeOptions | PredictedSafeOptions} options - Safe options (existing or predicted)
+ */
+/**
+ * @typedef {Object} EvmMultisigSafePaymasterTokenConfig
+ * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
+ * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
+ * @property {string} paymasterAddress - Paymaster contract address
+ * @property {Object} paymasterToken - The paymaster token configuration.
+ * @property {string} paymasterToken.address - The address of the paymaster token.
+ * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
+ * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
+ */
+/**
+ * @typedef {Object} EvmMultisigSafeSponsoredConfig
+ * @property {true} isSponsored - Whether the paymaster is sponsoring the account.
+ * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
+ * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID
+ */
+/**
+ * @typedef {Object} EvmMultisigSafeNativeCoinsConfig
+ * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
+ * @property {true} useNativeCoins - Whether to use native coins instead of a paymaster to pay for gas fees.
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
-/** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
+/**
+ * @typedef {EvmMultisigSafeCommonConfig & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} EvmMultisigSafeConfig
+ */
+/** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee' | 'amountToApprove'>} EvmMultisigSafeReadOnlyConfig */
 export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
 export const DEFAULT_SAFE_VERSION: "1.4.1";
 /**
@@ -113,12 +129,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getSignerAddress(): Promise<string | null>;
     /**
-     * Returns the Safe address.
-     * 
-     * @returns {Promise<string>} The Safe address
-     */
-    getSafeAddress(): Promise<string>;
-    /**
      * Checks if the Safe is deployed on-chain.
      *
      * @returns {Promise<boolean>} True if deployed
@@ -195,20 +205,20 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Estimates the fee for a transaction.
      *
      * @param {EvmTransaction} tx - The transaction
-     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteSendTransaction(tx: EvmTransaction, options?: ProposeOptions): Promise<{
+    quoteSendTransaction(tx: EvmTransaction, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<{
         fee: bigint;
     }>;
     /**
      * Estimates the fee for a token transfer.
      *
      * @param {TransferOptions} transferOptions - Transfer options
-     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteTransfer(transferOptions: TransferOptions, options?: ProposeOptions): Promise<{
+    quoteTransfer(transferOptions: TransferOptions, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<{
         fee: bigint;
     }>;
     /**
@@ -225,16 +235,16 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      *
      * @protected
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<Object>} The SafeOperation object
      */
-    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], options?: ProposeOptions): Promise<any>;
+    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<any>;
     /**
      * Estimates UserOperation gas cost.
      *
      * @private
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
      */
     private _estimateUserOperationGas;
@@ -243,19 +253,19 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Child classes can override this to add a signer.
      *
      * @protected
-     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
      */
-    protected _getSafe4337Pack(options?: ProposeOptions): Promise<Safe4337Pack>;
+    protected _getSafe4337Pack(config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<Safe4337Pack>;
     /**
      * Initializes the Safe4337Pack with configuration.
      * Child classes can override to add signer.
      *
      * @protected
-     * @param {ProposeOptions} [options] - Options for paymaster override
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
      */
-    protected _initSafe4337Pack(proposeOptions?: {}): Promise<Safe4337Pack>;
+    protected _initSafe4337Pack(config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<Safe4337Pack>;
     /**
      * Returns the Safe API Kit instance.
      *
@@ -290,28 +300,9 @@ export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
 export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
-export type PaymasterOptions = import("@wdk-safe-global/relay-kit").PaymasterOptions;
 export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingSafeOptions;
 export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;
-export type ProposeOptions = {
-    /**
-     * - Amount to approve for paymaster (ignored in sponsored mode)
-     */
-    amountToApprove?: number | bigint;
-    /**
-     * - Override to use sponsored mode
-     */
-    isSponsored?: boolean;
-    /**
-     * - Override sponsorship policy
-     */
-    sponsorshipPolicyId?: string;
-    /**
-     * - Override token for ERC-20 paymaster
-     */
-    paymasterTokenAddress?: string;
-};
-export type EvmMultisigSafeConfig = {
+export type EvmMultisigSafeCommonConfig = {
     /**
      * - RPC URL or EIP-1193 provider
      */
@@ -333,9 +324,9 @@ export type EvmMultisigSafeConfig = {
      */
     safeModulesVersion?: string;
     /**
-     * - Paymaster configuration
+     * - Paymaster service URL
      */
-    paymasterOptions?: PaymasterOptions;
+    paymasterUrl?: string;
     /**
      * - Custom Safe Transaction Service URL
      */
@@ -348,12 +339,65 @@ export type EvmMultisigSafeConfig = {
      * - Safe options (existing or predicted)
      */
     options: ExistingSafeOptions | PredictedSafeOptions;
+};
+export type EvmMultisigSafePaymasterTokenConfig = {
+    /**
+     * - Whether the paymaster is sponsoring the account.
+     */
+    isSponsored?: false;
+    /**
+     * - Whether to use native coins instead of a paymaster to pay for gas fees.
+     */
+    useNativeCoins?: false;
+    /**
+     * - Paymaster contract address
+     */
+    paymasterAddress: string;
+    /**
+     * - The paymaster token configuration.
+     */
+    paymasterToken: {
+        address: string;
+    };
+    /**
+     * - Maximum fee for transfers
+     */
+    transferMaxFee?: number | bigint;
+    /**
+     * - Amount to approve for paymaster
+     */
+    amountToApprove?: number | bigint;
+};
+export type EvmMultisigSafeSponsoredConfig = {
+    /**
+     * - Whether the paymaster is sponsoring the account.
+     */
+    isSponsored: true;
+    /**
+     * - Whether to use native coins instead of a paymaster to pay for gas fees.
+     */
+    useNativeCoins?: false;
+    /**
+     * - Sponsorship policy ID
+     */
+    sponsorshipPolicyId?: string;
+};
+export type EvmMultisigSafeNativeCoinsConfig = {
+    /**
+     * - Whether the paymaster is sponsoring the account.
+     */
+    isSponsored?: false;
+    /**
+     * - Whether to use native coins instead of a paymaster to pay for gas fees.
+     */
+    useNativeCoins: true;
     /**
      * - Maximum fee for transfers
      */
     transferMaxFee?: number | bigint;
 };
-export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee">;
+export type EvmMultisigSafeConfig = EvmMultisigSafeCommonConfig & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig);
+export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee" | "amountToApprove">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
 import { Safe4337Pack } from '@wdk-safe-global/relay-kit';
 import SafeApiKit from '@safe-global/api-kit';

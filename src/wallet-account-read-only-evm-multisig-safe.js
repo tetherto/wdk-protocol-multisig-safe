@@ -34,33 +34,52 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 
-/** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
 
 /**
- * @typedef {Object} ProposeOptions
- * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster (ignored in sponsored mode)
- * @property {boolean} [isSponsored] - Override to use sponsored mode
- * @property {string} [sponsorshipPolicyId] - Override sponsorship policy
- * @property {string} [paymasterTokenAddress] - Override token for ERC-20 paymaster
- */
-
-/**
- * @typedef {Object} EvmMultisigSafeConfig
+ * @typedef {Object} EvmMultisigSafeCommonConfig
  * @property {string | Eip1193Provider} provider - RPC URL or EIP-1193 provider
  * @property {string} bundlerUrl - ERC-4337 bundler URL
  * @property {bigint} chainId - Chain ID
  * @property {string} [entryPointAddress] - EntryPoint contract address
  * @property {string} [safeModulesVersion='0.2.0'] - Safe modules version
- * @property {PaymasterOptions} [paymasterOptions] - Paymaster configuration
+ * @property {string} [paymasterUrl] - Paymaster service URL
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
  * @property {ExistingSafeOptions | PredictedSafeOptions} options - Safe options (existing or predicted)
+ */
+
+/**
+ * @typedef {Object} EvmMultisigSafePaymasterTokenConfig
+ * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
+ * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
+ * @property {string} paymasterAddress - Paymaster contract address
+ * @property {Object} paymasterToken - The paymaster token configuration.
+ * @property {string} paymasterToken.address - The address of the paymaster token.
+ * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
+ * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
+ */
+
+/**
+ * @typedef {Object} EvmMultisigSafeSponsoredConfig
+ * @property {true} isSponsored - Whether the paymaster is sponsoring the account.
+ * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
+ * @property {string} [sponsorshipPolicyId] - Sponsorship policy ID
+ */
+
+/**
+ * @typedef {Object} EvmMultisigSafeNativeCoinsConfig
+ * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
+ * @property {true} useNativeCoins - Whether to use native coins instead of a paymaster to pay for gas fees.
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  */
 
-/** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee'>} EvmMultisigSafeReadOnlyConfig */
+/**
+ * @typedef {EvmMultisigSafeCommonConfig & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} EvmMultisigSafeConfig
+ */
+
+/** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee' | 'amountToApprove'>} EvmMultisigSafeReadOnlyConfig */
 
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
 export const DEFAULT_SAFE_VERSION = '1.4.1'
@@ -188,7 +207,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       chainId: this._config.chainId,
       safeVersion: DEFAULT_SAFE_VERSION,
       safeModulesVersion: this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION,
-      paymasterOptions: this._config.paymasterOptions
+      paymasterOptions: this._config.paymasterUrl
+        ? {
+            paymasterUrl: this._config.paymasterUrl,
+            paymasterAddress: this._config.paymasterAddress,
+            paymasterTokenAddress: this._config.paymasterToken?.address,
+            isSponsored: this._config.isSponsored,
+            sponsorshipPolicyId: this._config.sponsorshipPolicyId
+          }
+        : undefined
     })
 
     return this._safeAddress
@@ -327,7 +354,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @throws {Error} If no paymaster token is configured
    */
   async getPaymasterTokenBalance () {
-    const paymasterTokenAddress = this._config.paymasterOptions?.paymasterTokenAddress
+    const paymasterTokenAddress = this._config.paymasterToken?.address
 
     if (!paymasterTokenAddress) {
       throw new Error('No paymaster token configured')
@@ -375,7 +402,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @returns {Promise<boolean>} True if confirmations >= threshold
    */
   async isReadyToExecute (proposalId) {
-    const operation = await this.getProposal(proposalId)
+    const [operation] = await this.getProposals([proposalId])
 
     if (!operation) {
       return false
@@ -442,11 +469,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Estimates the fee for a transaction.
    *
    * @param {EvmTransaction} tx - The transaction
-   * @param {ProposeOptions} [options] - Options for paymaster override
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
-  async quoteSendTransaction (tx, options = {}) {
-    const fee = await this._estimateUserOperationGas([tx], options)
+  async quoteSendTransaction (tx, config) {
+    const fee = await this._estimateUserOperationGas([tx], config)
     return { fee }
   }
 
@@ -454,12 +481,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Estimates the fee for a token transfer.
    *
    * @param {TransferOptions} transferOptions - Transfer options
-   * @param {ProposeOptions} [options] - Options for paymaster override
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
-  async quoteTransfer (transferOptions, options = {}) {
+  async quoteTransfer (transferOptions, config) {
     const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(transferOptions)
-    return await this.quoteSendTransaction(tx, options)
+    return await this.quoteSendTransaction(tx, config)
   }
 
   /**
@@ -480,11 +507,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @protected
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-   * @param {ProposeOptions} [options] - Options for paymaster override
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<Object>} The SafeOperation object
    */
-  async _createSafeOperation (transaction, options = {}) {
-    const safe4337Pack = await this._getSafe4337Pack(options)
+  async _createSafeOperation (transaction, config) {
+    const safe4337Pack = await this._getSafe4337Pack(config)
     const feeEstimator = this._createFeeEstimator()
     const address = await this.getAddress()
 
@@ -500,10 +527,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       options: { feeEstimator }
     }
 
-    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
+    const { isSponsored, amountToApprove } = { ...this._config, ...config }
 
-    if (options.amountToApprove && !isSponsored) {
-      createTxOptions.options.amountToApprove = BigInt(options.amountToApprove.toString())
+    if (amountToApprove && !isSponsored) {
+      createTxOptions.options.amountToApprove = BigInt(amountToApprove.toString())
     }
 
     return await safe4337Pack.createTransaction(createTxOptions)
@@ -514,20 +541,20 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @private
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-   * @param {ProposeOptions} [options] - Options for paymaster override
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
    */
-  async _estimateUserOperationGas (transaction, options = {}) {
-    const safe4337Pack = await this._getSafe4337Pack(options)
+  async _estimateUserOperationGas (transaction, config) {
+    const safe4337Pack = await this._getSafe4337Pack(config)
 
-    const isSponsored = options.isSponsored ?? this._config.paymasterOptions?.isSponsored
+    const mergedConfig = { ...this._config, ...config }
+    const { isSponsored, useNativeCoins } = mergedConfig
+    const configTokenAddress = mergedConfig.paymasterToken?.address
 
-    const paymasterTokenAddress = !isSponsored
-      ? (options.paymasterTokenAddress ?? this._config.paymasterOptions?.paymasterTokenAddress)
-      : null
+    const tokenAddress = (!isSponsored && !useNativeCoins) ? configTokenAddress : null
 
     try {
-      const safeOperation = await this._createSafeOperation(transaction, options)
+      const safeOperation = await this._createSafeOperation(transaction, config)
 
       const {
         callGasLimit,
@@ -546,9 +573,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
       const gasCostWei = totalGas * BigInt(maxFeePerGas)
 
-      if (paymasterTokenAddress) {
+      if (tokenAddress) {
         const exchangeRate = await safe4337Pack.getTokenExchangeRate(
-          paymasterTokenAddress
+          tokenAddress
         )
         const gasCostInToken = (gasCostWei * BigInt(exchangeRate)) / (10n ** 18n)
         return gasCostInToken
@@ -556,7 +583,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
       return gasCostWei
     } catch (error) {
-      console.error('Error estimating UserOperation gas:', error)
       if (error.message?.includes('AA50')) {
         throw new Error('Simulation failed: not enough funds in the Safe to repay the paymaster.')
       }
@@ -569,16 +595,19 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Child classes can override this to add a signer.
    *
    * @protected
-   * @param {ProposeOptions} [options] - Options for paymaster override
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
    */
-  async _getSafe4337Pack (options = {}) {
-    const hasPaymasterOverride = options.isSponsored !== undefined ||
-      options.sponsorshipPolicyId !== undefined ||
-      options.paymasterTokenAddress !== undefined
+  async _getSafe4337Pack (config) {
+    const hasPaymasterOverride = config && (
+      config.isSponsored !== undefined ||
+      config.sponsorshipPolicyId !== undefined ||
+      config.paymasterToken !== undefined ||
+      config.useNativeCoins !== undefined
+    )
 
     if (hasPaymasterOverride) {
-      return await this._initSafe4337Pack(options)
+      return await this._initSafe4337Pack(config)
     }
 
     if (!this._safe4337Pack) {
@@ -593,10 +622,14 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Child classes can override to add signer.
    *
    * @protected
-   * @param {ProposeOptions} [options] - Options for paymaster override
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
    */
-  async _initSafe4337Pack (proposeOptions = {}) {
+  async _initSafe4337Pack (config) {
+    const mergedConfig = { ...this._config, ...config }
+    const { isSponsored, sponsorshipPolicyId, useNativeCoins } = mergedConfig
+    const paymasterTokenAddress = mergedConfig.paymasterToken?.address
+
     const safeOptions = this._config.options
 
     const initOptions = {
@@ -633,17 +666,11 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       }
     }
 
-    if (this._config.paymasterOptions) {
-      const { paymasterUrl, paymasterAddress } = this._config.paymasterOptions
+    if (this._config.paymasterUrl && !useNativeCoins) {
+      initOptions.paymasterOptions = { paymasterUrl: this._config.paymasterUrl }
 
-      const isSponsored = proposeOptions.isSponsored ?? this._config.paymasterOptions.isSponsored
-      const sponsorshipPolicyId = proposeOptions.sponsorshipPolicyId ?? this._config.paymasterOptions.sponsorshipPolicyId
-      const paymasterTokenAddress = proposeOptions.paymasterTokenAddress ?? this._config.paymasterOptions.paymasterTokenAddress
-
-      initOptions.paymasterOptions = { paymasterUrl }
-
-      if (paymasterAddress) {
-        initOptions.paymasterOptions.paymasterAddress = paymasterAddress
+      if (this._config.paymasterAddress) {
+        initOptions.paymasterOptions.paymasterAddress = this._config.paymasterAddress
       }
 
       if (isSponsored) {
@@ -734,6 +761,20 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       if (options.threshold > options.owners.length) {
         throw new Error('options.threshold cannot exceed number of owners')
       }
+    }
+
+    const { isSponsored, useNativeCoins, paymasterUrl, paymasterToken } = config
+
+    if (isSponsored && useNativeCoins) {
+      throw new Error("Cannot use both 'isSponsored: true' and 'useNativeCoins: true'. Please use only one.")
+    }
+
+    if (isSponsored && !paymasterUrl) {
+      throw new Error('Missing required sponsorship configuration field: paymasterUrl.')
+    }
+
+    if (!isSponsored && !useNativeCoins && paymasterUrl && !paymasterToken) {
+      throw new Error('Missing required paymaster token configuration field: paymasterToken.')
     }
   }
 }

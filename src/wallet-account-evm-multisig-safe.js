@@ -37,7 +37,9 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 
 /** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
+/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
+/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
+/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
 
 /**
  * EVM multisig Safe wallet account with signing capabilities.
@@ -282,14 +284,22 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Auto-executes if `autoExecute` is true and threshold is met after proposing.
    *
    * @param {EvmTransaction} tx - The transaction to send
-   * @param {MultisigSendOptions & ProposeOptions} [options] - Send and propose options
+   * @param {MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Send and paymaster config options
    * @returns {Promise<MultisigTransactionResult>} The transaction result
    */
   async sendTransaction (tx, options = {}) {
-    const { autoExecute = false, ...proposeOptions } = options
-    const { fee } = await this.quoteSendTransaction(tx, proposeOptions)
+    const { autoExecute = false, ...paymasterConfig } = options
+    const config = (paymasterConfig.isSponsored !== undefined ||
+      paymasterConfig.useNativeCoins !== undefined ||
+      paymasterConfig.paymasterToken !== undefined ||
+      paymasterConfig.sponsorshipPolicyId !== undefined ||
+      paymasterConfig.amountToApprove !== undefined)
+      ? paymasterConfig
+      : undefined
 
-    const proposeResult = await this.propose(tx, proposeOptions)
+    const { fee } = await this.quoteSendTransaction(tx, config)
+
+    const proposeResult = await this.propose(tx, config)
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.proposalId)
       return {
@@ -317,19 +327,28 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Auto-executes if `autoExecute` is true and threshold is met after proposing.
    *
    * @param {TransferOptions} transferOptions - Transfer options
-   * @param {MultisigSendOptions & ProposeOptions} [options] - Send and propose options
+   * @param {MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Send and paymaster config options
    * @returns {Promise<MultisigTransactionResult>} The transfer result
    */
   async transfer (transferOptions, options = {}) {
-    const { autoExecute = false, ...proposeOptions } = options
-    const tx = await WalletAccountEvm._getTransferTransaction(transferOptions)
-    const { fee } = await this.quoteSendTransaction(tx, proposeOptions)
+    const { autoExecute = false, ...paymasterConfig } = options
+    const config = (paymasterConfig.isSponsored !== undefined ||
+      paymasterConfig.useNativeCoins !== undefined ||
+      paymasterConfig.paymasterToken !== undefined ||
+      paymasterConfig.sponsorshipPolicyId !== undefined ||
+      paymasterConfig.amountToApprove !== undefined)
+      ? paymasterConfig
+      : undefined
 
-    if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
+    const tx = await WalletAccountEvm._getTransferTransaction(transferOptions)
+    const { fee } = await this.quoteSendTransaction(tx, config)
+
+    const { isSponsored, transferMaxFee } = { ...this._config, ...config }
+    if (!isSponsored && transferMaxFee !== undefined && fee >= transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
-    const proposeResult = await this.propose(tx, proposeOptions)
+    const proposeResult = await this.propose(tx, config)
 
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
       const execResult = await this.execute(proposeResult.proposalId)
@@ -358,16 +377,16 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
    *
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
-   * @param {ProposeOptions} [options] - Propose options
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async propose (transaction, options = {}) {
+  async propose (transaction, config) {
     await this.validateSignerIsOwner()
 
-    const safe4337Pack = await this._getSafe4337Pack(options)
+    const safe4337Pack = await this._getSafe4337Pack(config)
     const threshold = await this.getThreshold()
 
-    const safeOperation = await this._createSafeOperation(transaction, options)
+    const safeOperation = await this._createSafeOperation(transaction, config)
     const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperation)
     const proposalId = signedSafeOperation.getHash()
 
@@ -494,11 +513,19 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * Proposes adding a new owner to the Safe.
    *
    * @param {string} ownerAddress - Address of new owner
-   * @param {MultisigOptions & ProposeOptions} [options] - Options with optional threshold and propose options
+   * @param {MultisigOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Options with optional threshold and paymaster config
    * @returns {Promise<MultisigResult>} The proposal result
    */
   async addOwner (ownerAddress, options = {}) {
-    const { threshold: newThreshold, ...proposeOptions } = options
+    const { threshold: newThreshold, ...paymasterConfig } = options
+    const config = (paymasterConfig.isSponsored !== undefined ||
+      paymasterConfig.useNativeCoins !== undefined ||
+      paymasterConfig.paymasterToken !== undefined ||
+      paymasterConfig.sponsorshipPolicyId !== undefined ||
+      paymasterConfig.amountToApprove !== undefined)
+      ? paymasterConfig
+      : undefined
+
     const safe4337Pack = await this._getSafe4337Pack()
     const threshold = newThreshold || await this.getThreshold()
 
@@ -511,18 +538,26 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
-    }, proposeOptions)
+    }, config)
   }
 
   /**
    * Proposes removing an owner from the Safe.
    *
    * @param {string} ownerAddress - Address of owner to remove
-   * @param {MultisigOptions & ProposeOptions} [options] - Options with optional threshold and propose options
+   * @param {MultisigOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Options with optional threshold and paymaster config
    * @returns {Promise<MultisigResult>} The proposal result
    */
   async removeOwner (ownerAddress, options = {}) {
-    const { threshold: newThreshold, ...proposeOptions } = options
+    const { threshold: newThreshold, ...paymasterConfig } = options
+    const config = (paymasterConfig.isSponsored !== undefined ||
+      paymasterConfig.useNativeCoins !== undefined ||
+      paymasterConfig.paymasterToken !== undefined ||
+      paymasterConfig.sponsorshipPolicyId !== undefined ||
+      paymasterConfig.amountToApprove !== undefined)
+      ? paymasterConfig
+      : undefined
+
     const safe4337Pack = await this._getSafe4337Pack()
     const owners = await this.getOwners()
     const currentThreshold = await this.getThreshold()
@@ -541,7 +576,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
-    }, proposeOptions)
+    }, config)
   }
 
   /**
@@ -549,10 +584,10 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    *
    * @param {string} oldOwnerAddress - Address of owner to remove
    * @param {string} newOwnerAddress - Address of new owner
-   * @param {ProposeOptions} [options] - Propose options
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async swapOwner (oldOwnerAddress, newOwnerAddress, options = {}) {
+  async swapOwner (oldOwnerAddress, newOwnerAddress, config) {
     const safe4337Pack = await this._getSafe4337Pack()
 
     const tx = await safe4337Pack.protocolKit.createSwapOwnerTx({
@@ -564,17 +599,17 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
-    }, options)
+    }, config)
   }
 
   /**
    * Proposes changing the Safe threshold.
    *
    * @param {number} newThreshold - New threshold value
-   * @param {ProposeOptions} [options] - Propose options
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async changeThreshold (newThreshold, options = {}) {
+  async changeThreshold (newThreshold, config) {
     const safe4337Pack = await this._getSafe4337Pack()
 
     const tx = await safe4337Pack.protocolKit.createChangeThresholdTx(newThreshold)
@@ -583,7 +618,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
-    }, options)
+    }, config)
   }
 
   /**
@@ -591,10 +626,10 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    *
    * @param {string[]} newOwners - Array of new owner addresses
    * @param {number} newThreshold - New threshold value
-   * @param {ProposeOptions} [options] - Propose options
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async updateOwners (newOwners, newThreshold, options = {}) {
+  async updateOwners (newOwners, newThreshold, config) {
     const safe4337Pack = await this._getSafe4337Pack()
     const currentOwners = await this.getOwners()
     const currentThreshold = await this.getThreshold()
@@ -644,7 +679,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('No changes to make - owners and threshold are the same')
     }
 
-    return await this.propose(transactions, options)
+    return await this.propose(transactions, config)
   }
 
   /**

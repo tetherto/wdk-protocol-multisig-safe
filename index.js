@@ -41,7 +41,6 @@
 // Re-export types from @wdk-safe-global/relay-kit
 // ============================================
 
-/** @typedef {import('@wdk-safe-global/relay-kit').PaymasterOptions} PaymasterOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
 
@@ -49,9 +48,12 @@
 // Re-export types from read-only module
 // ============================================
 
+/** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeCommonConfig} EvmMultisigSafeCommonConfig */
+/** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
+/** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
+/** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeReadOnlyConfig} EvmMultisigSafeReadOnlyConfig */
-/** @typedef {import('./src/wallet-account-read-only-evm-multisig-safe.js').ProposeOptions} ProposeOptions */
 
 // ============================================
 // Export classes and constants

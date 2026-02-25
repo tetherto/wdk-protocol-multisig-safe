@@ -222,50 +222,44 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should successfully initialize with ERC-20 paymaster options', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        paymasterOptions: {
-          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-          paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238'
-        },
+        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+        paymasterToken: { address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' },
         options: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
 
-      expect(account._config.paymasterOptions.paymasterTokenAddress).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
-      expect(account._config.paymasterOptions.isSponsored).toBeUndefined()
+      expect(account._config.paymasterToken.address).toBe('0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238')
+      expect(account._config.isSponsored).toBeUndefined()
     })
 
     test('should successfully initialize with ERC-20 paymaster and paymasterAddress', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        paymasterOptions: {
-          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-          paymasterAddress: '0xPaymasterAddress',
-          paymasterTokenAddress: '0xUSDC'
-        },
+        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+        paymasterAddress: '0xPaymasterAddress',
+        paymasterToken: { address: '0xUSDC' },
         options: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
 
-      expect(account._config.paymasterOptions.paymasterAddress).toBe('0xPaymasterAddress')
+      expect(account._config.paymasterAddress).toBe('0xPaymasterAddress')
     })
 
     test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        paymasterOptions: {
-          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
-          isSponsored: true,
-          sponsorshipPolicyId: 'sp_my_policy_123'
-        },
+        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+        isSponsored: true,
+        sponsorshipPolicyId: 'sp_my_policy_123',
         options: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
 
-      expect(account._config.paymasterOptions.isSponsored).toBe(true)
-      expect(account._config.paymasterOptions.sponsorshipPolicyId).toBe('sp_my_policy_123')
+      expect(account._config.isSponsored).toBe(true)
+      expect(account._config.sponsorshipPolicyId).toBe('sp_my_policy_123')
     })
   })
 
@@ -467,10 +461,8 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
     test('should throw error when isSponsored=true (no token configured)', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
-        paymasterOptions: {
-          paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
-          isSponsored: true
-        },
+        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+        isSponsored: true,
         options: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
@@ -480,7 +472,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
         .rejects.toThrow('No paymaster token configured')
     })
 
-    test('should throw error when no paymasterOptions configured', async () => {
+    test('should throw error when no paymaster token configured', async () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
         options: {
