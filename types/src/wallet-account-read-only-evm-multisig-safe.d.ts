@@ -71,42 +71,42 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     constructor(signerAddress: string | null, config: EvmMultisigSafeReadOnlyConfig);
     /**
-     * The multisig Safe configuration
+     * The multisig Safe configuration.
      *
      * @protected
      * @type {EvmMultisigSafeReadOnlyConfig}
      */
     protected _config: EvmMultisigSafeReadOnlyConfig;
     /**
-     * The Safe address
+     * The Safe address.
      *
      * @protected
      * @type {string | null}
      */
     protected _safeAddress: string | null;
     /**
-     * The safe's implementation of the erc-4337 standard.
+     * The Safe's implementation of the ERC-4337 standard.
      *
      * @protected
      * @type {Safe4337Pack | undefined}
      */
     protected _safe4337Pack: Safe4337Pack | undefined;
     /**
-     * The Safe API Kit instance
+     * The Safe API Kit instance.
      *
      * @protected
      * @type {SafeApiKit | null}
      */
     protected _apiKit: typeof SafeApiKit | null;
     /**
-     * Cached owners list
+     * Cached owners list.
      *
      * @protected
      * @type {string[] | null}
      */
     protected _owners: string[] | null;
     /**
-     * Cached threshold
+     * Cached threshold.
      *
      * @protected
      * @type {number | null}
@@ -281,9 +281,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     private _getEvmReadOnlyAccount;
     /**
-   * Resets cached internal state.
-   * @protected
-   */
+     * Resets cached internal state.
+     *
+     * @protected
+     */
     protected _resetState(): void;
     /**
      * Validates the configuration.

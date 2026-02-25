@@ -102,7 +102,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._validateConfig(config)
 
     /**
-     * The multisig Safe configuration
+     * The multisig Safe configuration.
      *
      * @protected
      * @type {EvmMultisigSafeReadOnlyConfig}
@@ -110,7 +110,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._config = config
 
     /**
-     * The Safe address
+     * The Safe address.
      *
      * @protected
      * @type {string | null}
@@ -118,7 +118,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._safeAddress = config.options?.safeAddress || null
 
     /**
-     * The safe's implementation of the erc-4337 standard.
+     * The Safe's implementation of the ERC-4337 standard.
      *
      * @protected
      * @type {Safe4337Pack | undefined}
@@ -126,7 +126,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._safe4337Pack = undefined
 
     /**
-     * The Safe API Kit instance
+     * The Safe API Kit instance.
      *
      * @protected
      * @type {SafeApiKit | null}
@@ -134,7 +134,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._apiKit = null
 
     /**
-     * Cached owners list
+     * Cached owners list.
      *
      * @protected
      * @type {string[] | null}
@@ -142,7 +142,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._owners = null
 
     /**
-     * Cached threshold
+     * Cached threshold.
      *
      * @protected
      * @type {number | null}
@@ -327,7 +327,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns the Safe's native token balance
+   * Returns the Safe's native token balance.
    *
    * @returns {Promise<bigint>} Balance in wei
    */
@@ -731,9 +731,10 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
- * Resets cached internal state.
- * @protected
- */
+   * Resets cached internal state.
+   *
+   * @protected
+   */
   _resetState () {
     this._owners = null
     this._threshold = null

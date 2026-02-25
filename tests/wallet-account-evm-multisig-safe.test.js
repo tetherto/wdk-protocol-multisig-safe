@@ -1064,7 +1064,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('changeThreshold should return propose result', async () => {
-      const result = await account.changeThreshold(2)
+      const result = await account.changeThreshold(1)
 
       expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)

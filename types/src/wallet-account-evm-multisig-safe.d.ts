@@ -62,7 +62,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     get keyPair(): KeyPair;
     /**
-     * Signs a message
+     * Signs a message.
      *
      * @param {string} message - The message to sign
      * @returns {Promise<string>} The signature
@@ -77,11 +77,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     proposeMessage(message: string): Promise<MessageProposal>;
     /**
-    * Approves an existing message proposal.
-    *
-    * @param {string} messageHash - The message hash to approve
-    * @returns {Promise<MessageProposal>} The approval result
-    */
+     * Approves an existing message proposal.
+     *
+     * @param {string} messageHash - The message hash to approve
+     * @returns {Promise<MessageProposal>} The approval result
+     */
     approveMessage(messageHash: string): Promise<MessageProposal>;
     /**
      * Validates that the signer is an owner of the Safe.

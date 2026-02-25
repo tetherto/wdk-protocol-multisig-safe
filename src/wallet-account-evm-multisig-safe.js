@@ -113,7 +113,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Signs a message
+   * Signs a message.
    *
    * @param {string} message - The message to sign
    * @returns {Promise<string>} The signature
@@ -186,11 +186,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-  * Approves an existing message proposal.
-  *
-  * @param {string} messageHash - The message hash to approve
-  * @returns {Promise<MessageProposal>} The approval result
-  */
+   * Approves an existing message proposal.
+   *
+   * @param {string} messageHash - The message hash to approve
+   * @returns {Promise<MessageProposal>} The approval result
+   */
   async approveMessage (messageHash) {
     await this.validateSignerIsOwner()
 
@@ -323,8 +323,8 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     const tx = await WalletAccountEvm._getTransferTransaction(transferOptions)
     const { fee } = await this.quoteSendTransaction(tx, config)
 
-    const { isSponsored, transferMaxFee } = { ...this._config, ...config }
-    if (!isSponsored && transferMaxFee !== undefined && fee >= transferMaxFee) {
+    const { isSponsored, useNativeCoins, transferMaxFee } = { ...this._config, ...config }
+    if (!isSponsored && !useNativeCoins && transferMaxFee !== undefined && fee >= transferMaxFee) {
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
@@ -557,17 +557,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       : undefined
 
     const safe4337Pack = await this._getSafe4337Pack()
-    const owners = await this.getOwners()
     const currentThreshold = await this.getThreshold()
-
-    let threshold = newThreshold || currentThreshold
-    if (threshold > owners.length - 1) {
-      threshold = owners.length - 1
-    }
 
     const tx = await safe4337Pack.protocolKit.createRemoveOwnerTx({
       ownerAddress,
-      threshold
+      threshold: newThreshold || currentThreshold
     })
 
     return await this.propose({
@@ -655,7 +649,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     for (const owner of toRemove) {
       const tx = await safe4337Pack.protocolKit.createRemoveOwnerTx({
         ownerAddress: owner,
-        threshold: Math.min(currentThreshold, newOwners.length)
+        threshold: Math.max(1, Math.min(currentThreshold, newOwners.length))
       })
       transactions.push({
         to: tx.data.to,
