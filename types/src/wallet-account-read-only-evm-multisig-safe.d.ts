@@ -205,20 +205,20 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * Estimates the fee for a transaction.
      *
      * @param {EvmTransaction} tx - The transaction
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteSendTransaction(tx: EvmTransaction, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<{
+    quoteSendTransaction(tx: EvmTransaction, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<{
         fee: bigint;
     }>;
     /**
      * Estimates the fee for a token transfer.
      *
      * @param {TransferOptions} transferOptions - Transfer options
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
      */
-    quoteTransfer(transferOptions: TransferOptions, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<{
+    quoteTransfer(transferOptions: TransferOptions, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<{
         fee: bigint;
     }>;
     /**
@@ -235,37 +235,36 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      *
      * @protected
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<Object>} The SafeOperation object
      */
-    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<any>;
+    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<any>;
     /**
      * Estimates UserOperation gas cost.
      *
      * @private
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
      */
     private _estimateUserOperationGas;
     /**
-     * Returns the Safe4337Pack instance.
-     * Child classes can override this to add a signer.
+     * Builds the paymaster options object from config.
+     *
+     * @private
+     * @param {EvmMultisigSafeConfig} config - The config to build from
+     * @returns {Object | undefined} The paymaster options or undefined
+     */
+    private _buildPaymasterOptions;
+    /**
+     * Returns the Safe4337Pack instance, creating or re-creating as needed.
+     * Uses a cached instance when the config matches, or creates a fresh one for paymaster overrides.
      *
      * @protected
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
      */
-    protected _getSafe4337Pack(config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<Safe4337Pack>;
-    /**
-     * Initializes the Safe4337Pack with configuration.
-     * Child classes can override to add signer.
-     *
-     * @protected
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-     * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
-     */
-    protected _initSafe4337Pack(config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<Safe4337Pack>;
+    protected _getSafe4337Pack(config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<Safe4337Pack>;
     /**
      * Returns the Safe API Kit instance.
      *

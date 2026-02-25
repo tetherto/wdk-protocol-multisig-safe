@@ -442,6 +442,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
       await erc20Account.propose(tx, { amountToApprove: 500000n })
@@ -470,7 +471,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      sponsoredAccount._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
       await sponsoredAccount.propose(tx, { isSponsored: true, amountToApprove: 500000n })
@@ -499,7 +500,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
       await erc20Account.propose(tx, { isSponsored: true, amountToApprove: 500000n })
@@ -527,7 +528,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      sponsoredAccount._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
       await sponsoredAccount.propose(tx, { isSponsored: false, amountToApprove: 500000n })
@@ -589,6 +590,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.reject(MOCK_SAFE_OP_HASH)
 
@@ -611,6 +613,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       await account.reject(MOCK_SAFE_OP_HASH)
 
@@ -636,6 +639,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       await account.reject(MOCK_SAFE_OP_HASH)
 
@@ -912,7 +916,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
       await erc20Account.sendTransaction(tx, { isSponsored: true })
@@ -1016,7 +1020,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._initSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const transferOptions = {
         token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',

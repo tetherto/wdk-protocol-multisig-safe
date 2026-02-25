@@ -207,15 +207,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       chainId: this._config.chainId,
       safeVersion: DEFAULT_SAFE_VERSION,
       safeModulesVersion: this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION,
-      paymasterOptions: this._config.paymasterUrl
-        ? {
-            paymasterUrl: this._config.paymasterUrl,
-            paymasterAddress: this._config.paymasterAddress,
-            paymasterTokenAddress: this._config.paymasterToken?.address,
-            isSponsored: this._config.isSponsored,
-            sponsorshipPolicyId: this._config.sponsorshipPolicyId
-          }
-        : undefined
+      paymasterOptions: this._buildPaymasterOptions(this._config)
     })
 
     return this._safeAddress
@@ -469,7 +461,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Estimates the fee for a transaction.
    *
    * @param {EvmTransaction} tx - The transaction
-   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
   async quoteSendTransaction (tx, config) {
@@ -481,7 +473,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * Estimates the fee for a token transfer.
    *
    * @param {TransferOptions} transferOptions - Transfer options
-   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
    */
   async quoteTransfer (transferOptions, config) {
@@ -507,7 +499,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @protected
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<Object>} The SafeOperation object
    */
   async _createSafeOperation (transaction, config) {
@@ -545,7 +537,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    *
    * @private
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
    */
   async _estimateUserOperationGas (transaction, config) {
@@ -595,44 +587,49 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns the Safe4337Pack instance.
-   * Child classes can override this to add a signer.
+   * Builds the paymaster options object from config.
    *
-   * @protected
-   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
+   * @private
+   * @param {EvmMultisigSafeConfig} config - The config to build from
+   * @returns {Object | undefined} The paymaster options or undefined
    */
-  async _getSafe4337Pack (config) {
-    const hasPaymasterOverride = config && (
-      config.isSponsored !== undefined ||
-      config.sponsorshipPolicyId !== undefined ||
-      config.paymasterToken !== undefined ||
-      config.useNativeCoins !== undefined
-    )
+  _buildPaymasterOptions (config) {
+    if (!config.paymasterUrl || config.useNativeCoins) return undefined
 
-    if (hasPaymasterOverride) {
-      return await this._initSafe4337Pack(config)
+    const options = { paymasterUrl: config.paymasterUrl }
+
+    if (config.paymasterAddress) {
+      options.paymasterAddress = config.paymasterAddress
     }
 
-    if (!this._safe4337Pack) {
-      this._safe4337Pack = await this._initSafe4337Pack()
+    if (config.isSponsored) {
+      options.isSponsored = true
+      if (config.sponsorshipPolicyId) {
+        options.sponsorshipPolicyId = config.sponsorshipPolicyId
+      }
+    } else if (config.paymasterToken?.address) {
+      options.paymasterTokenAddress = config.paymasterToken.address
     }
 
-    return this._safe4337Pack
+    return options
   }
 
   /**
-   * Initializes the Safe4337Pack with configuration.
-   * Child classes can override to add signer.
+   * Returns the Safe4337Pack instance, creating or re-creating as needed.
+   * Uses a cached instance when the config matches, or creates a fresh one for paymaster overrides.
    *
    * @protected
-   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<Safe4337Pack>} The initialized Safe4337Pack instance
+   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+   * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
    */
-  async _initSafe4337Pack (config) {
+  async _getSafe4337Pack (config) {
+    if (config && Object.keys(config).length === 0) config = undefined
+
+    if (!config && this._safe4337Pack) {
+      return this._safe4337Pack
+    }
+
     const mergedConfig = { ...this._config, ...config }
-    const { isSponsored, sponsorshipPolicyId, useNativeCoins } = mergedConfig
-    const paymasterTokenAddress = mergedConfig.paymasterToken?.address
 
     const safeOptions = this._config.options
 
@@ -670,21 +667,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       }
     }
 
-    if (this._config.paymasterUrl && !useNativeCoins) {
-      initOptions.paymasterOptions = { paymasterUrl: this._config.paymasterUrl }
-
-      if (this._config.paymasterAddress) {
-        initOptions.paymasterOptions.paymasterAddress = this._config.paymasterAddress
-      }
-
-      if (isSponsored) {
-        initOptions.paymasterOptions.isSponsored = true
-        if (sponsorshipPolicyId) {
-          initOptions.paymasterOptions.sponsorshipPolicyId = sponsorshipPolicyId
-        }
-      } else if (paymasterTokenAddress) {
-        initOptions.paymasterOptions.paymasterTokenAddress = paymasterTokenAddress
-      }
+    const paymasterOptions = this._buildPaymasterOptions(mergedConfig)
+    if (paymasterOptions) {
+      initOptions.paymasterOptions = paymasterOptions
     }
 
     if (this._config.entryPointAddress) {
@@ -693,7 +678,13 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       }
     }
 
-    return await Safe4337Pack.init(initOptions)
+    const safe4337Pack = await Safe4337Pack.init(initOptions)
+
+    if (!config) {
+      this._safe4337Pack = safe4337Pack
+    }
+
+    return safe4337Pack
   }
 
   /**

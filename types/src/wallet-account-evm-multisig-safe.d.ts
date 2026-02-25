@@ -103,25 +103,25 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * Auto-executes if `autoExecute` is true and threshold is met after proposing.
      *
      * @param {EvmTransaction} tx - The transaction to send
-     * @param {MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Send and paymaster config options
+     * @param {MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
      * @returns {Promise<MultisigTransactionResult>} The transaction result
      */
-    sendTransaction(tx: EvmTransaction, options?: MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)): Promise<MultisigTransactionResult>;
+    sendTransaction(tx: EvmTransaction, options?: MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigTransactionResult>;
     /**
      * Transfers a token to another address.
      * Auto-executes if `autoExecute` is true and threshold is met after proposing.
      *
      * @param {TransferOptions} transferOptions - Transfer options
-     * @param {MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Send and paymaster config options
+     * @param {MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
      * @returns {Promise<MultisigTransactionResult>} The transfer result
      */
-    transfer(transferOptions: TransferOptions, options?: MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)): Promise<MultisigTransactionResult>;
+    transfer(transferOptions: TransferOptions, options?: MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigTransactionResult>;
     /**
      * Proposes a transaction, optionally executes if threshold is met.
      *
      * @private
      * @param {EvmTransaction} tx - The transaction
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - Paymaster config override
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - Paymaster config override
      * @param {bigint} fee - The estimated fee
      * @param {boolean} autoExecute - Whether to auto-execute if threshold is met
      * @returns {Promise<MultisigTransactionResult>} The transaction result
@@ -134,10 +134,10 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * Note: `reject()` passes `customNonce` via config to reuse the original proposal's nonce.
      *
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    propose(transaction: EvmTransaction | EvmTransaction[], config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<MultisigResult>;
+    propose(transaction: EvmTransaction | EvmTransaction[], config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Approves (signs) an existing proposal.
      *
@@ -164,44 +164,44 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      * Proposes adding a new owner to the Safe.
      *
      * @param {string} ownerAddress - Address of new owner
-     * @param {MultisigOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Options with optional threshold and paymaster config
+     * @param {MultisigOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Options with optional threshold and paymaster config
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    addOwner(ownerAddress: string, options?: MultisigOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)): Promise<MultisigResult>;
+    addOwner(ownerAddress: string, options?: MultisigOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Proposes removing an owner from the Safe.
      *
      * @param {string} ownerAddress - Address of owner to remove
-     * @param {MultisigOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)} [options] - Options with optional threshold and paymaster config
+     * @param {MultisigOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Options with optional threshold and paymaster config
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    removeOwner(ownerAddress: string, options?: MultisigOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)): Promise<MultisigResult>;
+    removeOwner(ownerAddress: string, options?: MultisigOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Proposes swapping an owner with a new address.
      *
      * @param {string} oldOwnerAddress - Address of owner to remove
      * @param {string} newOwnerAddress - Address of new owner
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    swapOwner(oldOwnerAddress: string, newOwnerAddress: string, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<MultisigResult>;
+    swapOwner(oldOwnerAddress: string, newOwnerAddress: string, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Proposes changing the Safe threshold.
      *
      * @param {number} newThreshold - New threshold value
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    changeThreshold(newThreshold: number, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<MultisigResult>;
+    changeThreshold(newThreshold: number, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Proposes updating all owners and threshold in a batch.
      *
      * @param {string[]} newOwners - Array of new owner addresses
      * @param {number} newThreshold - New threshold value
-     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<MultisigResult>} The proposal result
      */
-    updateOwners(newOwners: string[], newThreshold: number, config?: EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig): Promise<MultisigResult>;
+    updateOwners(newOwners: string[], newThreshold: number, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Returns a read-only copy of this account.
      *
