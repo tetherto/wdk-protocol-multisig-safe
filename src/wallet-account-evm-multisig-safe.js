@@ -299,27 +299,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
 
     const { fee } = await this.quoteSendTransaction(tx, config)
 
-    const proposeResult = await this.propose(tx, config)
-    if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
-      const execResult = await this.execute(proposeResult.proposalId)
-      return {
-        proposalId: proposeResult.proposalId,
-        hash: execResult.hash,
-        fee,
-        confirmations: proposeResult.confirmations,
-        threshold: proposeResult.threshold,
-        executed: true
-      }
-    }
-
-    return {
-      proposalId: proposeResult.proposalId,
-      hash: proposeResult.proposalId,
-      fee,
-      confirmations: proposeResult.confirmations,
-      threshold: proposeResult.threshold,
-      executed: false
-    }
+    return await this._submitTransaction(tx, config, fee, autoExecute)
   }
 
   /**
@@ -348,6 +328,20 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error('Exceeded maximum fee cost for transfer operation.')
     }
 
+    return await this._submitTransaction(tx, config, fee, autoExecute)
+  }
+
+  /**
+   * Proposes a transaction, optionally executes if threshold is met.
+   *
+   * @private
+   * @param {EvmTransaction} tx - The transaction
+   * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - Paymaster config override
+   * @param {bigint} fee - The estimated fee
+   * @param {boolean} autoExecute - Whether to auto-execute if threshold is met
+   * @returns {Promise<MultisigTransactionResult>} The transaction result
+   */
+  async _submitTransaction (tx, config, fee, autoExecute) {
     const proposeResult = await this.propose(tx, config)
 
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
@@ -375,6 +369,8 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   /**
    * Proposes a new transaction for multisig approval.
    * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
+   *
+   * Note: `reject()` passes `customNonce` via config to reuse the original proposal's nonce.
    *
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
    * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
@@ -452,8 +448,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    * @returns {Promise<MultisigResult>} The rejection proposal result
    */
   async reject (proposalId) {
-    await this.validateSignerIsOwner()
-
     const apiKit = await this._getApiKit()
     const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
 
@@ -461,15 +455,19 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       throw new Error(`SafeOperation not found: ${proposalId}`)
     }
 
-    const safeAddress = await this.getAddress()
+    const nonce = safeOperationResponse.userOperation?.nonce
+    if (nonce === undefined) {
+      throw new Error('Cannot reject: original proposal has no nonce')
+    }
 
+    const safeAddress = await this.getAddress()
     const rejectionTx = {
       to: safeAddress,
       value: '0',
       data: '0x'
     }
 
-    return await this.propose(rejectionTx)
+    return await this.propose(rejectionTx, { customNonce: BigInt(nonce) })
   }
 
   /**
@@ -689,10 +687,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
    */
   async toReadOnlyAccount () {
     const address = await this.getAddress()
-
-    if (!address) {
-      throw new Error('Cannot create read-only account before address is resolved. Call getAddress() first.')
-    }
 
     return new WalletAccountReadOnlyEvmMultisigSafe(null, {
       ...this._config,

@@ -262,7 +262,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    * @returns {Promise<number>} The threshold
    */
   async getThreshold () {
-    if (this._threshold) {
+    if (this._threshold !== null) {
       return this._threshold
     }
 
@@ -527,10 +527,14 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       options: { feeEstimator }
     }
 
-    const { isSponsored, amountToApprove } = { ...this._config, ...config }
+    const { isSponsored, amountToApprove, customNonce } = { ...this._config, ...config }
 
-    if (amountToApprove && !isSponsored) {
+    if (amountToApprove !== undefined && !isSponsored) {
       createTxOptions.options.amountToApprove = BigInt(amountToApprove.toString())
+    }
+
+    if (customNonce !== undefined) {
+      createTxOptions.options.customNonce = BigInt(customNonce.toString())
     }
 
     return await safe4337Pack.createTransaction(createTxOptions)

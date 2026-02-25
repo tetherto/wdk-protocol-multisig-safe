@@ -575,6 +575,101 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
   })
 
+  describe('reject', () => {
+    test('should return rejection result with proposalId', async () => {
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }],
+          preparedSignature: '0xsignature',
+          userOperation: { nonce: '5' }
+        })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      const result = await account.reject(MOCK_SAFE_OP_HASH)
+
+      expect(result).toBeDefined()
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(result.confirmations).toBe(1)
+      expect(result.threshold).toBe(1)
+    })
+
+    test('should create zero-value self-transfer transaction', async () => {
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }],
+          preparedSignature: '0xsignature',
+          userOperation: { nonce: '5' }
+        })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      await account.reject(MOCK_SAFE_OP_HASH)
+
+      const callArgs = mockPack.createTransaction.mock.calls[0][0]
+      expect(callArgs.transactions).toEqual([{
+        from: MOCK_SAFE_ADDRESS,
+        to: MOCK_SAFE_ADDRESS,
+        value: '0',
+        data: '0x'
+      }])
+    })
+
+    test('should pass customNonce from original proposal', async () => {
+      const mockPack = createMockSafe4337Pack()
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }],
+          preparedSignature: '0xsignature',
+          userOperation: { nonce: '42' }
+        })
+      })
+      account._safe4337Pack = mockPack
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      await account.reject(MOCK_SAFE_OP_HASH)
+
+      const callArgs = mockPack.createTransaction.mock.calls[0][0]
+      expect(callArgs.options.customNonce).toBe(42n)
+    })
+
+    test('should throw if proposal not found', async () => {
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockResolvedValue(null)
+      })
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+
+      await expect(account.reject(MOCK_SAFE_OP_HASH))
+        .rejects.toThrow(`SafeOperation not found: ${MOCK_SAFE_OP_HASH}`)
+    })
+
+    test('should throw if original proposal has no nonce', async () => {
+      const mockApiKit = createMockApiKit({
+        getSafeOperation: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }],
+          preparedSignature: '0xsignature',
+          userOperation: {}
+        })
+      })
+      account._apiKit = mockApiKit
+      account._safeAddress = MOCK_SAFE_ADDRESS
+
+      await expect(account.reject(MOCK_SAFE_OP_HASH))
+        .rejects.toThrow('Cannot reject: original proposal has no nonce')
+    })
+  })
+
   describe('execute', () => {
     test('should return execute result with hash', async () => {
       const mockPack = createMockSafe4337Pack()

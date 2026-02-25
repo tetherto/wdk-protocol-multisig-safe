@@ -117,8 +117,21 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
      */
     transfer(transferOptions: TransferOptions, options?: MultisigSendOptions & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig)): Promise<MultisigTransactionResult>;
     /**
+     * Proposes a transaction, optionally executes if threshold is met.
+     *
+     * @private
+     * @param {EvmTransaction} tx - The transaction
+     * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - Paymaster config override
+     * @param {bigint} fee - The estimated fee
+     * @param {boolean} autoExecute - Whether to auto-execute if threshold is met
+     * @returns {Promise<MultisigTransactionResult>} The transaction result
+     */
+    private _submitTransaction;
+    /**
      * Proposes a new transaction for multisig approval.
      * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
+     *
+     * Note: `reject()` passes `customNonce` via config to reuse the original proposal's nonce.
      *
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
      * @param {EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
