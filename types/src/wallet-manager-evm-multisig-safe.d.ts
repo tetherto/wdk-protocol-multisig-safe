@@ -40,6 +40,12 @@ export default class WalletManagerEvmMultisigSafe extends WalletManager {
      * @returns {Promise<WalletAccountEvmMultisigSafe>} The account
      */
     getAccountByPath(path: string): Promise<WalletAccountEvmMultisigSafe>;
+    /**
+     * Returns the current fee rates.
+     *
+     * @returns {Promise<FeeRates>} The fee rates (in wei)
+     */
+    getFeeRates(): Promise<FeeRates>;
 }
 export type Provider = import("ethers").Provider;
 export type FeeRates = import("@tetherto/wdk-wallet-evm").FeeRates;

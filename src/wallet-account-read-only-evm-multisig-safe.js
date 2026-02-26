@@ -150,14 +150,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     this._threshold = null
 
-    /**
-     * The chain id.
-     *
-     * @protected
-     * @type {bigint | undefined}
-     */
-    this._chainId = undefined
-
     /** @private */
     this._signerAddress = signerAddress
   }
@@ -775,15 +767,15 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
 
     if (hasPredictedSafe) {
       if (!Array.isArray(safeOptions.owners) || safeOptions.owners.length === 0) {
-        throw new Error('options.owners is required and must not be empty')
+        throw new Error('safeOptions.owners is required and must not be empty')
       }
 
       if (!safeOptions.threshold || safeOptions.threshold < 1) {
-        throw new Error('options.threshold must be at least 1')
+        throw new Error('safeOptions.threshold must be at least 1')
       }
 
       if (safeOptions.threshold > safeOptions.owners.length) {
-        throw new Error('options.threshold cannot exceed number of owners')
+        throw new Error('safeOptions.threshold cannot exceed number of owners')
       }
     }
 

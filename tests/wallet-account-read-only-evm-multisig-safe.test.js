@@ -128,7 +128,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
             threshold: 1
           }
         })
-      }).toThrow('options.owners is required and must not be empty')
+      }).toThrow('safeOptions.owners is required and must not be empty')
     })
 
     test('should throw if threshold is less than 1', () => {

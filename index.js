@@ -64,6 +64,6 @@
 
 export { default } from './src/wallet-manager-evm-multisig-safe.js'
 
-export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION } from './src/wallet-account-read-only-evm-multisig-safe.js'
+export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from './src/wallet-account-read-only-evm-multisig-safe.js'
 
 export { default as WalletAccountEvmMultisigSafe } from './src/wallet-account-evm-multisig-safe.js'
