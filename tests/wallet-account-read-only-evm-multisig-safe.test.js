@@ -704,4 +704,112 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       expect(result[2].confirmations).toBe(2)
     })
   })
+
+  describe('verify', () => {
+    test('should call isValidSignature with hashed message', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isValidSignature: jest.fn().mockResolvedValue(true)
+        }
+      })
+      account._safe4337Pack = mockPack
+
+      const result = await account.verify('Hello', '0xsignature')
+
+      expect(result).toBe(true)
+      expect(mockPack.protocolKit.isValidSignature).toHaveBeenCalledWith(
+        '0xaa744ba2ca576ec62ca0045eca00ad3917fdf7ffa34fbbae50828a5a69c1580e',
+        '0xsignature'
+      )
+    })
+
+    test('should return false for invalid signature', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      const mockPack = createMockSafe4337Pack({
+        protocolKit: {
+          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
+          isValidSignature: jest.fn().mockResolvedValue(false)
+        }
+      })
+      account._safe4337Pack = mockPack
+
+      const result = await account.verify('Hello', '0xinvalid')
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('getTransactionReceipt', () => {
+    test('should return EvmTransactionReceipt for regular tx hash', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      const mockReceipt = { hash: '0xtxhash', status: 1 }
+      const mockEvmReadOnly = {
+        getTransactionReceipt: jest.fn().mockResolvedValue(mockReceipt)
+      }
+      account._getEvmReadOnlyAccount = jest.fn().mockResolvedValue(mockEvmReadOnly)
+
+      const result = await account.getTransactionReceipt('0xtxhash')
+
+      expect(result).toBe(mockReceipt)
+      expect(mockEvmReadOnly.getTransactionReceipt).toHaveBeenCalledWith('0xtxhash')
+    })
+
+    test('should return UserOperationReceipt for UserOp hash', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      const mockEvmReadOnly = {
+        getTransactionReceipt: jest.fn().mockResolvedValue(null)
+      }
+      account._getEvmReadOnlyAccount = jest.fn().mockResolvedValue(mockEvmReadOnly)
+
+      const mockUserOpReceipt = { userOpHash: '0xuserophash', success: true }
+      const mockPack = createMockSafe4337Pack({
+        getUserOperationReceipt: jest.fn().mockResolvedValue(mockUserOpReceipt)
+      })
+      account._safe4337Pack = mockPack
+
+      const result = await account.getTransactionReceipt('0xuserophash')
+
+      expect(result).toBe(mockUserOpReceipt)
+      expect(mockPack.getUserOperationReceipt).toHaveBeenCalledWith('0xuserophash')
+    })
+
+    test('should return null when hash is not found', async () => {
+      const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      const mockEvmReadOnly = {
+        getTransactionReceipt: jest.fn().mockResolvedValue(null)
+      }
+      account._getEvmReadOnlyAccount = jest.fn().mockResolvedValue(mockEvmReadOnly)
+
+      const mockPack = createMockSafe4337Pack({
+        getUserOperationReceipt: jest.fn().mockResolvedValue(null)
+      })
+      account._safe4337Pack = mockPack
+
+      const result = await account.getTransactionReceipt('0xunknown')
+
+      expect(result).toBeNull()
+    })
+  })
 })

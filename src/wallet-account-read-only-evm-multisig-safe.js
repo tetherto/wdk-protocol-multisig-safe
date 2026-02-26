@@ -14,7 +14,7 @@
 
 'use strict'
 
-import { keccak256, toUtf8Bytes } from 'ethers'
+import { keccak256, toUtf8Bytes, hashMessage } from 'ethers'
 
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
 
@@ -32,10 +32,12 @@ import SafeApiKit from '@safe-global/api-kit'
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
+/** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').UserOperationReceipt} UserOperationReceipt */
 
 /**
  * @typedef {Object} EvmMultisigSafeCommonConfig
@@ -336,6 +338,35 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   async getTokenBalance (tokenAddress) {
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
     return await evmReadOnlyAccount.getTokenBalance(tokenAddress)
+  }
+
+  /**
+   * Returns a transaction's receipt. Supports both regular transaction hashes
+   * and UserOperation hashes (from ERC-4337 bundler).
+   *
+   * @param {string} hash - The transaction hash or UserOperation hash
+   * @returns {Promise<EvmTransactionReceipt | UserOperationReceipt | null>} The receipt, or null if not yet included in a block
+   */
+  async getTransactionReceipt (hash) {
+    const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
+    const receipt = await evmReadOnlyAccount.getTransactionReceipt(hash)
+    if (receipt) return receipt
+
+    const safe4337Pack = await this._getSafe4337Pack()
+    return await safe4337Pack.getUserOperationReceipt(hash)
+  }
+
+  /**
+   * Verifies a message's signature using EIP-1271.
+   *
+   * @param {string} message - The original message
+   * @param {string} signature - The signature to verify
+   * @returns {Promise<boolean>} True if the signature is valid
+   */
+  async verify (message, signature) {
+    const safe4337Pack = await this._getSafe4337Pack()
+    const messageHash = hashMessage(message)
+    return await safe4337Pack.protocolKit.isValidSignature(messageHash, signature)
   }
 
   /**
@@ -657,9 +688,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
         saltNonce
       }
 
-      if (safeOptions.safeVersion) {
-        initOptions.options.safeVersion = safeOptions.safeVersion
-      }
+      initOptions.options.safeVersion = safeOptions.safeVersion || DEFAULT_SAFE_VERSION
 
       if (safeOptions.deploymentType) {
         initOptions.options.deploymentType = safeOptions.deploymentType

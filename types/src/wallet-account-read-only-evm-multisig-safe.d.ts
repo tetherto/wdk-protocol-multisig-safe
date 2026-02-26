@@ -4,9 +4,11 @@
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
+/** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').UserOperationReceipt} UserOperationReceipt */
 /**
  * @typedef {Object} EvmMultisigSafeCommonConfig
  * @property {string | Eip1193Provider} provider - RPC URL or EIP-1193 provider
@@ -164,6 +166,35 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     getVersion(): Promise<string>;
     /**
+     * Returns the Safe's native token balance.
+     *
+     * @returns {Promise<bigint>} Balance in wei
+     */
+    getBalance(): Promise<bigint>;
+    /**
+     * Returns the Safe's balance for a specific ERC-20 token.
+     *
+     * @param {string} tokenAddress - The token contract address
+     * @returns {Promise<bigint>} Token balance in base units
+     */
+    getTokenBalance(tokenAddress: string): Promise<bigint>;
+    /**
+     * Returns a transaction's receipt. Supports both regular transaction hashes
+     * and UserOperation hashes (from ERC-4337 bundler).
+     *
+     * @param {string} hash - The transaction hash or UserOperation hash
+     * @returns {Promise<EvmTransactionReceipt | UserOperationReceipt | null>} The receipt, or null if not yet included in a block
+     */
+    getTransactionReceipt(hash: string): Promise<EvmTransactionReceipt | UserOperationReceipt | null>;
+    /**
+     * Verifies a message's signature using EIP-1271.
+     *
+     * @param {string} message - The original message
+     * @param {string} signature - The signature to verify
+     * @returns {Promise<boolean>} True if the signature is valid
+     */
+    verify(message: string, signature: string): Promise<boolean>;
+    /**
      * Returns the Safe's paymaster token balance.
      *
      * @returns {Promise<bigint>} Paymaster token balance
@@ -298,9 +329,11 @@ export type MultisigInfo = import("@tetherto/wdk-wallet").MultisigInfo;
 export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
 export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
+export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingSafeOptions;
 export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;
+export type UserOperationReceipt = import("@wdk-safe-global/relay-kit").UserOperationReceipt;
 export type EvmMultisigSafeCommonConfig = {
     /**
      * - RPC URL or EIP-1193 provider

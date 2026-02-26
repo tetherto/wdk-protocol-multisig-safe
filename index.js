@@ -23,6 +23,7 @@
 /** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
+/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
 
@@ -34,6 +35,7 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
+/** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet-evm').ApproveOptions} ApproveOptions */
 
@@ -43,6 +45,7 @@
 
 /** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
 /** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('@wdk-safe-global/relay-kit').UserOperationReceipt} UserOperationReceipt */
 
 // ============================================
 // Re-export types from read-only module

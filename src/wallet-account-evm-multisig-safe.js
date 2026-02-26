@@ -124,23 +124,6 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   }
 
   /**
-   * Verifies a message's signature.
-   *
-   * @param {string} message - The original message.
-   * @param {string} signature - The signature to verify.
-   * @returns {Promise<boolean>} True if the signature is valid.
-   */
-  async verify (message, signature) {
-    const safe4337Pack = await this._getSafe4337Pack()
-    const protocolKit = safe4337Pack.protocolKit
-
-    const messageHash = hashMessage(message)
-    const isValid = await protocolKit.isValidSignature(messageHash, signature)
-
-    return isValid
-  }
-
-  /**
    * Signs a message with the multisig Safe.
    * Proposes a new message or approves an existing one.
    *
