@@ -245,7 +245,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           preparedSignature: null
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -260,7 +260,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should return true for valid signature', async () => {
       const mockPack = createMockSafe4337Pack()
       mockPack.protocolKit.isValidSignature = jest.fn().mockResolvedValue(true)
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.verify('Hello!', '0xvalidsignature')
 
@@ -271,7 +271,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should return false for invalid signature', async () => {
       const mockPack = createMockSafe4337Pack()
       mockPack.protocolKit.isValidSignature = jest.fn().mockResolvedValue(false)
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.verify('Hello!', '0xinvalidsignature')
 
@@ -290,7 +290,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           preparedSignature: null
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -330,7 +330,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
             preparedSignature: '0xcombinedsig'
           })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -360,7 +360,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       testAccount.dispose()
 
-      expect(testAccount._safe4337Pack).toBe(null)
+      expect(testAccount._safe4337Packs.size).toBe(0)
       expect(testAccount._apiKit).toBe(null)
     })
   })
@@ -382,7 +382,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should return propose result with proposalId', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -399,7 +399,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should call createTransaction and signSafeOperation', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -414,7 +414,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should call addSafeOperation on apiKit', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -438,7 +438,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      erc20Account._safe4337Pack = mockPack
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -467,7 +467,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      sponsoredAccount._safe4337Pack = mockPack
+      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -496,7 +496,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      erc20Account._safe4337Pack = mockPack
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -524,7 +524,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      sponsoredAccount._safe4337Pack = mockPack
+      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -550,7 +550,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           preparedSignature: '0xsignature'
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
@@ -563,7 +563,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should call confirmSafeOperation on apiKit', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
@@ -586,7 +586,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           userOperation: { nonce: '5' }
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -609,7 +609,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           userOperation: { nonce: '5' }
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -635,7 +635,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           userOperation: { nonce: '42' }
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -678,7 +678,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should return execute result with hash', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
@@ -691,7 +691,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     test('should call executeTransaction on Safe4337Pack', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
@@ -713,7 +713,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           confirmations: [{ owner: ACCOUNT.address }]
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
@@ -739,7 +739,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           createSafeDeploymentTransaction
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._signerAccount = {
         ...account._signerAccount,
         sendTransaction,
@@ -769,7 +769,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           getThreshold: jest.fn().mockResolvedValue(1)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       await expect(account.deploy())
         .rejects.toThrow('Safe is already deployed')
@@ -787,7 +787,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         }
       })
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -819,7 +819,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           preparedSignature: '0xsignature'
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -846,7 +846,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
           preparedSignature: '0xsignature'
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -878,7 +878,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         }
       })
       const mockApiKit = createMockApiKit()
-      sponsoredAccount._safe4337Pack = mockPack
+      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -912,7 +912,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         }
       })
       const mockApiKit = createMockApiKit()
-      erc20Account._safe4337Pack = mockPack
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -939,7 +939,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         }
       })
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -978,7 +978,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         }
       })
       const mockApiKit = createMockApiKit()
-      sponsoredAccount._safe4337Pack = mockPack
+      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       sponsoredAccount._apiKit = mockApiKit
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -1016,7 +1016,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
         }
       })
       const mockApiKit = createMockApiKit()
-      erc20Account._safe4337Pack = mockPack
+      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       erc20Account._apiKit = mockApiKit
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
@@ -1040,7 +1040,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     beforeEach(() => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)

@@ -119,12 +119,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     this._safeAddress = config.safeOptions?.safeAddress || null
 
     /**
-     * The Safe's implementation of the ERC-4337 standard.
+     * Map of Safe4337Pack instances cached by configuration.
      *
      * @protected
-     * @type {Safe4337Pack | undefined}
+     * @type {Map<string, Safe4337Pack>}
      */
-    this._safe4337Pack = undefined
+    this._safe4337Packs = new Map()
 
     /**
      * The Safe API Kit instance.
@@ -637,21 +637,28 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
   }
 
   /**
-   * Returns the Safe4337Pack instance, creating or re-creating as needed.
-   * Uses a cached instance when the config matches, or creates a fresh one for paymaster overrides.
+   * Returns the Safe4337Pack instance, cached by paymaster configuration.
    *
    * @protected
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
    */
   async _getSafe4337Pack (config) {
-    if (config && Object.keys(config).length === 0) config = undefined
+    const mergedConfig = config ? { ...this._config, ...config } : this._config
+    const { isSponsored, useNativeCoins, paymasterUrl, paymasterAddress } = mergedConfig
 
-    if (!config && this._safe4337Pack) {
-      return this._safe4337Pack
+    let cacheKey
+    if (useNativeCoins) {
+      cacheKey = 'native'
+    } else if (isSponsored) {
+      cacheKey = `sponsored:${paymasterUrl}`
+    } else {
+      cacheKey = `paymaster:${paymasterUrl}:${paymasterAddress}`
     }
 
-    const mergedConfig = { ...this._config, ...config }
+    if (this._safe4337Packs.has(cacheKey)) {
+      return this._safe4337Packs.get(cacheKey)
+    }
 
     const safeOptions = this._config.safeOptions
 
@@ -699,10 +706,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     }
 
     const safe4337Pack = await Safe4337Pack.init(initOptions)
-
-    if (!config) {
-      this._safe4337Pack = safe4337Pack
-    }
+    this._safe4337Packs.set(cacheKey, safe4337Pack)
 
     return safe4337Pack
   }

@@ -86,12 +86,12 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     protected _safeAddress: string | null;
     /**
-     * The Safe's implementation of the ERC-4337 standard.
+     * Map of Safe4337Pack instances cached by configuration.
      *
      * @protected
-     * @type {Safe4337Pack | undefined}
+     * @type {Map<string, Safe4337Pack>}
      */
-    protected _safe4337Pack: Safe4337Pack | undefined;
+    protected _safe4337Packs: Map<string, Safe4337Pack>;
     /**
      * The Safe API Kit instance.
      *
@@ -113,13 +113,6 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      * @type {number | null}
      */
     protected _threshold: number | null;
-    /**
-     * The chain id.
-     *
-     * @protected
-     * @type {bigint | undefined}
-     */
-    protected _chainId: bigint | undefined;
     /** @private */
     private _signerAddress;
     /**
@@ -287,8 +280,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
      */
     private _buildPaymasterOptions;
     /**
-     * Returns the Safe4337Pack instance, creating or re-creating as needed.
-     * Uses a cached instance when the config matches, or creates a fresh one for paymaster overrides.
+     * Returns the Safe4337Pack instance, cached by paymaster configuration.
      *
      * @protected
      * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.

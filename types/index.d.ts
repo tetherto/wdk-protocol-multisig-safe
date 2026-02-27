@@ -25,4 +25,4 @@ export type EvmMultisigSafeSponsoredConfig = import("./src/wallet-account-read-o
 export type EvmMultisigSafeNativeCoinsConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeNativeCoinsConfig;
 export type EvmMultisigSafeConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
 export type EvmMultisigSafeReadOnlyConfig = import("./src/wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeReadOnlyConfig;
-export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION } from "./src/wallet-account-read-only-evm-multisig-safe.js";
+export { default as WalletAccountReadOnlyEvmMultisigSafe, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from "./src/wallet-account-read-only-evm-multisig-safe.js";

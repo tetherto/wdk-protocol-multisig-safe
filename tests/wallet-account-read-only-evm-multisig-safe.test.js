@@ -307,7 +307,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isSafeDeployed: jest.fn().mockResolvedValue(true)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const isDeployed = await account.isDeployed()
 
@@ -329,7 +329,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isSafeDeployed: jest.fn().mockResolvedValue(false)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const isDeployed = await account.isDeployed()
 
@@ -354,7 +354,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           getOwners: jest.fn().mockResolvedValue(mockOwners)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const owners = await account.getOwners()
 
@@ -378,7 +378,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isSafeDeployed: jest.fn().mockResolvedValue(false)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const owners = await account.getOwners()
 
@@ -402,7 +402,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           getThreshold: jest.fn().mockResolvedValue(2)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const threshold = await account.getThreshold()
 
@@ -425,7 +425,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isSafeDeployed: jest.fn().mockResolvedValue(false)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const threshold = await account.getThreshold()
 
@@ -448,7 +448,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           getNonce: jest.fn().mockResolvedValue(5n)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const nonce = await account.getNonce()
 
@@ -523,7 +523,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           })
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const mockEvmReadOnly = {
         quoteSendTransaction: jest.fn().mockResolvedValue({ fee: 210000n })
@@ -556,7 +556,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isSafeDeployed: jest.fn().mockResolvedValue(true)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       await expect(account.quoteDeploy())
         .rejects.toThrow('Safe is already deployed')
@@ -578,7 +578,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           preparedSignature: '0xpreparedsig'
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
 
       const result = await account.getMessages([MOCK_MESSAGE_HASH])
@@ -600,7 +600,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       const mockApiKit = createMockApiKit({
         getMessage: jest.fn().mockRejectedValue(new Error('not found'))
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
 
       const result = await account.getMessages([MOCK_MESSAGE_HASH])
@@ -625,7 +625,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
             preparedSignature: null
           })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
 
       const result = await account.getMessages(['hash1', 'hash2'])
@@ -648,7 +648,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           confirmations: [{ owner: ACCOUNT.address }]
         })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
@@ -668,7 +668,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       const mockApiKit = createMockApiKit({
         getSafeOperation: jest.fn().mockRejectedValue(new Error('not found'))
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
@@ -693,7 +693,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
             confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }]
           })
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._apiKit = mockApiKit
 
       const result = await account.getProposals(['hash1', 'hash2', 'hash3'])
@@ -718,7 +718,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isValidSignature: jest.fn().mockResolvedValue(true)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.verify('Hello', '0xsignature')
 
@@ -741,7 +741,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
           isValidSignature: jest.fn().mockResolvedValue(false)
         }
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.verify('Hello', '0xinvalid')
 
@@ -783,7 +783,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       const mockPack = createMockSafe4337Pack({
         getUserOperationReceipt: jest.fn().mockResolvedValue(mockUserOpReceipt)
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.getTransactionReceipt('0xuserophash')
 
@@ -805,7 +805,7 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       const mockPack = createMockSafe4337Pack({
         getUserOperationReceipt: jest.fn().mockResolvedValue(null)
       })
-      account._safe4337Pack = mockPack
+      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.getTransactionReceipt('0xunknown')
 

@@ -650,7 +650,7 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
       this._signerAccount.dispose()
       this._signerAccount = null
     }
-    this._safe4337Pack = null
+    this._safe4337Packs.clear()
     this._apiKit = null
   }
 }
