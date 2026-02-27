@@ -631,6 +631,9 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       }
     } else if (config.paymasterTokenAddress) {
       options.paymasterTokenAddress = config.paymasterTokenAddress
+      if (config.amountToApprove !== undefined) {
+        options.amountToApprove = BigInt(config.amountToApprove.toString())
+      }
     }
 
     return options
