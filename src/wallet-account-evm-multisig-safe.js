@@ -357,9 +357,11 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     const apiKit = await this._getApiKit()
     await apiKit.addSafeOperation(signedSafeOperation)
 
+    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
+
     return {
       proposalId,
-      confirmations: 1,
+      confirmations: safeOperationResponse.confirmations?.length || 0,
       threshold
     }
   }

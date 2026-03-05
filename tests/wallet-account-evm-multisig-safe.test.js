@@ -148,14 +148,14 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0xUSDC',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
       })
 
-      expect(erc20Account._config.paymasterTokenAddress).toBe('0xUSDC')
+      expect(erc20Account._config.paymasterTokenAddress).toBe('0x1234567890abcdef1234567890abcdef12345678')
       expect(erc20Account._config.isSponsored).toBeUndefined()
       erc20Account.dispose()
     })
@@ -429,7 +429,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0xUSDC',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
@@ -487,7 +487,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0xUSDC',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
@@ -896,7 +896,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0xUSDC',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
@@ -1000,7 +1000,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
       const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0xUSDC',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1

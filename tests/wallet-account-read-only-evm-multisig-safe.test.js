@@ -237,14 +237,14 @@ describe('WalletAccountReadOnlyEvmMultisigSafe', () => {
       const account = new WalletAccountReadOnlyEvmMultisigSafe(null, {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterAddress: '0xPaymasterAddress',
-        paymasterTokenAddress: '0xUSDC',
+        paymasterAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
         }
       })
 
-      expect(account._config.paymasterAddress).toBe('0xPaymasterAddress')
+      expect(account._config.paymasterAddress).toBe('0xabcdefabcdefabcdefabcdefabcdefabcdefabcd')
     })
 
     test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {

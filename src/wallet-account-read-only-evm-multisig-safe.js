@@ -648,7 +648,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
    */
   async _getSafe4337Pack (config) {
     const mergedConfig = config ? { ...this._config, ...config } : this._config
-    const { isSponsored, useNativeCoins, paymasterUrl, paymasterAddress } = mergedConfig
+    const { isSponsored, useNativeCoins, paymasterUrl, paymasterAddress, paymasterTokenAddress } = mergedConfig
 
     let cacheKey
     if (useNativeCoins) {
@@ -656,7 +656,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     } else if (isSponsored) {
       cacheKey = `sponsored:${paymasterUrl}`
     } else {
-      cacheKey = `paymaster:${paymasterUrl}:${paymasterAddress}`
+      cacheKey = `paymaster:${paymasterUrl}:${paymasterAddress}:${paymasterTokenAddress}`
     }
 
     if (this._safe4337Packs.has(cacheKey)) {
