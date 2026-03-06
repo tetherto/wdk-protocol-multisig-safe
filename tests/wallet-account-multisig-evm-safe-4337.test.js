@@ -19,8 +19,8 @@ import * as bip39 from 'bip39'
 import { afterEach, beforeEach, describe, expect, test, jest } from '@jest/globals'
 
 import {
-  WalletAccountEvmMultisigSafe,
-  WalletAccountReadOnlyEvmMultisigSafe
+  WalletAccountMultisigEvmSafe4337,
+  WalletAccountReadOnlyMultisigEvmSafe4337
 } from '../index.js'
 
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
@@ -118,11 +118,11 @@ const createMockApiKit = (overrides = {}) => ({
   ...overrides
 })
 
-describe('WalletAccountEvmMultisigSafe', () => {
+describe('WalletAccountMultisigEvmSafe4337', () => {
   let account
 
   beforeEach(() => {
-    account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+    account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
       ...MOCK_CONFIG,
       safeOptions: {
         owners: [ACCOUNT.address],
@@ -145,7 +145,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should successfully initialize with ERC-20 paymaster options', () => {
-      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -161,7 +161,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {
-      const sponsoredAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -178,7 +178,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should successfully initialize with ExistingSafeOptions', () => {
-      const existingAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const existingAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -190,7 +190,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should successfully initialize with PredictedSafeOptions including saltNonce', () => {
-      const predictedAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const predictedAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -350,7 +350,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
 
   describe('dispose', () => {
     test('should clear sensitive data', () => {
-      const testAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const testAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -366,12 +366,12 @@ describe('WalletAccountEvmMultisigSafe', () => {
   })
 
   describe('toReadOnlyAccount', () => {
-    test('should return a WalletAccountReadOnlyEvmMultisigSafe instance', async () => {
+    test('should return a WalletAccountReadOnlyMultisigEvmSafe4337 instance', async () => {
       account._safeAddress = MOCK_SAFE_ADDRESS
 
       const readOnlyAccount = await account.toReadOnlyAccount()
 
-      expect(readOnlyAccount).toBeInstanceOf(WalletAccountReadOnlyEvmMultisigSafe)
+      expect(readOnlyAccount).toBeInstanceOf(WalletAccountReadOnlyMultisigEvmSafe4337)
       expect(readOnlyAccount._config.provider).toBe(MOCK_CONFIG.provider)
       expect(readOnlyAccount._config.chainId).toBe(MOCK_CONFIG.chainId)
       expect(readOnlyAccount._config.safeOptions.safeAddress).toBe(MOCK_SAFE_ADDRESS)
@@ -426,7 +426,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should include amountToApprove in ERC-20 paymaster mode', async () => {
-      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -455,7 +455,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should NOT include amountToApprove in sponsored mode', async () => {
-      const sponsoredAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -484,7 +484,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should override to sponsored mode via options', async () => {
-      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -512,7 +512,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should override to ERC-20 mode via options from sponsored config', async () => {
-      const sponsoredAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -859,7 +859,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should NOT pass amountToApprove in sponsored mode', async () => {
-      const sponsoredAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -893,7 +893,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should override to sponsored mode via options', async () => {
-      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -959,7 +959,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should NOT pass amountToApprove in sponsored mode', async () => {
-      const sponsoredAccount = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -997,7 +997,7 @@ describe('WalletAccountEvmMultisigSafe', () => {
     })
 
     test('should override to sponsored mode via options', async () => {
-      const erc20Account = new WalletAccountEvmMultisigSafe(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',

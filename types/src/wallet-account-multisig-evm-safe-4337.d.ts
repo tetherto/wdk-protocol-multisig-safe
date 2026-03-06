@@ -10,17 +10,17 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
 /**
  * EVM multisig Safe wallet account with signing capabilities.
  * Provides full transaction and message signing operations.
  *
  * @implements {IWalletAccountMultisig}
  */
-export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe implements IWalletAccountMultisig {
+export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadOnlyMultisigEvmSafe4337 implements IWalletAccountMultisig {
     /**
      * Creates a new EVM multisig Safe wallet account.
      *
@@ -205,9 +205,9 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
     /**
      * Returns a read-only copy of this account.
      *
-     * @returns {Promise<WalletAccountReadOnlyEvmMultisigSafe>} The read-only account
+     * @returns {Promise<WalletAccountReadOnlyMultisigEvmSafe4337>} The read-only account
      */
-    toReadOnlyAccount(): Promise<WalletAccountReadOnlyEvmMultisigSafe>;
+    toReadOnlyAccount(): Promise<WalletAccountReadOnlyMultisigEvmSafe4337>;
     /**
      * Disposes the wallet account, clearing sensitive data from memory.
      */
@@ -225,8 +225,8 @@ export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
-export type EvmMultisigSafeConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeConfig;
-export type EvmMultisigSafePaymasterTokenConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafePaymasterTokenConfig;
-export type EvmMultisigSafeSponsoredConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeSponsoredConfig;
-export type EvmMultisigSafeNativeCoinsConfig = import("./wallet-account-read-only-evm-multisig-safe.js").EvmMultisigSafeNativeCoinsConfig;
-import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js';
+export type EvmMultisigSafeConfig = import("./wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeConfig;
+export type EvmMultisigSafePaymasterTokenConfig = import("./wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafePaymasterTokenConfig;
+export type EvmMultisigSafeSponsoredConfig = import("./wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeSponsoredConfig;
+export type EvmMultisigSafeNativeCoinsConfig = import("./wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeNativeCoinsConfig;
+import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js';

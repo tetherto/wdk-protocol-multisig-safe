@@ -91,7 +91,7 @@ export const DEFAULT_SAFE_VERSION = '1.4.1'
  *
  * @implements {IWalletAccountReadOnlyMultisig}
  */
-export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly {
+export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAccountReadOnly {
   /**
    * Creates a new read-only EVM multisig Safe wallet account.
    *
@@ -191,7 +191,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
     const safeOptions = this._config.safeOptions
     const { owners, threshold, saltNonce } = safeOptions
     const finalSaltNonce = saltNonce ||
-      WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(owners, threshold)
+      WalletAccountReadOnlyMultisigEvmSafe4337.generateDeterministicSaltNonce(owners, threshold)
 
     this._safeAddress = Safe4337Pack.predictSafeAddress({
       owners,
@@ -679,7 +679,7 @@ export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountR
       initOptions.options = { safeAddress: safeOptions.safeAddress }
     } else if (safeOptions.owners) {
       const saltNonce = safeOptions.saltNonce ||
-        WalletAccountReadOnlyEvmMultisigSafe.generateDeterministicSaltNonce(
+        WalletAccountReadOnlyMultisigEvmSafe4337.generateDeterministicSaltNonce(
           safeOptions.owners,
           safeOptions.threshold
         )

@@ -18,7 +18,7 @@ import { hashMessage } from 'ethers'
 
 import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
-import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm-multisig-safe.js'
+import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
@@ -36,10 +36,10 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
 
 /**
  * EVM multisig Safe wallet account with signing capabilities.
@@ -47,7 +47,7 @@ import WalletAccountReadOnlyEvmMultisigSafe from './wallet-account-read-only-evm
  *
  * @implements {IWalletAccountMultisig}
  */
-export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyEvmMultisigSafe {
+export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadOnlyMultisigEvmSafe4337 {
   /**
    * Creates a new EVM multisig Safe wallet account.
    *
@@ -633,12 +633,12 @@ export default class WalletAccountEvmMultisigSafe extends WalletAccountReadOnlyE
   /**
    * Returns a read-only copy of this account.
    *
-   * @returns {Promise<WalletAccountReadOnlyEvmMultisigSafe>} The read-only account
+   * @returns {Promise<WalletAccountReadOnlyMultisigEvmSafe4337>} The read-only account
    */
   async toReadOnlyAccount () {
     const address = await this.getAddress()
 
-    return new WalletAccountReadOnlyEvmMultisigSafe(null, {
+    return new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
       ...this._config,
       safeOptions: { safeAddress: address }
     })

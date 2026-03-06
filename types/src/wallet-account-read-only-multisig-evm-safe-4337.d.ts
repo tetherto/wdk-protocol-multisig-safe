@@ -54,7 +54,7 @@ export const DEFAULT_SAFE_VERSION: "1.4.1";
  *
  * @implements {IWalletAccountReadOnlyMultisig}
  */
-export default class WalletAccountReadOnlyEvmMultisigSafe extends WalletAccountReadOnly implements IWalletAccountReadOnlyMultisig {
+export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAccountReadOnly implements IWalletAccountReadOnlyMultisig {
     /**
      * Generates a deterministic salt nonce from owners and threshold.
      *

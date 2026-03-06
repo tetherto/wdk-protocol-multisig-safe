@@ -20,19 +20,19 @@ import WalletManagerEvm from '@tetherto/wdk-wallet-evm'
 
 import { BrowserProvider, JsonRpcProvider } from 'ethers'
 
-import WalletAccountEvmMultisigSafe from './wallet-account-evm-multisig-safe.js'
+import WalletAccountMultisigEvmSafe4337 from './wallet-account-multisig-evm-safe-4337.js'
 
 /** @typedef {import('ethers').Provider} Provider */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').FeeRates} FeeRates */
 
-/** @typedef {import('./wallet-account-read-only-evm-multisig-safe.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
+/** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 
 /**
  * Wallet manager for EVM multisig Safe wallets with ERC-4337 support.
  *
  */
-export default class WalletManagerEvmMultisigSafe extends WalletManager {
+export default class WalletManagerMultisigEvmSafe4337 extends WalletManager {
   /**
    * Creates a new wallet manager for EVM multisig Safe wallets.
    *
@@ -72,7 +72,7 @@ export default class WalletManagerEvmMultisigSafe extends WalletManager {
    * // Returns the account with derivation path m/44'/60'/0'/0/1
    * const account = await wallet.getAccount(1);
    * @param {number} [index=0] - The index of the account to get
-   * @returns {Promise<WalletAccountEvmMultisigSafe>} The account
+   * @returns {Promise<WalletAccountMultisigEvmSafe4337>} The account
    */
   async getAccount (index = 0) {
     return await this.getAccountByPath(`0'/0/${index}`)
@@ -85,11 +85,11 @@ export default class WalletManagerEvmMultisigSafe extends WalletManager {
    * // Returns the account with derivation path m/44'/60'/0'/0/1
    * const account = await wallet.getAccountByPath("0'/0/1");
    * @param {string} path - The derivation path (e.g. "0'/0/0")
-   * @returns {Promise<WalletAccountEvmMultisigSafe>} The account
+   * @returns {Promise<WalletAccountMultisigEvmSafe4337>} The account
    */
   async getAccountByPath (path) {
     if (!this._accounts[path]) {
-      const account = new WalletAccountEvmMultisigSafe(this.seed, path, this._config)
+      const account = new WalletAccountMultisigEvmSafe4337(this.seed, path, this._config)
 
       this._accounts[path] = account
     }
