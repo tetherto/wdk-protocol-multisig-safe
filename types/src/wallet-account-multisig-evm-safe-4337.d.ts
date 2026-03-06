@@ -128,38 +128,28 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      */
     private _submitTransaction;
     /**
-     * Proposes a new transaction for multisig approval.
-     * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
-     *
-     * Note: `reject()` passes `customNonce` via config to reuse the original proposal's nonce.
-     *
-     * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
-     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-     * @returns {Promise<MultisigResult>} The proposal result
-     */
-    propose(transaction: EvmTransaction | EvmTransaction[], config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Approves (signs) an existing proposal.
      *
-     * @param {string} proposalId - The Safe operation hash to approve
+     * @param {string} proposalId - The Safe operation hash to approveTx
      * @returns {Promise<MultisigResult>} Approval result
      */
-    approve(proposalId: string): Promise<MultisigResult>;
+    approveTx(proposalId: string): Promise<MultisigResult>;
     /**
      * Rejects a proposal by creating a rejection transaction.
      * A rejection is a zero-value transaction to the Safe itself with the same nonce.
      *
-     * @param {string} proposalId - The Safe operation hash to reject
+     * @param {string} proposalId - The Safe operation hash to rejectTx
      * @returns {Promise<MultisigResult>} The rejection proposal result
      */
-    reject(proposalId: string): Promise<MultisigResult>;
+    rejectTx(proposalId: string): Promise<MultisigResult>;
     /**
      * Executes a fully signed Safe operation via the bundler.
      *
-     * @param {string} proposalId - The Safe operation hash to execute
+     * @param {string} proposalId - The Safe operation hash to executeTx
      * @returns {Promise<MultisigExecuteResult>} The execution result
      */
-    execute(proposalId: string): Promise<MultisigExecuteResult>;
+    executeTx(proposalId: string): Promise<MultisigExecuteResult>;
     /**
      * Proposes adding a new owner to the Safe.
      *

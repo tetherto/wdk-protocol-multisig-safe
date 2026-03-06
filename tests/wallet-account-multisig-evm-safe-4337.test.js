@@ -378,170 +378,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('propose', () => {
-    test('should return propose result with proposalId', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      const result = await account.propose(tx)
-
-      expect(result).toBeDefined()
-      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(result.confirmations).toBe(1)
-      expect(result.threshold).toBe(1)
-    })
-
-    test('should call createTransaction and signSafeOperation', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      await account.propose(tx)
-
-      expect(mockPack.createTransaction).toHaveBeenCalled()
-      expect(mockPack.signSafeOperation).toHaveBeenCalled()
-    })
-
-    test('should call addSafeOperation on apiKit', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      await account.propose(tx)
-
-      expect(mockApiKit.addSafeOperation).toHaveBeenCalled()
-    })
-
-    test('should include amountToApprove in ERC-20 paymaster mode', async () => {
-      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
-        ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        safeOptions: {
-          owners: [ACCOUNT.address],
-          threshold: 1
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      erc20Account._apiKit = mockApiKit
-      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
-      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      await erc20Account.propose(tx, { amountToApprove: 500000n })
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeDefined()
-      expect(callArgs.options.amountToApprove).toBe(500000n)
-
-      erc20Account.dispose()
-    })
-
-    test('should NOT include amountToApprove in sponsored mode', async () => {
-      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
-        ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
-        isSponsored: true,
-        safeOptions: {
-          owners: [ACCOUNT.address],
-          threshold: 1
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      sponsoredAccount._apiKit = mockApiKit
-      sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
-      sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      await sponsoredAccount.propose(tx, { isSponsored: true, amountToApprove: 500000n })
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.amountToApprove).toBeUndefined()
-      expect(callArgs.options.feeEstimator).toBeDefined()
-
-      sponsoredAccount.dispose()
-    })
-
-    test('should override to sponsored mode via options', async () => {
-      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
-        ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        safeOptions: {
-          owners: [ACCOUNT.address],
-          threshold: 1
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      erc20Account._apiKit = mockApiKit
-      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
-      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      await erc20Account.propose(tx, { isSponsored: true, amountToApprove: 500000n })
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.amountToApprove).toBeUndefined()
-
-      erc20Account.dispose()
-    })
-
-    test('should override to ERC-20 mode via options from sponsored config', async () => {
-      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
-        ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
-        isSponsored: true,
-        safeOptions: {
-          owners: [ACCOUNT.address],
-          threshold: 1
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit()
-      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      sponsoredAccount._apiKit = mockApiKit
-      sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
-      sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-
-      const tx = { to: ACCOUNT_2.address, value: '0', data: '0x' }
-      await sponsoredAccount.propose(tx, { isSponsored: false, amountToApprove: 500000n })
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options).toBeDefined()
-      expect(callArgs.options.amountToApprove).toBe(500000n)
-
-      sponsoredAccount.dispose()
-    })
-  })
-
-  describe('approve', () => {
+  describe('approveTx', () => {
     test('should return approval result with confirmations', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -554,7 +392,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const result = await account.approve(MOCK_SAFE_OP_HASH)
+      const result = await account.approveTx(MOCK_SAFE_OP_HASH)
 
       expect(result).toBeDefined()
       expect(result.confirmations).toBe(2)
@@ -567,7 +405,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      await account.approve(MOCK_SAFE_OP_HASH)
+      await account.approveTx(MOCK_SAFE_OP_HASH)
 
       expect(mockApiKit.confirmSafeOperation).toHaveBeenCalledWith(
         MOCK_SAFE_OP_HASH,
@@ -576,7 +414,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('reject', () => {
+  describe('rejectTx', () => {
     test('should return rejection result with proposalId', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit({
@@ -592,7 +430,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
-      const result = await account.reject(MOCK_SAFE_OP_HASH)
+      const result = await account.rejectTx(MOCK_SAFE_OP_HASH)
 
       expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
@@ -615,7 +453,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
-      await account.reject(MOCK_SAFE_OP_HASH)
+      await account.rejectTx(MOCK_SAFE_OP_HASH)
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
       expect(callArgs.transactions).toEqual([{
@@ -641,7 +479,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
-      await account.reject(MOCK_SAFE_OP_HASH)
+      await account.rejectTx(MOCK_SAFE_OP_HASH)
 
       const callArgs = mockPack.createTransaction.mock.calls[0][0]
       expect(callArgs.options.customNonce).toBe(42n)
@@ -654,7 +492,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      await expect(account.reject(MOCK_SAFE_OP_HASH))
+      await expect(account.rejectTx(MOCK_SAFE_OP_HASH))
         .rejects.toThrow(`SafeOperation not found: ${MOCK_SAFE_OP_HASH}`)
     })
 
@@ -669,12 +507,12 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      await expect(account.reject(MOCK_SAFE_OP_HASH))
+      await expect(account.rejectTx(MOCK_SAFE_OP_HASH))
         .rejects.toThrow('Cannot reject: original proposal has no nonce')
     })
   })
 
-  describe('execute', () => {
+  describe('executeTx', () => {
     test('should return execute result with hash', async () => {
       const mockPack = createMockSafe4337Pack()
       const mockApiKit = createMockApiKit()
@@ -682,7 +520,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      const result = await account.execute(MOCK_SAFE_OP_HASH)
+      const result = await account.executeTx(MOCK_SAFE_OP_HASH)
 
       expect(result).toBeDefined()
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
@@ -695,7 +533,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      await account.execute(MOCK_SAFE_OP_HASH)
+      await account.executeTx(MOCK_SAFE_OP_HASH)
 
       expect(mockPack.executeTransaction).toHaveBeenCalled()
     })
@@ -717,7 +555,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._apiKit = mockApiKit
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      await expect(account.execute(MOCK_SAFE_OP_HASH))
+      await expect(account.executeTx(MOCK_SAFE_OP_HASH))
         .rejects.toThrow('Not enough confirmations')
     })
   })

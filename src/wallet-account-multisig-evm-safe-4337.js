@@ -310,10 +310,10 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MultisigTransactionResult>} The transaction result
    */
   async _submitTransaction (tx, config, fee, autoExecute) {
-    const proposeResult = await this.propose(tx, config)
+    const proposeResult = await this._propose(tx, config)
 
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
-      const execResult = await this.execute(proposeResult.proposalId)
+      const execResult = await this.executeTx(proposeResult.proposalId)
       return {
         proposalId: proposeResult.proposalId,
         hash: execResult.hash,
@@ -338,13 +338,13 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Proposes a new transaction for multisig approval.
    * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
    *
-   * Note: `reject()` passes `customNonce` via config to reuse the original proposal's nonce.
+   * Note: `rejectTx()` passes `customNonce` via config to reuse the original proposal's nonce.
    *
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
    */
-  async propose (transaction, config) {
+  async _propose (transaction, config) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack(config)
@@ -369,10 +369,10 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   /**
    * Approves (signs) an existing proposal.
    *
-   * @param {string} proposalId - The Safe operation hash to approve
+   * @param {string} proposalId - The Safe operation hash to approveTx
    * @returns {Promise<MultisigResult>} Approval result
    */
-  async approve (proposalId) {
+  async approveTx (proposalId) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
@@ -414,10 +414,10 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Rejects a proposal by creating a rejection transaction.
    * A rejection is a zero-value transaction to the Safe itself with the same nonce.
    *
-   * @param {string} proposalId - The Safe operation hash to reject
+   * @param {string} proposalId - The Safe operation hash to rejectTx
    * @returns {Promise<MultisigResult>} The rejection proposal result
    */
-  async reject (proposalId) {
+  async rejectTx (proposalId) {
     const apiKit = await this._getApiKit()
     const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
 
@@ -437,16 +437,16 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       data: '0x'
     }
 
-    return await this.propose(rejectionTx, { customNonce: BigInt(nonce) })
+    return await this._propose(rejectionTx, { customNonce: BigInt(nonce) })
   }
 
   /**
    * Executes a fully signed Safe operation via the bundler.
    *
-   * @param {string} proposalId - The Safe operation hash to execute
+   * @param {string} proposalId - The Safe operation hash to executeTx
    * @returns {Promise<MultisigExecuteResult>} The execution result
    */
-  async execute (proposalId) {
+  async executeTx (proposalId) {
     const safe4337Pack = await this._getSafe4337Pack()
     const apiKit = await this._getApiKit()
 
@@ -495,7 +495,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       threshold
     })
 
-    return await this.propose({
+    return await this._propose({
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
@@ -520,7 +520,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       threshold: newThreshold || currentThreshold
     })
 
-    return await this.propose({
+    return await this._propose({
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
@@ -543,7 +543,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       newOwnerAddress
     })
 
-    return await this.propose({
+    return await this._propose({
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
@@ -562,7 +562,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const tx = await safe4337Pack.protocolKit.createChangeThresholdTx(newThreshold)
 
-    return await this.propose({
+    return await this._propose({
       to: tx.data.to,
       value: tx.data.value,
       data: tx.data.data
@@ -627,7 +627,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       throw new Error('No changes to make - owners and threshold are the same')
     }
 
-    return await this.propose(transactions, config)
+    return await this._propose(transactions, config)
   }
 
   /**
