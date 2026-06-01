@@ -22,9 +22,11 @@ import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
 import { Safe4337Pack, GenericFeeEstimator } from '@wdk-safe-global/relay-kit'
 
-import SafeApiKit from '@safe-global/api-kit'
+import SafeTxServiceTransport from './transports/safe-tx-service.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
+
+/** @typedef {import('./transports/i-multisig-transport.js').default} IMultisigTransport */
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
@@ -49,6 +51,7 @@ import SafeApiKit from '@safe-global/api-kit'
  * @property {string} [paymasterUrl] - Paymaster service URL
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
+ * @property {IMultisigTransport} [transport] - Transport used to share multisig calldata between signers. Defaults to a SafeTxServiceTransport built from `txServiceUrl`/`safeApiKey`.
  * @property {ExistingSafeOptions | PredictedSafeOptions} safeOptions - Safe options (existing or predicted)
  */
 
@@ -127,12 +130,16 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     this._safe4337Packs = new Map()
 
     /**
-     * The Safe API Kit instance.
+     * The transport used to share multisig calldata between signers.
      *
      * @protected
-     * @type {SafeApiKit | null}
+     * @type {IMultisigTransport}
      */
-    this._apiKit = null
+    this._transport = config.transport ?? new SafeTxServiceTransport({
+      chainId: config.chainId,
+      txServiceUrl: config.txServiceUrl,
+      apiKey: config.safeApiKey
+    })
 
     /**
      * Cached owners list.
@@ -384,12 +391,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<(MultisigProposal | null)[]>} The proposal details, or null for proposals not found
    */
   async getProposals (proposalIds) {
-    const apiKit = await this._getApiKit()
     const threshold = await this.getThreshold()
 
     return Promise.all(proposalIds.map(async (proposalId) => {
       try {
-        const safeOperation = await apiKit.getSafeOperation(proposalId)
+        const safeOperation = await this._transport.getProposal(proposalId)
 
         if (!safeOperation) {
           return null
@@ -432,12 +438,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<(MessageInfo | null)[]>} The message details, or null for messages not found
    */
   async getMessages (messageHashes) {
-    const apiKit = await this._getApiKit()
     const threshold = await this.getThreshold()
 
     return Promise.all(messageHashes.map(async (messageHash) => {
       try {
-        const safeMessage = await apiKit.getMessage(messageHash)
+        const safeMessage = await this._transport.getMessage(messageHash)
 
         return {
           messageHash: safeMessage.messageHash,
@@ -712,29 +717,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     this._safe4337Packs.set(cacheKey, safe4337Pack)
 
     return safe4337Pack
-  }
-
-  /**
-   * Returns the Safe API Kit instance.
-   *
-   * @protected
-   * @returns {Promise<SafeApiKit>} The Safe API Kit instance
-   */
-  async _getApiKit () {
-    if (!this._apiKit) {
-      const apiKitConfig = {
-        chainId: this._config.chainId
-      }
-
-      if (this._config.txServiceUrl) {
-        apiKitConfig.txServiceUrl = this._config.txServiceUrl
-      } else if (this._config.safeApiKey) {
-        apiKitConfig.apiKey = this._config.safeApiKey
-      }
-      this._apiKit = new SafeApiKit(apiKitConfig)
-    }
-
-    return this._apiKit
   }
 
   /**

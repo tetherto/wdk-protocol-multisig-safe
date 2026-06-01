@@ -48,16 +48,19 @@ const createMockSafe4337Pack = (overrides = {}) => ({
   ...overrides
 })
 
-const createMockApiKit = (overrides = {}) => ({
+const createMockTransport = (overrides = {}) => ({
+  submitProposal: jest.fn().mockResolvedValue(undefined),
   getProposal: jest.fn().mockResolvedValue({
     confirmations: [{ owner: ACCOUNT.address }],
     preparedSignature: '0xsignature'
   }),
-  getPendingSafeOperations: jest.fn().mockResolvedValue({ results: [] }),
+  confirmProposal: jest.fn().mockResolvedValue(undefined),
+  submitMessage: jest.fn().mockResolvedValue(undefined),
   getMessage: jest.fn().mockResolvedValue({
     confirmations: [{ owner: ACCOUNT.address }],
     preparedSignature: '0xmessagesignature'
   }),
+  confirmMessage: jest.fn().mockResolvedValue(undefined),
   ...overrides
 })
 
@@ -570,7 +573,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
+      const mockTransport = createMockTransport({
         getMessage: jest.fn().mockResolvedValue({
           messageHash: MOCK_MESSAGE_HASH,
           message: 'Hello!',
@@ -579,7 +582,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         })
       })
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
+      account._transport = mockTransport
 
       const result = await account.getMessages([MOCK_MESSAGE_HASH])
 
@@ -597,11 +600,11 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
+      const mockTransport = createMockTransport({
         getMessage: jest.fn().mockRejectedValue(new Error('not found'))
       })
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
+      account._transport = mockTransport
 
       const result = await account.getMessages([MOCK_MESSAGE_HASH])
 
@@ -615,7 +618,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
+      const mockTransport = createMockTransport({
         getMessage: jest.fn()
           .mockRejectedValueOnce(new Error('not found'))
           .mockResolvedValueOnce({
@@ -626,7 +629,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
           })
       })
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
+      account._transport = mockTransport
 
       const result = await account.getMessages(['hash1', 'hash2'])
 
@@ -643,13 +646,13 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn().mockResolvedValue({
+      const mockTransport = createMockTransport({
+        getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }]
         })
       })
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
+      account._transport = mockTransport
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
 
@@ -665,11 +668,11 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn().mockRejectedValue(new Error('not found'))
+      const mockTransport = createMockTransport({
+        getProposal: jest.fn().mockRejectedValue(new Error('not found'))
       })
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
+      account._transport = mockTransport
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
 
@@ -683,8 +686,8 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockPack = createMockSafe4337Pack()
-      const mockApiKit = createMockApiKit({
-        getSafeOperation: jest.fn()
+      const mockTransport = createMockTransport({
+        getProposal: jest.fn()
           .mockResolvedValueOnce({
             confirmations: [{ owner: ACCOUNT.address }]
           })
@@ -694,7 +697,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
           })
       })
       account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._apiKit = mockApiKit
+      account._transport = mockTransport
 
       const result = await account.getProposals(['hash1', 'hash2', 'hash3'])
 

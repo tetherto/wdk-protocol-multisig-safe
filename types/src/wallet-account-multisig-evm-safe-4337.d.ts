@@ -74,6 +74,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      *
      * @param {string} message - The message to sign
      * @returns {Promise<MessageProposal>} The sign result
+     * @throws {Error} If the signer is not an owner of the Safe.
+     * @throws {Error} If a signature cannot be generated for the message.
      */
     proposeMessage(message: string): Promise<MessageProposal>;
     /**
@@ -81,6 +83,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      *
      * @param {string} messageHash - The message hash to approve
      * @returns {Promise<MessageProposal>} The approval result
+     * @throws {Error} If the signer is not an owner of the Safe.
+     * @throws {Error} If no message exists for the given hash.
+     * @throws {Error} If a signature cannot be generated for the message.
      */
     approveMessage(messageHash: string): Promise<MessageProposal>;
     /**
@@ -133,6 +138,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      *
      * @param {string} proposalId - The Safe operation hash to approveTx
      * @returns {Promise<MultisigResult>} Approval result
+     * @throws {Error} If the signer is not an owner of the Safe.
+     * @throws {Error} If no proposal exists for the given id.
+     * @throws {Error} If a signature cannot be generated for the proposal.
      */
     approveTx(proposalId: string): Promise<MultisigResult>;
     /**
@@ -141,6 +149,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      *
      * @param {string} proposalId - The Safe operation hash to rejectTx
      * @returns {Promise<MultisigResult>} The rejection proposal result
+     * @throws {Error} If no proposal exists for the given id.
+     * @throws {Error} If the original proposal has no nonce to reuse.
      */
     rejectTx(proposalId: string): Promise<MultisigResult>;
     /**
@@ -148,6 +158,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      *
      * @param {string} proposalId - The Safe operation hash to executeTx
      * @returns {Promise<MultisigExecuteResult>} The execution result
+     * @throws {Error} If no proposal exists for the given id.
+     * @throws {Error} If the proposal does not have enough confirmations to meet the threshold.
      */
     executeTx(proposalId: string): Promise<MultisigExecuteResult>;
     /**

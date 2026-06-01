@@ -1,4 +1,5 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
+/** @typedef {import('./transports/i-multisig-transport.js').default} IMultisigTransport */
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
@@ -19,6 +20,7 @@
  * @property {string} [paymasterUrl] - Paymaster service URL
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
+ * @property {IMultisigTransport} [transport] - Transport used to share multisig calldata between signers. Defaults to a SafeTxServiceTransport built from `txServiceUrl`/`safeApiKey`.
  * @property {ExistingSafeOptions | PredictedSafeOptions} safeOptions - Safe options (existing or predicted)
  */
 /**
@@ -93,12 +95,12 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     protected _safe4337Packs: Map<string, Safe4337Pack>;
     /**
-     * The Safe API Kit instance.
+     * The transport used to share multisig calldata between signers.
      *
      * @protected
-     * @type {SafeApiKit | null}
+     * @type {IMultisigTransport}
      */
-    protected _apiKit: typeof SafeApiKit | null;
+    protected _transport: IMultisigTransport;
     /**
      * Cached owners list.
      *
@@ -288,13 +290,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     protected _getSafe4337Pack(config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<Safe4337Pack>;
     /**
-     * Returns the Safe API Kit instance.
-     *
-     * @protected
-     * @returns {Promise<SafeApiKit>} The Safe API Kit instance
-     */
-    protected _getApiKit(): Promise<typeof SafeApiKit>;
-    /**
      * Returns a read-only EVM account for the Safe address.
      *
      * @private
@@ -316,6 +311,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     private _validateConfig;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
+export type IMultisigTransport = import("./transports/i-multisig-transport.js").default;
 export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet").IWalletAccountReadOnlyMultisig;
 export type MultisigInfo = import("@tetherto/wdk-wallet").MultisigInfo;
 export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
@@ -359,6 +355,10 @@ export type EvmMultisigSafeCommonConfig = {
      * - Safe API key
      */
     safeApiKey?: string;
+    /**
+     * - Transport used to share multisig calldata between signers. Defaults to a SafeTxServiceTransport built from `txServiceUrl`/`safeApiKey`.
+     */
+    transport?: IMultisigTransport;
     /**
      * - Safe options (existing or predicted)
      */
@@ -422,5 +422,4 @@ export type EvmMultisigSafeConfig = EvmMultisigSafeCommonConfig & (EvmMultisigSa
 export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee" | "amountToApprove">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
 import { Safe4337Pack } from '@wdk-safe-global/relay-kit';
-import SafeApiKit from '@safe-global/api-kit';
 import { GenericFeeEstimator } from '@wdk-safe-global/relay-kit';

@@ -25,4 +25,10 @@ export type EvmMultisigSafeSponsoredConfig = import("./src/wallet-account-read-o
 export type EvmMultisigSafeNativeCoinsConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeNativeCoinsConfig;
 export type EvmMultisigSafeConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeConfig;
 export type EvmMultisigSafeReadOnlyConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeReadOnlyConfig;
+export type SafeTxServiceTransportConfig = import("./src/transports/safe-tx-service.js").SafeTxServiceTransportConfig;
+export type TransportProposal = import("./src/transports/i-multisig-transport.js").TransportProposal;
+export type TransportMessage = import("./src/transports/i-multisig-transport.js").TransportMessage;
+export type TransportMessageInput = import("./src/transports/i-multisig-transport.js").TransportMessageInput;
 export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from "./src/wallet-account-read-only-multisig-evm-safe-4337.js";
+export { default as IMultisigTransport } from "./src/transports/i-multisig-transport.js";
+export { default as SafeTxServiceTransport } from "./src/transports/safe-tx-service.js";

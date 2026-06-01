@@ -406,6 +406,100 @@ You can track UserOp status on these explorers:
 - **JiffyScan**: `https://jiffyscan.xyz/userOpHash/{userOpHash}?network=sepolia`
 - **Blockscout**: `https://eth-sepolia.blockscout.com/op/{userOpHash}`
 
+## 🔁 Calldata Transport
+
+Multisig signing requires sharing transaction and message calldata (proposals and their confirmations) between the Safe's owners. This package isolates that responsibility behind the `IMultisigTransport` interface, so you can choose how calldata is shared.
+
+By default no extra configuration is needed: when you pass `safeApiKey` or `txServiceUrl`, the account automatically uses the built-in `SafeTxServiceTransport`, which talks to the [Safe Transaction Service](https://docs.safe.global/core-api/transaction-service-overview) via `@safe-global/api-kit`. External behaviour is unchanged.
+
+To route calldata through your own backend instead (a relay, a database, a peer-to-peer channel, etc.), pass a custom `transport` in the config. When `transport` is provided it takes precedence and `safeApiKey`/`txServiceUrl` are ignored.
+
+### The `transport` config option
+
+| Option | Description |
+|--------|-------------|
+| `transport` | An `IMultisigTransport` instance used to share multisig calldata between signers. Optional. Defaults to a `SafeTxServiceTransport` built from `txServiceUrl`/`safeApiKey`. |
+
+### Writing a custom transport
+
+A transport implements six methods — three for transaction proposals and three for message proposals. Extend `IMultisigTransport` (so unimplemented methods throw a clear error) and return objects shaped like the ones the Safe Transaction Service returns (a `confirmations` array, and `preparedSignature` for messages).
+
+```javascript
+import WalletManagerEvmMultisigSafe, {
+  IMultisigTransport
+} from '@tetherto/wdk-wallet-evm-multisig-safe'
+
+class MyBackendTransport extends IMultisigTransport {
+  constructor (baseUrl) {
+    super()
+    this._baseUrl = baseUrl
+  }
+
+  // --- Transaction proposals ---
+
+  async submitProposal (proposal) {
+    await fetch(`${this._baseUrl}/proposals`, {
+      method: 'POST',
+      body: JSON.stringify(proposal)
+    })
+  }
+
+  async getProposal (proposalId) {
+    const res = await fetch(`${this._baseUrl}/proposals/${proposalId}`)
+    return res.ok ? res.json() : null // { confirmations: [...], userOperation: {...}, ... }
+  }
+
+  async confirmProposal (proposalId, signature) {
+    await fetch(`${this._baseUrl}/proposals/${proposalId}/confirmations`, {
+      method: 'POST',
+      body: JSON.stringify({ signature })
+    })
+  }
+
+  // --- Message proposals ---
+
+  async submitMessage (safeAddress, message) {
+    await fetch(`${this._baseUrl}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ safeAddress, ...message })
+    })
+  }
+
+  async getMessage (messageHash) {
+    const res = await fetch(`${this._baseUrl}/messages/${messageHash}`)
+    return res.json() // { messageHash, message, confirmations: [...], preparedSignature }
+  }
+
+  async confirmMessage (messageHash, signature) {
+    await fetch(`${this._baseUrl}/messages/${messageHash}/confirmations`, {
+      method: 'POST',
+      body: JSON.stringify({ signature })
+    })
+  }
+}
+
+const wallet = new WalletManagerEvmMultisigSafe(seed, {
+  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
+  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  chainId: 11155111n,
+  transport: new MyBackendTransport('https://your-backend.com/safe'),
+  safeOptions: {
+    safeAddress: '0x...'
+  }
+})
+```
+
+You can also instantiate the default transport explicitly, for example to share a single instance:
+
+```javascript
+import { SafeTxServiceTransport } from '@tetherto/wdk-wallet-evm-multisig-safe'
+
+const transport = new SafeTxServiceTransport({
+  chainId: 11155111n,
+  apiKey: 'YOUR_SAFE_API_KEY' // or txServiceUrl: 'https://your-proxy.com/safe'
+})
+```
+
 ## 🔐 Security Notes
 
 ### Safe API Key

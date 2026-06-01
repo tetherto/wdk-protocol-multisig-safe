@@ -64,6 +64,7 @@
   "standard": {
     "ignore": [
       "bare.js",
+      "bare-node.js",
       "tests/**/*.js"
     ]
   }

@@ -59,6 +59,15 @@
 /** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeReadOnlyConfig} EvmMultisigSafeReadOnlyConfig */
 
 // ============================================
+// Re-export types from transports
+// ============================================
+
+/** @typedef {import('./src/transports/safe-tx-service.js').SafeTxServiceTransportConfig} SafeTxServiceTransportConfig */
+/** @typedef {import('./src/transports/i-multisig-transport.js').TransportProposal} TransportProposal */
+/** @typedef {import('./src/transports/i-multisig-transport.js').TransportMessage} TransportMessage */
+/** @typedef {import('./src/transports/i-multisig-transport.js').TransportMessageInput} TransportMessageInput */
+
+// ============================================
 // Export classes and constants
 // ============================================
 
@@ -67,3 +76,11 @@ export { default } from './src/wallet-manager-multisig-evm-safe-4337.js'
 export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from './src/wallet-account-read-only-multisig-evm-safe-4337.js'
 
 export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-account-multisig-evm-safe-4337.js'
+
+// ============================================
+// Export transports
+// ============================================
+
+export { default as IMultisigTransport } from './src/transports/i-multisig-transport.js'
+
+export { default as SafeTxServiceTransport } from './src/transports/safe-tx-service.js'

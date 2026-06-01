@@ -129,13 +129,14 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} message - The message to sign
    * @returns {Promise<MessageProposal>} The sign result
+   * @throws {Error} If the signer is not an owner of the Safe.
+   * @throws {Error} If a signature cannot be generated for the message.
    */
   async proposeMessage (message) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
     const protocolKit = safe4337Pack.protocolKit
-    const apiKit = await this._getApiKit()
     const safeAddress = await this.getAddress()
 
     const safeMessage = protocolKit.createMessage(message)
@@ -152,12 +153,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       hashMessage(message)
     )
 
-    await apiKit.addMessage(safeAddress, {
+    await this._transport.submitMessage(safeAddress, {
       message,
       signature: signature.data
     })
 
-    const safeMessageResponse = await apiKit.getMessage(messageHash)
+    const safeMessageResponse = await this._transport.getMessage(messageHash)
     const threshold = await this.getThreshold()
     return {
       messageHash,
@@ -173,15 +174,17 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} messageHash - The message hash to approve
    * @returns {Promise<MessageProposal>} The approval result
+   * @throws {Error} If the signer is not an owner of the Safe.
+   * @throws {Error} If no message exists for the given hash.
+   * @throws {Error} If a signature cannot be generated for the message.
    */
   async approveMessage (messageHash) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
     const protocolKit = safe4337Pack.protocolKit
-    const apiKit = await this._getApiKit()
 
-    const existingMessage = await apiKit.getMessage(messageHash)
+    const existingMessage = await this._transport.getMessage(messageHash)
 
     if (!existingMessage) {
       throw new Error(`Message not found: ${messageHash}`)
@@ -197,9 +200,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       throw new Error('Failed to generate signature')
     }
 
-    await apiKit.addMessageSignature(messageHash, signature.data)
+    await this._transport.confirmMessage(messageHash, signature.data)
 
-    const safeMessageResponse = await apiKit.getMessage(messageHash)
+    const safeMessageResponse = await this._transport.getMessage(messageHash)
     const threshold = await this.getThreshold()
 
     return {
@@ -354,10 +357,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperation)
     const proposalId = signedSafeOperation.getHash()
 
-    const apiKit = await this._getApiKit()
-    await apiKit.addSafeOperation(signedSafeOperation)
+    await this._transport.submitProposal(signedSafeOperation)
 
-    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
+    const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     return {
       proposalId,
@@ -371,14 +373,16 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} proposalId - The Safe operation hash to approveTx
    * @returns {Promise<MultisigResult>} Approval result
+   * @throws {Error} If the signer is not an owner of the Safe.
+   * @throws {Error} If no proposal exists for the given id.
+   * @throws {Error} If a signature cannot be generated for the proposal.
    */
   async approveTx (proposalId) {
     await this.validateSignerIsOwner()
 
     const safe4337Pack = await this._getSafe4337Pack()
-    const apiKit = await this._getApiKit()
 
-    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
+    const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new Error(`SafeOperation not found: ${proposalId}`)
@@ -401,9 +405,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       throw new Error('Failed to generate signature')
     }
 
-    await apiKit.confirmSafeOperation(proposalId, signature)
+    await this._transport.confirmProposal(proposalId, signature)
 
-    const updatedOperation = await apiKit.getSafeOperation(proposalId)
+    const updatedOperation = await this._transport.getProposal(proposalId)
     const confirmations = updatedOperation.confirmations?.length || 0
     const threshold = await this.getThreshold()
 
@@ -416,10 +420,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} proposalId - The Safe operation hash to rejectTx
    * @returns {Promise<MultisigResult>} The rejection proposal result
+   * @throws {Error} If no proposal exists for the given id.
+   * @throws {Error} If the original proposal has no nonce to reuse.
    */
   async rejectTx (proposalId) {
-    const apiKit = await this._getApiKit()
-    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
+    const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new Error(`SafeOperation not found: ${proposalId}`)
@@ -445,12 +450,13 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} proposalId - The Safe operation hash to executeTx
    * @returns {Promise<MultisigExecuteResult>} The execution result
+   * @throws {Error} If no proposal exists for the given id.
+   * @throws {Error} If the proposal does not have enough confirmations to meet the threshold.
    */
   async executeTx (proposalId) {
     const safe4337Pack = await this._getSafe4337Pack()
-    const apiKit = await this._getApiKit()
 
-    const safeOperationResponse = await apiKit.getSafeOperation(proposalId)
+    const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new Error(`SafeOperation not found: ${proposalId}`)
@@ -653,6 +659,6 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       this._signerAccount = null
     }
     this._safe4337Packs.clear()
-    this._apiKit = null
+    this._transport = null
   }
 }
