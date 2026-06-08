@@ -16,9 +16,9 @@ export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionRe
 export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type ApproveOptions = import("@tetherto/wdk-wallet-evm").ApproveOptions;
-export type ExistingSafeOptions = import("@wdk-safe-global/relay-kit").ExistingSafeOptions;
-export type PredictedSafeOptions = import("@wdk-safe-global/relay-kit").PredictedSafeOptions;
-export type UserOperationReceipt = import("@wdk-safe-global/relay-kit").UserOperationReceipt;
+export type ExistingSafeOptions = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").ExistingSafeOptions;
+export type PredictedSafeOptions = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").PredictedSafeOptions;
+export type UserOperationReceipt = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").UserOperationReceipt;
 export type EvmMultisigSafeCommonConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeCommonConfig;
 export type EvmMultisigSafePaymasterTokenConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafePaymasterTokenConfig;
 export type EvmMultisigSafeSponsoredConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeSponsoredConfig;
@@ -32,3 +32,4 @@ export type TransportMessageInput = import("./src/transports/i-multisig-transpor
 export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from "./src/wallet-account-read-only-multisig-evm-safe-4337.js";
 export { default as IMultisigTransport } from "./src/transports/i-multisig-transport.js";
 export { default as SafeTxServiceTransport } from "./src/transports/safe-tx-service.js";
+export { ConfigurationError } from "./src/errors.js";

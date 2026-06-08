@@ -1,4 +1,3 @@
-/** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
@@ -70,12 +69,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     sign(message: string): Promise<string>;
     /**
      * Signs a message with the multisig Safe.
-     * Proposes a new message or approves an existing one.
+     * Proposes a new message for the other owners to confirm.
      *
      * @param {string} message - The message to sign
      * @returns {Promise<MessageProposal>} The sign result
      * @throws {Error} If the signer is not an owner of the Safe.
-     * @throws {Error} If a signature cannot be generated for the message.
      */
     proposeMessage(message: string): Promise<MessageProposal>;
     /**
@@ -85,7 +83,6 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @returns {Promise<MessageProposal>} The approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no message exists for the given hash.
-     * @throws {Error} If a signature cannot be generated for the message.
      */
     approveMessage(messageHash: string): Promise<MessageProposal>;
     /**
@@ -119,6 +116,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @param {TransferOptions} transferOptions - Transfer options
      * @param {MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
      * @returns {Promise<MultisigTransactionResult>} The transfer result
+     * @throws {Error} If the estimated fee exceeds the configured `transferMaxFee`.
      */
     transfer(transferOptions: TransferOptions, options?: MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigTransactionResult>;
     /**
@@ -133,6 +131,18 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      */
     private _submitTransaction;
     /**
+     * Proposes a new transaction for multisig approval.
+     * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
+     *
+     * Note: `rejectTx()` passes `customNonce` via config to reuse the original proposal's nonce.
+     *
+     * @protected
+     * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
+     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @returns {Promise<MultisigResult>} The proposal result
+     * @throws {Error} If the signer is not an owner of the Safe.
+     */
+    protected _propose(transaction: EvmTransaction | EvmTransaction[], config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
      * Approves (signs) an existing proposal.
      *
@@ -140,7 +150,6 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @returns {Promise<MultisigResult>} Approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no proposal exists for the given id.
-     * @throws {Error} If a signature cannot be generated for the proposal.
      */
     approveTx(proposalId: string): Promise<MultisigResult>;
     /**
@@ -202,6 +211,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @param {number} newThreshold - New threshold value
      * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<MultisigResult>} The proposal result
+     * @throws {Error} If there are no owner or threshold changes to make.
      */
     updateOwners(newOwners: string[], newThreshold: number, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigResult>;
     /**
@@ -214,8 +224,21 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * Disposes the wallet account, clearing sensitive data from memory.
      */
     dispose(): void;
+    /** @private */
+    private _buildSigner;
+    /** @private */
+    private _signDigest;
+    /** @private */
+    private _getProposalId;
+    /** @private */
+    private _buildProposalPayload;
+    /** @private */
+    private _rebuildUserOperation;
+    /** @private */
+    private _aggregateSignatures;
+    /** @private */
+    private _sendUserOperation;
 }
-export type Eip1193Provider = import("ethers").Eip1193Provider;
 export type IWalletAccountMultisig = import("@tetherto/wdk-wallet").IWalletAccountMultisig;
 export type MultisigResult = import("@tetherto/wdk-wallet").MultisigResult;
 export type MultisigTransactionResult = import("@tetherto/wdk-wallet").MultisigTransactionResult;

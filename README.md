@@ -48,10 +48,10 @@ const bobEoa = '0x...'
 
 // Create Alice's multisig account using PredictedSafeOptions
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   paymasterAddress: '0x...',
   paymasterTokenAddress: '0x...', // USDT address
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
@@ -76,10 +76,10 @@ console.log('Is Deployed:', isDeployed)
 ```javascript
 // Import using ExistingSafeOptions
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   paymasterAddress: '0x...',
   paymasterTokenAddress: '0x...',
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
@@ -158,10 +158,10 @@ if (!result.executed) {
 ```javascript
 // Ensure the signer's EOA has ETH for deployment gas
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   paymasterTokenAddress: '0x...', // USDT address
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   safeOptions: {
@@ -198,10 +198,10 @@ The Safe pays gas fees using ERC-20 tokens (e.g., USDT). The Safe must hold suff
 
 ```javascript
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   paymasterAddress: '0x...',
   paymasterTokenAddress: '0x...',
   safeOptions: {
@@ -222,10 +222,10 @@ A sponsor pays the gas fees, making transactions completely free for the Safe. N
 
 ```javascript
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   isSponsored: true,
   sponsorshipPolicyId: 'sp_my_policy',
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
@@ -252,10 +252,10 @@ You can override the paymaster mode on a per-transaction basis, regardless of th
 ```javascript
 // Account configured with ERC-20 paymaster (USDT)
 const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   paymasterTokenAddress: '0xUSDT...', // Default: pay gas with USDT
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   safeOptions: {
@@ -277,10 +277,10 @@ const result2 = await alice.sendTransaction(tx, {
 ```javascript
 // Account configured with sponsored mode
 const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  paymasterUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   isSponsored: true, // Default: gasless
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   safeOptions: {
@@ -372,8 +372,8 @@ console.log('Combined Signature:', message.combinedSignature)
 import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
 
 const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
   safeApiKey: 'YOUR_SAFE_API_KEY', // OR txServiceUrl: 'https://your-proxy.com/safe'
   safeOptions: {
@@ -479,8 +479,8 @@ class MyBackendTransport extends IMultisigTransport {
 }
 
 const wallet = new WalletManagerEvmMultisigSafe(seed, {
-  provider: 'https://sepolia.infura.io/v3/YOUR_KEY',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=YOUR_KEY',
+  provider: 'https://your-rpc-provider.example',
+  bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
   transport: new MyBackendTransport('https://your-backend.com/safe'),
   safeOptions: {
@@ -532,9 +532,7 @@ When using sponsored (gasless) mode, the `sponsorshipPolicyId` is visible to the
 - **Webhook verification**: Validate each sponsorship request server-side before approving
 - **Policy rules**: Restrict by sender address, contract, gas limit, time window, etc.
 
-See Pimlico's guides:
-- [Sponsorship Policies](https://docs.pimlico.io/guides/how-to/sponsorship-policies)
-- [Webhook Verification](https://docs.pimlico.io/guides/how-to/sponsorship-policies/webhook)
+Consult your paymaster provider's documentation for configuring sponsorship policies and webhook verification. This package is provider-agnostic and works with any ERC-4337 bundler and ERC-7677 paymaster.
 ```
 
 ## 🛠️ Development

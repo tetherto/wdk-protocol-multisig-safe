@@ -40,12 +40,12 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').ApproveOptions} ApproveOptions */
 
 // ============================================
-// Re-export types from @wdk-safe-global/relay-kit
+// Re-export Safe option and receipt types
 // ============================================
 
-/** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').UserOperationReceipt} UserOperationReceipt */
+/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').UserOperationReceipt} UserOperationReceipt */
 
 // ============================================
 // Re-export types from read-only module
@@ -84,3 +84,9 @@ export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-accoun
 export { default as IMultisigTransport } from './src/transports/i-multisig-transport.js'
 
 export { default as SafeTxServiceTransport } from './src/transports/safe-tx-service.js'
+
+// ============================================
+// Export errors
+// ============================================
+
+export { ConfigurationError } from './src/errors.js'

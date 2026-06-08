@@ -32,8 +32,8 @@ const ACCOUNT_2 = {
 }
 
 const MOCK_CONFIG = {
-  provider: 'https://sepolia.infura.io/v3/test-key',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+  provider: 'https://rpc.dummy-network.example/v3/dummy-key',
+  bundlerUrl: 'https://bundler.dummy-network.example/rpc?apikey=dummy-key',
   chainId: 11155111n
 }
 
@@ -70,7 +70,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     test('should successfully initialize with ERC-20 paymaster options', () => {
       const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
         ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+        paymasterUrl: 'https://bundler.dummy-network.example/rpc?apikey=dummy-key',
         paymasterAddress: '0x000000000041F3aFe8892B48D88b6862efe0ec8d',
         paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
         safeOptions: {
@@ -86,7 +86,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     test('should successfully initialize with sponsored paymaster options', () => {
       const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
         ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+        paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
         sponsorshipPolicyId: 'sp_my_policy_123',
         safeOptions: {

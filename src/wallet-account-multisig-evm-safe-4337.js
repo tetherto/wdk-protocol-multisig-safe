@@ -14,13 +14,17 @@
 
 'use strict'
 
-import { hashMessage } from 'ethers'
+import { TypedDataEncoder } from 'ethers'
 
 import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
-import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
+import {
+  // eslint-disable-next-line camelcase
+  SafeAccountV0_3_0 as SafeAccount030,
+  AbstractionKitError
+} from 'abstractionkit'
 
-/** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
+import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
 /** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
@@ -35,6 +39,8 @@ import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
+
+/** @typedef {import('abstractionkit').UserOperationV7} UserOperationV7 */
 
 /** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
 /** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
@@ -125,44 +131,30 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
   /**
    * Signs a message with the multisig Safe.
-   * Proposes a new message or approves an existing one.
+   * Proposes a new message for the other owners to confirm.
    *
    * @param {string} message - The message to sign
    * @returns {Promise<MessageProposal>} The sign result
    * @throws {Error} If the signer is not an owner of the Safe.
-   * @throws {Error} If a signature cannot be generated for the message.
    */
   async proposeMessage (message) {
     await this.validateSignerIsOwner()
 
-    const safe4337Pack = await this._getSafe4337Pack()
-    const protocolKit = safe4337Pack.protocolKit
+    const threshold = await this.getThreshold()
     const safeAddress = await this.getAddress()
+    const smartAccount = await this._getSmartAccount()
 
-    const safeMessage = protocolKit.createMessage(message)
-    const signedMessage = await protocolKit.signMessage(safeMessage)
+    const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, message)
+    const messageHash = TypedDataEncoder.hash(domain, types, messageValue)
+    const signature = this._signDigest(messageHash)
 
-    const signerAddress = await this.getSignerAddress()
-    const signature = signedMessage.getSignature(signerAddress.toLowerCase())
-
-    if (!signature) {
-      throw new Error('Failed to generate signature')
-    }
-
-    const messageHash = await protocolKit.getSafeMessageHash(
-      hashMessage(message)
-    )
-
-    await this._transport.submitMessage(safeAddress, {
-      message,
-      signature: signature.data
-    })
+    await this._transport.submitMessage(safeAddress, { message, signature })
 
     const safeMessageResponse = await this._transport.getMessage(messageHash)
-    const threshold = await this.getThreshold()
+
     return {
       messageHash,
-      signature: signature.data,
+      signature,
       confirmations: safeMessageResponse.confirmations?.length || 0,
       threshold,
       combinedSignature: safeMessageResponse.preparedSignature || null
@@ -176,13 +168,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MessageProposal>} The approval result
    * @throws {Error} If the signer is not an owner of the Safe.
    * @throws {Error} If no message exists for the given hash.
-   * @throws {Error} If a signature cannot be generated for the message.
    */
   async approveMessage (messageHash) {
     await this.validateSignerIsOwner()
-
-    const safe4337Pack = await this._getSafe4337Pack()
-    const protocolKit = safe4337Pack.protocolKit
 
     const existingMessage = await this._transport.getMessage(messageHash)
 
@@ -190,24 +178,19 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       throw new Error(`Message not found: ${messageHash}`)
     }
 
-    const safeMessage = protocolKit.createMessage(existingMessage.message)
-    const signedMessage = await protocolKit.signMessage(safeMessage)
+    const smartAccount = await this._getSmartAccount()
+    const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, existingMessage.message)
+    const digest = TypedDataEncoder.hash(domain, types, messageValue)
+    const signature = this._signDigest(digest)
 
-    const signerAddress = await this.getSignerAddress()
-    const signature = signedMessage.getSignature(signerAddress.toLowerCase())
-
-    if (!signature) {
-      throw new Error('Failed to generate signature')
-    }
-
-    await this._transport.confirmMessage(messageHash, signature.data)
+    await this._transport.confirmMessage(messageHash, signature)
 
     const safeMessageResponse = await this._transport.getMessage(messageHash)
     const threshold = await this.getThreshold()
 
     return {
       messageHash,
-      signature: signature.data,
+      signature,
       confirmations: safeMessageResponse.confirmations?.length || 0,
       threshold,
       combinedSignature: safeMessageResponse.preparedSignature || null
@@ -251,14 +234,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       throw new Error('Safe is already deployed')
     }
 
-    const safe4337Pack = await this._getSafe4337Pack()
-    const deploymentTx = await safe4337Pack.protocolKit.createSafeDeploymentTransaction()
+    const deploymentTx = this._buildDeploymentTransaction()
 
-    const result = await this._signerAccount.sendTransaction({
-      to: deploymentTx.to,
-      value: BigInt(deploymentTx.value),
-      data: deploymentTx.data
-    })
+    const result = await this._signerAccount.sendTransaction(deploymentTx)
 
     this._resetState()
 
@@ -287,6 +265,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {TransferOptions} transferOptions - Transfer options
    * @param {MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
    * @returns {Promise<MultisigTransactionResult>} The transfer result
+   * @throws {Error} If the estimated fee exceeds the configured `transferMaxFee`.
    */
   async transfer (transferOptions, options = {}) {
     const { autoExecute = false, ...config } = options
@@ -339,25 +318,30 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
   /**
    * Proposes a new transaction for multisig approval.
-   * Creates a SafeOperation, signs it, and uploads to Safe Transaction Service.
+   * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
    *
    * Note: `rejectTx()` passes `customNonce` via config to reuse the original proposal's nonce.
    *
+   * @protected
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
+   * @throws {Error} If the signer is not an owner of the Safe.
    */
   async _propose (transaction, config) {
     await this.validateSignerIsOwner()
 
-    const safe4337Pack = await this._getSafe4337Pack(config)
     const threshold = await this.getThreshold()
+    const chainId = this._config.chainId
 
-    const safeOperation = await this._createSafeOperation(transaction, config)
-    const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperation)
-    const proposalId = signedSafeOperation.getHash()
+    const { userOp, smartAccount } = await this._createSafeOperation(transaction, config)
 
-    await this._transport.submitProposal(signedSafeOperation)
+    const signer = this._buildSigner()
+    userOp.signature = await smartAccount.signUserOperationWithSigners(userOp, [signer], chainId)
+
+    const proposalId = this._getProposalId(userOp)
+
+    await this._transport.submitProposal(await this._buildProposalPayload(userOp))
 
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
@@ -375,41 +359,25 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MultisigResult>} Approval result
    * @throws {Error} If the signer is not an owner of the Safe.
    * @throws {Error} If no proposal exists for the given id.
-   * @throws {Error} If a signature cannot be generated for the proposal.
    */
   async approveTx (proposalId) {
     await this.validateSignerIsOwner()
 
-    const safe4337Pack = await this._getSafe4337Pack()
-
+    const threshold = await this.getThreshold()
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new Error(`SafeOperation not found: ${proposalId}`)
     }
 
-    const signedSafeOperation = await safe4337Pack.signSafeOperation(safeOperationResponse)
-
-    const signerAddress = await this.getSignerAddress()
-    const signerKey = signerAddress.toLowerCase()
-
-    let signature = null
-    if (signedSafeOperation.signatures) {
-      const sig = signedSafeOperation.signatures.get(signerKey)
-      if (sig && sig.data) {
-        signature = sig.data
-      }
-    }
-
-    if (!signature) {
-      throw new Error('Failed to generate signature')
-    }
+    const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
+    const digest = this._getProposalId(userOp)
+    const signature = this._signDigest(digest)
 
     await this._transport.confirmProposal(proposalId, signature)
 
     const updatedOperation = await this._transport.getProposal(proposalId)
     const confirmations = updatedOperation.confirmations?.length || 0
-    const threshold = await this.getThreshold()
 
     return { proposalId, confirmations, threshold }
   }
@@ -454,8 +422,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @throws {Error} If the proposal does not have enough confirmations to meet the threshold.
    */
   async executeTx (proposalId) {
-    const safe4337Pack = await this._getSafe4337Pack()
-
+    const threshold = await this.getThreshold()
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
@@ -463,7 +430,6 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     }
 
     const confirmations = safeOperationResponse.confirmations?.length || 0
-    const threshold = await this.getThreshold()
 
     if (confirmations < threshold) {
       throw new Error(
@@ -472,14 +438,15 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       )
     }
 
-    const userOpHash = await safe4337Pack.executeTransaction({
-      executable: safeOperationResponse
-    })
+    const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
+    userOp.signature = this._aggregateSignatures(safeOperationResponse)
+
+    const hash = await this._sendUserOperation(userOp)
 
     this._resetState()
 
     return {
-      hash: userOpHash
+      hash
     }
   }
 
@@ -493,19 +460,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   async addOwner (ownerAddress, options = {}) {
     const { threshold: newThreshold, ...config } = options
 
-    const safe4337Pack = await this._getSafe4337Pack()
+    const smartAccount = await this._getSmartAccount()
     const threshold = newThreshold || await this.getThreshold()
 
-    const tx = await safe4337Pack.protocolKit.createAddOwnerTx({
-      ownerAddress,
-      threshold
-    })
+    const metaTransaction = smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(ownerAddress, threshold)
 
-    return await this._propose({
-      to: tx.data.to,
-      value: tx.data.value,
-      data: tx.data.data
-    }, config)
+    return await this._propose(metaTransaction, config)
   }
 
   /**
@@ -518,19 +478,16 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   async removeOwner (ownerAddress, options = {}) {
     const { threshold: newThreshold, ...config } = options
 
-    const safe4337Pack = await this._getSafe4337Pack()
+    const smartAccount = await this._getSmartAccount()
     const currentThreshold = await this.getThreshold()
 
-    const tx = await safe4337Pack.protocolKit.createRemoveOwnerTx({
+    const metaTransaction = await smartAccount.createRemoveOwnerMetaTransaction(
+      this._provider,
       ownerAddress,
-      threshold: newThreshold || currentThreshold
-    })
+      newThreshold || currentThreshold
+    )
 
-    return await this._propose({
-      to: tx.data.to,
-      value: tx.data.value,
-      data: tx.data.data
-    }, config)
+    return await this._propose([metaTransaction].flat(), config)
   }
 
   /**
@@ -542,18 +499,15 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MultisigResult>} The proposal result
    */
   async swapOwner (oldOwnerAddress, newOwnerAddress, config) {
-    const safe4337Pack = await this._getSafe4337Pack()
+    const smartAccount = await this._getSmartAccount()
 
-    const tx = await safe4337Pack.protocolKit.createSwapOwnerTx({
-      oldOwnerAddress,
-      newOwnerAddress
-    })
+    const metaTransactions = await smartAccount.createSwapOwnerMetaTransactions(
+      this._provider,
+      newOwnerAddress,
+      oldOwnerAddress
+    )
 
-    return await this._propose({
-      to: tx.data.to,
-      value: tx.data.value,
-      data: tx.data.data
-    }, config)
+    return await this._propose([metaTransactions].flat(), config)
   }
 
   /**
@@ -564,15 +518,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MultisigResult>} The proposal result
    */
   async changeThreshold (newThreshold, config) {
-    const safe4337Pack = await this._getSafe4337Pack()
+    const smartAccount = await this._getSmartAccount()
 
-    const tx = await safe4337Pack.protocolKit.createChangeThresholdTx(newThreshold)
+    const metaTransaction = smartAccount.createChangeThresholdMetaTransaction(newThreshold)
 
-    return await this._propose({
-      to: tx.data.to,
-      value: tx.data.value,
-      data: tx.data.data
-    }, config)
+    return await this._propose(metaTransaction, config)
   }
 
   /**
@@ -582,9 +532,10 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {number} newThreshold - New threshold value
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigResult>} The proposal result
+   * @throws {Error} If there are no owner or threshold changes to make.
    */
   async updateOwners (newOwners, newThreshold, config) {
-    const safe4337Pack = await this._getSafe4337Pack()
+    const smartAccount = await this._getSmartAccount()
     const currentOwners = await this.getOwners()
     const currentThreshold = await this.getThreshold()
 
@@ -597,36 +548,20 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const transactions = []
 
     for (const owner of toAdd) {
-      const tx = await safe4337Pack.protocolKit.createAddOwnerTx({
-        ownerAddress: owner,
-        threshold: currentThreshold
-      })
-      transactions.push({
-        to: tx.data.to,
-        value: tx.data.value,
-        data: tx.data.data
-      })
+      transactions.push(smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(owner, currentThreshold))
     }
 
     for (const owner of toRemove) {
-      const tx = await safe4337Pack.protocolKit.createRemoveOwnerTx({
-        ownerAddress: owner,
-        threshold: Math.max(1, Math.min(currentThreshold, newOwners.length))
-      })
-      transactions.push({
-        to: tx.data.to,
-        value: tx.data.value,
-        data: tx.data.data
-      })
+      const metaTransaction = await smartAccount.createRemoveOwnerMetaTransaction(
+        this._provider,
+        owner,
+        Math.max(1, Math.min(currentThreshold, newOwners.length))
+      )
+      transactions.push(...[metaTransaction].flat())
     }
 
     if (newThreshold !== currentThreshold) {
-      const tx = await safe4337Pack.protocolKit.createChangeThresholdTx(newThreshold)
-      transactions.push({
-        to: tx.data.to,
-        value: tx.data.value,
-        data: tx.data.data
-      })
+      transactions.push(smartAccount.createChangeThresholdMetaTransaction(newThreshold))
     }
 
     if (transactions.length === 0) {
@@ -658,7 +593,85 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       this._signerAccount.dispose()
       this._signerAccount = null
     }
-    this._safe4337Packs.clear()
+    this._paymasters.clear()
+    this._bundler = undefined
+    this._deployedSmartAccount = undefined
     this._transport = null
+  }
+
+  /** @private */
+  _buildSigner () {
+    return {
+      address: this._signerAccount._address,
+      signHash: async (hash) => this._signDigest(hash)
+    }
+  }
+
+  /** @private */
+  _signDigest (digest) {
+    return this._signerAccount._account.signingKey.sign(digest).serialized
+  }
+
+  /** @private */
+  _getProposalId (userOp) {
+    return SafeAccount030.getUserOperationEip712Hash(userOp, this._config.chainId, this._getSafeOperationOptions())
+  }
+
+  /** @private */
+  async _buildProposalPayload (userOp) {
+    const { entrypointAddress, safe4337ModuleAddress } = this._getSafeOperationOptions()
+    const safeAddress = await this.getAddress()
+
+    return {
+      entryPoint: entrypointAddress,
+      moduleAddress: safe4337ModuleAddress,
+      safeAddress,
+      userOperation: userOp,
+      options: { validAfter: 0, validUntil: 0 }
+    }
+  }
+
+  /** @private */
+  _rebuildUserOperation (userOperation) {
+    const toBigInt = (value) => (value === undefined || value === null) ? value : BigInt(value)
+
+    return {
+      ...userOperation,
+      nonce: toBigInt(userOperation.nonce),
+      callGasLimit: toBigInt(userOperation.callGasLimit),
+      verificationGasLimit: toBigInt(userOperation.verificationGasLimit),
+      preVerificationGas: toBigInt(userOperation.preVerificationGas),
+      maxFeePerGas: toBigInt(userOperation.maxFeePerGas),
+      maxPriorityFeePerGas: toBigInt(userOperation.maxPriorityFeePerGas),
+      paymasterVerificationGasLimit: toBigInt(userOperation.paymasterVerificationGasLimit),
+      paymasterPostOpGasLimit: toBigInt(userOperation.paymasterPostOpGasLimit)
+    }
+  }
+
+  /** @private */
+  _aggregateSignatures (safeOperationResponse) {
+    if (safeOperationResponse.preparedSignature) {
+      return safeOperationResponse.preparedSignature
+    }
+
+    const pairs = safeOperationResponse.confirmations.map(confirmation => ({
+      signer: confirmation.owner,
+      signature: confirmation.signature
+    }))
+
+    return SafeAccount030.formatSignaturesToUseroperationSignature(pairs, { validAfter: 0n, validUntil: 0n })
+  }
+
+  /** @private */
+  async _sendUserOperation (userOp) {
+    try {
+      const { entrypointAddress } = this._getSafeOperationOptions()
+      return await this._getBundler().sendUserOperation(userOp, entrypointAddress)
+    } catch (error) {
+      if (error instanceof AbstractionKitError && error.message.includes('AA50')) {
+        throw new Error('Not enough funds in the Safe to repay the paymaster.')
+      }
+      throw error
+    }
   }
 }

@@ -16,6 +16,8 @@
 
 import * as bip39 from 'bip39'
 
+import { TypedDataEncoder } from 'ethers'
+
 import { afterEach, beforeEach, describe, expect, test, jest } from '@jest/globals'
 
 import {
@@ -24,8 +26,6 @@ import {
 } from '../index.js'
 
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
-const SEED_PHRASE_2 = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong'
-const INVALID_SEED_PHRASE = 'invalid seed phrase'
 const SEED = bip39.mnemonicToSeedSync(SEED_PHRASE)
 
 const ACCOUNT = {
@@ -39,8 +39,8 @@ const ACCOUNT_2 = {
 }
 
 const MOCK_CONFIG = {
-  provider: 'https://sepolia.infura.io/v3/test-key',
-  bundlerUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+  provider: 'https://rpc.dummy-network.example/v3/dummy-key',
+  bundlerUrl: 'https://bundler.dummy-network.example/rpc?apikey=dummy-key',
   chainId: 11155111n
 }
 
@@ -49,54 +49,30 @@ const MOCK_SAFE_OP_HASH = '0xabcdef1234567890abcdef1234567890abcdef1234567890abc
 const MOCK_USER_OP_HASH = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 const MOCK_TX_HASH = '0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321'
 const MOCK_MESSAGE_HASH = '0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678'
+const MOCK_FEE = 350000000000000n
+const VALID_SIGNATURE = '0x' + '11'.repeat(65)
+const EIP1271_MAGIC_VALUE = '0x1626ba7e'
 
-const createMockSafe4337Pack = (overrides = {}) => ({
-  protocolKit: {
-    getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-    isSafeDeployed: jest.fn().mockResolvedValue(true),
-    getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-    getThreshold: jest.fn().mockResolvedValue(1),
-    getNonce: jest.fn().mockResolvedValue(0n),
-    createTransaction: jest.fn().mockResolvedValue({}),
-    signTransaction: jest.fn().mockResolvedValue({}),
-    createMessage: jest.fn().mockReturnValue({ data: 'message' }),
-    signMessage: jest.fn().mockResolvedValue({
-      getSignature: jest.fn().mockReturnValue({ data: '0xmocksignature' })
-    }),
-    getSafeMessageHash: jest.fn().mockResolvedValue(MOCK_MESSAGE_HASH),
-    createAddOwnerTx: jest.fn().mockResolvedValue({
-      data: { to: MOCK_SAFE_ADDRESS, value: '0', data: '0xaddowner' }
-    }),
-    createRemoveOwnerTx: jest.fn().mockResolvedValue({
-      data: { to: MOCK_SAFE_ADDRESS, value: '0', data: '0xremoveowner' }
-    }),
-    createSwapOwnerTx: jest.fn().mockResolvedValue({
-      data: { to: MOCK_SAFE_ADDRESS, value: '0', data: '0xswapowner' }
-    }),
-    createChangeThresholdTx: jest.fn().mockResolvedValue({
-      data: { to: MOCK_SAFE_ADDRESS, value: '0', data: '0xchangethreshold' }
-    }),
-    ...overrides.protocolKit
-  },
-  createTransaction: jest.fn().mockResolvedValue({
-    data: { operation: 0 },
-    userOperation: {
-      callGasLimit: '100000',
-      verificationGasLimit: '100000',
-      preVerificationGas: '50000',
-      paymasterVerificationGasLimit: '50000',
-      paymasterPostOpGasLimit: '50000',
-      maxFeePerGas: '1000000000'
-    }
-  }),
-  signSafeOperation: jest.fn().mockResolvedValue({
-    getHash: jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH),
-    signatures: new Map([[ACCOUNT.address.toLowerCase(), { data: '0xmocksig' }]])
-  }),
-  executeTransaction: jest.fn().mockResolvedValue(MOCK_USER_OP_HASH),
-  getUserOperationReceipt: jest.fn().mockResolvedValue({
-    receipt: { transactionHash: MOCK_TX_HASH }
-  }),
+const MOCK_MESSAGE_EIP712 = {
+  domain: { chainId: 11155111, verifyingContract: MOCK_SAFE_ADDRESS },
+  types: { SafeMessage: [{ type: 'bytes', name: 'message' }] },
+  messageValue: { message: '0x' + 'ab'.repeat(32) }
+}
+const EXPECTED_MESSAGE_HASH = TypedDataEncoder.hash(
+  MOCK_MESSAGE_EIP712.domain,
+  MOCK_MESSAGE_EIP712.types,
+  MOCK_MESSAGE_EIP712.messageValue
+)
+
+const createMockSmartAccount = (overrides = {}) => ({
+  getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
+  getThreshold: jest.fn().mockResolvedValue(1),
+  signUserOperationWithSigners: jest.fn().mockResolvedValue('0xformattedsignature'),
+  getSafeMessageEip712Data: jest.fn().mockReturnValue(MOCK_MESSAGE_EIP712),
+  createStandardAddOwnerWithThresholdMetaTransaction: jest.fn().mockReturnValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xaddowner' }),
+  createRemoveOwnerMetaTransaction: jest.fn().mockResolvedValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xremoveowner' }),
+  createSwapOwnerMetaTransactions: jest.fn().mockResolvedValue([{ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xswapowner' }]),
+  createChangeThresholdMetaTransaction: jest.fn().mockReturnValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xchangethreshold' }),
   ...overrides
 })
 
@@ -104,17 +80,23 @@ const createMockTransport = (overrides = {}) => ({
   submitProposal: jest.fn().mockResolvedValue(undefined),
   getProposal: jest.fn().mockResolvedValue({
     confirmations: [{ owner: ACCOUNT.address }],
-    preparedSignature: '0xsignature'
+    userOperation: { nonce: '0' },
+    preparedSignature: '0xpreparedsignature'
   }),
   confirmProposal: jest.fn().mockResolvedValue(undefined),
   submitMessage: jest.fn().mockResolvedValue(undefined),
   confirmMessage: jest.fn().mockResolvedValue(undefined),
   getMessage: jest.fn().mockResolvedValue({
+    messageHash: MOCK_MESSAGE_HASH,
     message: 'Hello!',
     confirmations: [{ owner: ACCOUNT.address }],
     preparedSignature: '0xmessagesignature'
   }),
   ...overrides
+})
+
+const createMockBundler = () => ({
+  sendUserOperation: jest.fn().mockResolvedValue(MOCK_USER_OP_HASH)
 })
 
 describe('WalletAccountMultisigEvmSafe4337', () => {
@@ -146,7 +128,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     test('should successfully initialize with ERC-20 paymaster options', () => {
       const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+        paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -162,7 +144,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {
       const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+        paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
         sponsorshipPolicyId: 'sp_my_policy_123',
         safeOptions: {
@@ -234,19 +216,12 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
   })
 
   describe('sign', () => {
-   test('should return signature string', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockTransport = createMockTransport({
-        getMessage: jest.fn().mockResolvedValue({
-          messageHash: MOCK_MESSAGE_HASH,
-          message: 'Hello!',
-          confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: null
-        })
-      })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
+    test('should return signature string', async () => {
+      account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
+      account._signDigest = jest.fn().mockReturnValue('0xmocksignature')
+      account._transport = createMockTransport()
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const result = await account.sign('Hello!')
@@ -257,22 +232,19 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
   describe('verify', () => {
     test('should return true for valid signature', async () => {
-      const mockPack = createMockSafe4337Pack()
-      mockPack.protocolKit.isValidSignature = jest.fn().mockResolvedValue(true)
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      account._provider = { request: jest.fn().mockResolvedValue(EIP1271_MAGIC_VALUE + '0'.repeat(56)) }
+      account._safeAddress = MOCK_SAFE_ADDRESS
 
-      const result = await account.verify('Hello!', '0xvalidsignature')
+      const result = await account.verify('Hello!', VALID_SIGNATURE)
 
       expect(result).toBe(true)
-      expect(mockPack.protocolKit.isValidSignature).toHaveBeenCalled()
     })
 
     test('should return false for invalid signature', async () => {
-      const mockPack = createMockSafe4337Pack()
-      mockPack.protocolKit.isValidSignature = jest.fn().mockResolvedValue(false)
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      account._provider = { request: jest.fn().mockResolvedValue('0x' + '0'.repeat(64)) }
+      account._safeAddress = MOCK_SAFE_ADDRESS
 
-      const result = await account.verify('Hello!', '0xinvalidsignature')
+      const result = await account.verify('Hello!', VALID_SIGNATURE)
 
       expect(result).toBe(false)
     })
@@ -280,41 +252,37 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
   describe('proposeMessage', () => {
     test('should propose new message and return MessageProposal', async () => {
-      const mockPack = createMockSafe4337Pack()
       const mockTransport = createMockTransport({
         getMessage: jest.fn().mockResolvedValue({
-          messageHash: MOCK_MESSAGE_HASH,
+          messageHash: EXPECTED_MESSAGE_HASH,
           message: 'Hello!',
           confirmations: [{ owner: ACCOUNT.address }],
           preparedSignature: null
         })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
+      account._signDigest = jest.fn().mockReturnValue('0xmocksignature')
       account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const result = await account.proposeMessage('Hello!')
 
-      expect(result).toBeDefined()
-      expect(result.messageHash).toBe(MOCK_MESSAGE_HASH)
+      expect(result.messageHash).toBe(EXPECTED_MESSAGE_HASH)
       expect(result.signature).toBe('0xmocksignature')
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
       expect(result.combinedSignature).toBeNull()
       expect(mockTransport.submitMessage).toHaveBeenCalledWith(
         MOCK_SAFE_ADDRESS,
-        expect.objectContaining({
-          message: 'Hello!',
-          signature: '0xmocksignature'
-        })
+        expect.objectContaining({ message: 'Hello!', signature: '0xmocksignature' })
       )
     })
   })
 
   describe('approveMessage', () => {
     test('should approve existing message and return MessageProposal', async () => {
-      const mockPack = createMockSafe4337Pack()
       const mockTransport = createMockTransport({
         getMessage: jest.fn()
           .mockResolvedValueOnce({
@@ -323,25 +291,26 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
             preparedSignature: null
           })
           .mockResolvedValueOnce({
-            messageHash: MOCK_MESSAGE_HASH,
+            messageHash: EXPECTED_MESSAGE_HASH,
             message: 'Hello!',
             confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
             preparedSignature: '0xcombinedsig'
           })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
+      account._signDigest = jest.fn().mockReturnValue('0xmocksignature')
       account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 2
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const result = await account.approveMessage(MOCK_MESSAGE_HASH)
+      const result = await account.approveMessage(EXPECTED_MESSAGE_HASH)
 
-      expect(result).toBeDefined()
       expect(result.signature).toBe('0xmocksignature')
       expect(result.confirmations).toBe(2)
       expect(result.combinedSignature).toBe('0xcombinedsig')
       expect(mockTransport.confirmMessage).toHaveBeenCalledWith(
-        MOCK_MESSAGE_HASH,
+        EXPECTED_MESSAGE_HASH,
         '0xmocksignature'
       )
     })
@@ -359,7 +328,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       testAccount.dispose()
 
-      expect(testAccount._safe4337Packs.size).toBe(0)
+      expect(testAccount._signerAccount).toBe(null)
       expect(testAccount._transport).toBe(null)
     })
   })
@@ -377,118 +346,90 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-
   describe('approveTx', () => {
     test('should return approval result with confirmations', async () => {
-      const mockPack = createMockSafe4337Pack()
       const mockTransport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
+          userOperation: { nonce: '0' },
           preparedSignature: '0xsignature'
         })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._transport = mockTransport
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      account._signDigest = jest.fn().mockReturnValue('0xrawsig')
+      account._threshold = 2
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const result = await account.approveTx(MOCK_SAFE_OP_HASH)
 
-      expect(result).toBeDefined()
       expect(result.confirmations).toBe(2)
     })
 
     test('should call confirmProposal on transport', async () => {
-      const mockPack = createMockSafe4337Pack()
       const mockTransport = createMockTransport()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._transport = mockTransport
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      account._signDigest = jest.fn().mockReturnValue('0xrawsig')
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       await account.approveTx(MOCK_SAFE_OP_HASH)
 
-      expect(mockTransport.confirmProposal).toHaveBeenCalledWith(
-        MOCK_SAFE_OP_HASH,
-        '0xmocksig'
-      )
+      expect(mockTransport.confirmProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, '0xrawsig')
     })
   })
 
   describe('rejectTx', () => {
     test('should return rejection result with proposalId', async () => {
-      const mockPack = createMockSafe4337Pack()
       const mockTransport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: '0xsignature',
-          userOperation: { nonce: '5' }
+          userOperation: { nonce: '5' },
+          preparedSignature: '0xsignature'
         })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._transport = mockTransport
+      account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const result = await account.rejectTx(MOCK_SAFE_OP_HASH)
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
     })
 
-    test('should create zero-value self-transfer transaction', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockTransport = createMockTransport({
-        getProposal: jest.fn().mockResolvedValue({
-          confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: '0xsignature',
-          userOperation: { nonce: '5' }
-        })
-      })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-
-      await account.rejectTx(MOCK_SAFE_OP_HASH)
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.transactions).toEqual([{
-        from: MOCK_SAFE_ADDRESS,
-        to: MOCK_SAFE_ADDRESS,
-        value: '0',
-        data: '0x'
-      }])
-    })
-
     test('should pass customNonce from original proposal', async () => {
-      const mockPack = createMockSafe4337Pack()
       const mockTransport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: '0xsignature',
-          userOperation: { nonce: '42' }
+          userOperation: { nonce: '42' },
+          preparedSignature: '0xsignature'
         })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._transport = mockTransport
+      account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       await account.rejectTx(MOCK_SAFE_OP_HASH)
 
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.customNonce).toBe(42n)
+      expect(account._createSafeOperation).toHaveBeenCalledWith(
+        expect.objectContaining({ to: MOCK_SAFE_ADDRESS, value: '0', data: '0x' }),
+        { customNonce: 42n }
+      )
     })
 
     test('should throw if proposal not found', async () => {
-      const mockTransport = createMockTransport({
+      account._transport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue(null)
       })
-      account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
 
       await expect(account.rejectTx(MOCK_SAFE_OP_HASH))
@@ -496,14 +437,12 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should throw if original proposal has no nonce', async () => {
-      const mockTransport = createMockTransport({
+      account._transport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: '0xsignature',
           userOperation: {}
         })
       })
-      account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
 
       await expect(account.rejectTx(MOCK_SAFE_OP_HASH))
@@ -513,46 +452,34 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
   describe('executeTx', () => {
     test('should return execute result with hash', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockTransport = createMockTransport()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
-      account._safeAddress = MOCK_SAFE_ADDRESS
+      account._transport = createMockTransport()
+      account._getBundler = jest.fn().mockReturnValue(createMockBundler())
+      account._threshold = 1
 
       const result = await account.executeTx(MOCK_SAFE_OP_HASH)
 
-      expect(result).toBeDefined()
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
     })
 
-    test('should call executeTransaction on Safe4337Pack', async () => {
-      const mockPack = createMockSafe4337Pack()
-      const mockTransport = createMockTransport()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
-      account._safeAddress = MOCK_SAFE_ADDRESS
+    test('should call sendUserOperation on the bundler', async () => {
+      const mockBundler = createMockBundler()
+      account._transport = createMockTransport()
+      account._getBundler = jest.fn().mockReturnValue(mockBundler)
+      account._threshold = 1
 
       await account.executeTx(MOCK_SAFE_OP_HASH)
 
-      expect(mockPack.executeTransaction).toHaveBeenCalled()
+      expect(mockBundler.sendUserOperation).toHaveBeenCalled()
     })
 
     test('should throw if not enough confirmations', async () => {
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getThreshold: jest.fn().mockResolvedValue(2)
-        }
-      })
-      const mockTransport = createMockTransport({
+      account._transport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
-          confirmations: [{ owner: ACCOUNT.address }]
+          confirmations: [{ owner: ACCOUNT.address }],
+          userOperation: { nonce: '0' }
         })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
-      account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 2
 
       await expect(account.executeTx(MOCK_SAFE_OP_HASH))
         .rejects.toThrow('Not enough confirmations')
@@ -561,22 +488,13 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
   describe('deploy', () => {
     test('should return hash and fee on successful deployment', async () => {
-            const createSafeDeploymentTransaction = jest.fn().mockResolvedValue({
+      const sendTransaction = jest.fn().mockResolvedValue({ hash: MOCK_TX_HASH, fee: 210000n })
+      account.isDeployed = jest.fn().mockResolvedValue(false)
+      account._buildDeploymentTransaction = jest.fn().mockReturnValue({
         to: '0xDeployFactory',
-        value: '0',
+        value: 0n,
         data: '0xdeploydata'
       })
-      const sendTransaction = jest.fn().mockResolvedValue({ hash: MOCK_TX_HASH, fee: 210000n })
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(false),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1),
-          createSafeDeploymentTransaction
-        }
-      })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
       account._signerAccount = {
         ...account._signerAccount,
         sendTransaction,
@@ -585,11 +503,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       const result = await account.deploy()
 
-      expect(result).toBeDefined()
       expect(result.hash).toBe(MOCK_TX_HASH)
       expect(result.fee).toBe(210000n)
-
-            expect(createSafeDeploymentTransaction).toHaveBeenCalled()
       expect(sendTransaction).toHaveBeenCalledWith({
         to: '0xDeployFactory',
         value: 0n,
@@ -598,94 +513,48 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should throw if Safe is already deployed', async () => {
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      account.isDeployed = jest.fn().mockResolvedValue(true)
 
       await expect(account.deploy())
         .rejects.toThrow('Safe is already deployed')
     })
   })
-  
+
   describe('sendTransaction', () => {
-    test('should return MultisigTransactionResult', async () => {
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
+    test('should return MultisigTransactionResult and auto-execute when threshold met', async () => {
+      account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
+      account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      account._transport = createMockTransport()
+      account._getBundler = jest.fn().mockReturnValue(createMockBundler())
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
       const result = await account.sendTransaction(tx, { autoExecute: true })
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
-      expect(result.fee).toBe(350000000000000n)
+      expect(result.fee).toBe(MOCK_FEE)
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
       expect(result.executed).toBe(true)
     })
 
-    test('should auto-execute for 1-of-1 Safe', async () => {
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport({
-        getProposal: jest.fn().mockResolvedValue({
-          confirmations: [{ owner: ACCOUNT.address }],
-          preparedSignature: '0xsignature'
-        })
-      })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
-      account._safeAddress = MOCK_SAFE_ADDRESS
-      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      const result = await account.sendTransaction(tx, { autoExecute: true })
-
-      expect(result.executed).toBe(true)
-      expect(result.hash).toBe(MOCK_USER_OP_HASH)
-    })
-
     test('should not auto-execute when threshold not met', async () => {
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address, ACCOUNT_2.address]),
-          getThreshold: jest.fn().mockResolvedValue(2)
-        }
-      })
-      const mockTransport = createMockTransport({
+      account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
+      account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      account._transport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }],
+          userOperation: { nonce: '0' },
           preparedSignature: '0xsignature'
         })
       })
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 2
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
@@ -695,90 +564,42 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
 
-    test('should NOT pass amountToApprove in sponsored mode', async () => {
+    test('should quote a zero fee in sponsored mode', async () => {
       const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
+        paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
       })
-
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport()
-      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      sponsoredAccount._transport = mockTransport
+      sponsoredAccount._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      sponsoredAccount._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      sponsoredAccount._transport = createMockTransport()
+      sponsoredAccount._getBundler = jest.fn().mockReturnValue(createMockBundler())
       sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
+      sponsoredAccount._threshold = 1
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      await sponsoredAccount.sendTransaction(tx)
+      const result = await sponsoredAccount.sendTransaction(tx, { autoExecute: true })
 
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.amountToApprove).toBeUndefined()
+      expect(result.fee).toBe(0n)
 
       sponsoredAccount.dispose()
-    })
-
-    test('should override to sponsored mode via options', async () => {
-      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
-        ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
-        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
-        safeOptions: {
-          owners: [ACCOUNT.address],
-          threshold: 1
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport()
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      erc20Account._transport = mockTransport
-      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
-      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-
-      const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      await erc20Account.sendTransaction(tx, { isSponsored: true })
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.amountToApprove).toBeUndefined()
-
-      erc20Account.dispose()
     })
   })
 
   describe('transfer', () => {
     test('should return MultisigTransactionResult', async () => {
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
+      account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
+      account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      account._transport = createMockTransport()
+      account._getBundler = jest.fn().mockReturnValue(createMockBundler())
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const transferOptions = {
@@ -788,127 +609,80 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       }
       const result = await account.transfer(transferOptions, { autoExecute: true })
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
-      expect(result.fee).toBe(350000000000000n)
+      expect(result.fee).toBe(MOCK_FEE)
       expect(result.executed).toBe(true)
     })
 
-    test('should NOT pass amountToApprove in sponsored mode', async () => {
-      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
-        ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=sponsor-key',
-        isSponsored: true,
-        safeOptions: {
-          owners: [ACCOUNT.address],
-          threshold: 1
-        }
-      })
-
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport()
-      sponsoredAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      sponsoredAccount._transport = mockTransport
-      sponsoredAccount._safeAddress = MOCK_SAFE_ADDRESS
-      sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-
-      const transferOptions = {
-        token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
-        recipient: ACCOUNT_2.address,
-        amount: 1000n
-      }
-      await sponsoredAccount.transfer(transferOptions)
-
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.amountToApprove).toBeUndefined()
-
-      sponsoredAccount.dispose()
-    })
-
-    test('should override to sponsored mode via options', async () => {
+    test('should throw when the fee exceeds transferMaxFee', async () => {
       const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
-        paymasterUrl: 'https://api.pimlico.io/v2/sepolia/rpc?apikey=test-key',
+        paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        transferMaxFee: 1n,
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
         }
       })
-
-      const mockPack = createMockSafe4337Pack({
-        protocolKit: {
-          getAddress: jest.fn().mockResolvedValue(MOCK_SAFE_ADDRESS),
-          isSafeDeployed: jest.fn().mockResolvedValue(true),
-          getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
-          getThreshold: jest.fn().mockResolvedValue(1)
-        }
-      })
-      const mockTransport = createMockTransport()
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      erc20Account._transport = mockTransport
+      erc20Account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
       erc20Account._safeAddress = MOCK_SAFE_ADDRESS
       erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
-      erc20Account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
 
       const transferOptions = {
         token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
         recipient: ACCOUNT_2.address,
         amount: 1000n
       }
-      await erc20Account.transfer(transferOptions, { isSponsored: true })
 
-      const callArgs = mockPack.createTransaction.mock.calls[0][0]
-      expect(callArgs.options.amountToApprove).toBeUndefined()
+      await expect(erc20Account.transfer(transferOptions))
+        .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
 
       erc20Account.dispose()
     })
   })
 
   describe('Owner Management', () => {
+    let mockSmartAccount
+
     beforeEach(() => {
-      const mockPack = createMockSafe4337Pack()
-      const mockTransport = createMockTransport()
-      account._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
-      account._transport = mockTransport
+      mockSmartAccount = createMockSmartAccount()
+      account._getSmartAccount = jest.fn().mockResolvedValue(mockSmartAccount)
+      account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: mockSmartAccount, chainId: 11155111n })
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      account._transport = createMockTransport()
       account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
     })
 
     test('addOwner should return propose result', async () => {
       const result = await account.addOwner(ACCOUNT_2.address)
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(mockSmartAccount.createStandardAddOwnerWithThresholdMetaTransaction).toHaveBeenCalled()
     })
 
     test('removeOwner should return propose result', async () => {
       const result = await account.removeOwner(ACCOUNT_2.address)
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(mockSmartAccount.createRemoveOwnerMetaTransaction).toHaveBeenCalled()
     })
 
     test('swapOwner should return propose result', async () => {
       const result = await account.swapOwner(ACCOUNT.address, ACCOUNT_2.address)
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(mockSmartAccount.createSwapOwnerMetaTransactions).toHaveBeenCalled()
     })
 
     test('changeThreshold should return propose result', async () => {
       const result = await account.changeThreshold(1)
 
-      expect(result).toBeDefined()
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(mockSmartAccount.createChangeThresholdMetaTransaction).toHaveBeenCalled()
     })
   })
 
@@ -917,7 +691,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const customTransport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
-          preparedSignature: '0xsignature'
+          userOperation: { nonce: '0' },
+          preparedSignature: '0xpreparedsignature'
         })
       })
 
@@ -930,9 +705,13 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         }
       })
 
-      const mockPack = createMockSafe4337Pack()
-      customAccount._getSafe4337Pack = jest.fn().mockResolvedValue(mockPack)
+      customAccount.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
+      customAccount._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
+      customAccount._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
+      customAccount._signDigest = jest.fn().mockReturnValue('0xrawsig')
+      customAccount._getBundler = jest.fn().mockReturnValue(createMockBundler())
       customAccount._safeAddress = MOCK_SAFE_ADDRESS
+      customAccount._threshold = 1
       customAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const proposeResult = await customAccount.sendTransaction({
@@ -945,10 +724,9 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(customTransport.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
       expect(proposeResult.proposalId).toBe(MOCK_SAFE_OP_HASH)
 
-      const approveResult = await customAccount.approveTx(MOCK_SAFE_OP_HASH)
+      await customAccount.approveTx(MOCK_SAFE_OP_HASH)
 
-      expect(customTransport.confirmProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, '0xmocksig')
-      expect(approveResult.confirmations).toBe(2)
+      expect(customTransport.confirmProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, '0xrawsig')
 
       customAccount.dispose()
     })
