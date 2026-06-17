@@ -80,7 +80,16 @@ const createMockTransport = (overrides = {}) => ({
   submitProposal: jest.fn().mockResolvedValue(undefined),
   getProposal: jest.fn().mockResolvedValue({
     confirmations: [{ owner: ACCOUNT.address }],
-    userOperation: { nonce: '0' },
+    userOperation: {
+      nonce: '0',
+      callGasLimit: '100000',
+      verificationGasLimit: '100000',
+      preVerificationGas: '50000',
+      maxFeePerGas: '1000000000',
+      maxPriorityFeePerGas: '1000000000',
+      paymasterVerificationGasLimit: '0',
+      paymasterPostOpGasLimit: '0'
+    },
     preparedSignature: '0xpreparedsignature'
   }),
   confirmProposal: jest.fn().mockResolvedValue(undefined),
@@ -197,9 +206,9 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('keyPair', () => {
+  describe('signerKeyPair', () => {
     test('should return deterministic key pair with privateKey and publicKey', () => {
-      const keyPair = account.keyPair
+      const keyPair = account.signerKeyPair
 
       expect(keyPair).toBeDefined()
       expect(Buffer.from(keyPair.privateKey).toString('hex')).toBe('1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727')
@@ -346,7 +355,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('approveTx', () => {
+  describe('approveProposal', () => {
     test('should return approval result with confirmations', async () => {
       const mockTransport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
@@ -361,7 +370,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._threshold = 2
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const result = await account.approveTx(MOCK_SAFE_OP_HASH)
+      const result = await account.approveProposal(MOCK_SAFE_OP_HASH)
 
       expect(result.confirmations).toBe(2)
     })
@@ -374,13 +383,13 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      await account.approveTx(MOCK_SAFE_OP_HASH)
+      await account.approveProposal(MOCK_SAFE_OP_HASH)
 
       expect(mockTransport.confirmProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, '0xrawsig')
     })
   })
 
-  describe('rejectTx', () => {
+  describe('rejectProposal', () => {
     test('should return rejection result with proposalId', async () => {
       const mockTransport = createMockTransport({
         getProposal: jest.fn().mockResolvedValue({
@@ -396,7 +405,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const result = await account.rejectTx(MOCK_SAFE_OP_HASH)
+      const result = await account.rejectProposal(MOCK_SAFE_OP_HASH)
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.confirmations).toBe(1)
@@ -418,7 +427,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      await account.rejectTx(MOCK_SAFE_OP_HASH)
+      await account.rejectProposal(MOCK_SAFE_OP_HASH)
 
       expect(account._createSafeOperation).toHaveBeenCalledWith(
         expect.objectContaining({ to: MOCK_SAFE_ADDRESS, value: '0', data: '0x' }),
@@ -432,7 +441,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       })
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      await expect(account.rejectTx(MOCK_SAFE_OP_HASH))
+      await expect(account.rejectProposal(MOCK_SAFE_OP_HASH))
         .rejects.toThrow(`SafeOperation not found: ${MOCK_SAFE_OP_HASH}`)
     })
 
@@ -445,18 +454,18 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       })
       account._safeAddress = MOCK_SAFE_ADDRESS
 
-      await expect(account.rejectTx(MOCK_SAFE_OP_HASH))
+      await expect(account.rejectProposal(MOCK_SAFE_OP_HASH))
         .rejects.toThrow('Cannot reject: original proposal has no nonce')
     })
   })
 
-  describe('executeTx', () => {
+  describe('executeProposal', () => {
     test('should return execute result with hash', async () => {
       account._transport = createMockTransport()
       account._getBundler = jest.fn().mockReturnValue(createMockBundler())
       account._threshold = 1
 
-      const result = await account.executeTx(MOCK_SAFE_OP_HASH)
+      const result = await account.executeProposal(MOCK_SAFE_OP_HASH)
 
       expect(result.hash).toBe(MOCK_USER_OP_HASH)
     })
@@ -467,7 +476,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._getBundler = jest.fn().mockReturnValue(mockBundler)
       account._threshold = 1
 
-      await account.executeTx(MOCK_SAFE_OP_HASH)
+      await account.executeProposal(MOCK_SAFE_OP_HASH)
 
       expect(mockBundler.sendUserOperation).toHaveBeenCalled()
     })
@@ -481,7 +490,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       })
       account._threshold = 2
 
-      await expect(account.executeTx(MOCK_SAFE_OP_HASH))
+      await expect(account.executeProposal(MOCK_SAFE_OP_HASH))
         .rejects.toThrow('Not enough confirmations')
     })
   })
@@ -520,7 +529,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('sendTransaction', () => {
+  describe('propose', () => {
     test('should return MultisigTransactionResult and auto-execute when threshold met', async () => {
       account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
       account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
@@ -532,11 +541,9 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      const result = await account.sendTransaction(tx, { autoExecute: true })
+      const result = await account.propose(tx, { autoExecute: true })
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(result.hash).toBe(MOCK_USER_OP_HASH)
-      expect(result.fee).toBe(MOCK_FEE)
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
       expect(result.executed).toBe(true)
@@ -558,7 +565,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      const result = await account.sendTransaction(tx)
+      const result = await account.propose(tx)
 
       expect(result.executed).toBe(false)
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
@@ -583,15 +590,15 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       sponsoredAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
-      const result = await sponsoredAccount.sendTransaction(tx, { autoExecute: true })
+      const { fee } = await sponsoredAccount.quoteSendTransaction(tx)
 
-      expect(result.fee).toBe(0n)
+      expect(fee).toBe(0n)
 
       sponsoredAccount.dispose()
     })
   })
 
-  describe('transfer', () => {
+  describe('proposeTransfer', () => {
     test('should return MultisigTransactionResult', async () => {
       account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
       account._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
@@ -607,11 +614,9 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         recipient: ACCOUNT_2.address,
         amount: 1000n
       }
-      const result = await account.transfer(transferOptions, { autoExecute: true })
+      const result = await account.proposeTransfer(transferOptions, { autoExecute: true })
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(result.hash).toBe(MOCK_USER_OP_HASH)
-      expect(result.fee).toBe(MOCK_FEE)
       expect(result.executed).toBe(true)
     })
 
@@ -636,7 +641,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         amount: 1000n
       }
 
-      await expect(erc20Account.transfer(transferOptions))
+      await expect(erc20Account.proposeTransfer(transferOptions))
         .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
 
       erc20Account.dispose()
@@ -714,7 +719,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       customAccount._threshold = 1
       customAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const proposeResult = await customAccount.sendTransaction({
+      const proposeResult = await customAccount.propose({
         to: ACCOUNT_2.address,
         value: '1000',
         data: '0x'
@@ -724,7 +729,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(customTransport.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
       expect(proposeResult.proposalId).toBe(MOCK_SAFE_OP_HASH)
 
-      await customAccount.approveTx(MOCK_SAFE_OP_HASH)
+      await customAccount.approveProposal(MOCK_SAFE_OP_HASH)
 
       expect(customTransport.confirmProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, '0xrawsig')
 

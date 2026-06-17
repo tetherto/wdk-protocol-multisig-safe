@@ -46,6 +46,10 @@ export default class WalletManagerMultisigEvmSafe4337 extends WalletManager {
      * @returns {Promise<FeeRates>} The fee rates (in wei)
      */
     getFeeRates(): Promise<FeeRates>;
+    /**
+     * Disposes all the wallet accounts, erasing their private keys from the memory.
+     */
+    dispose(): void;
 }
 export type Provider = import("ethers").Provider;
 export type FeeRates = import("@tetherto/wdk-wallet-evm").FeeRates;

@@ -31,24 +31,24 @@ const TIMEOUT = 180000
 const suite = ENABLED ? describe : describe.skip
 
 suite('SafeTxServiceTransport — real Safe Transaction Service V7 round-trip (opt-in)', () => {
-  const config = {
-    chainId: BigInt(process.env.ST_CHAIN_ID),
-    provider: process.env.ST_RPC_URL,
-    bundlerUrl: process.env.ST_BUNDLER_URL,
-    safeModulesVersion: '0.3.0',
-    useNativeCoins: true,
-    txServiceUrl: process.env.ST_TX_SERVICE_URL,
-    safeApiKey: process.env.ST_SAFE_API_KEY,
-    safeOptions: { safeAddress: process.env.ST_SAFE_ADDRESS }
-  }
-
   test('proposes a V7 operation, retrieves it, confirms it, and sees the confirmation count grow', async () => {
+    const config = {
+      chainId: BigInt(process.env.ST_CHAIN_ID),
+      provider: process.env.ST_RPC_URL,
+      bundlerUrl: process.env.ST_BUNDLER_URL,
+      safeModulesVersion: '0.3.0',
+      useNativeCoins: true,
+      txServiceUrl: process.env.ST_TX_SERVICE_URL,
+      safeApiKey: process.env.ST_SAFE_API_KEY,
+      safeOptions: { safeAddress: process.env.ST_SAFE_ADDRESS }
+    }
+
     const proposer = new WalletAccountMultisigEvmSafe4337(process.env.ST_SEED_A, "0'/0/0", config)
     const approver = new WalletAccountMultisigEvmSafe4337(process.env.ST_SEED_B, "0'/0/0", config)
 
     const safeAddress = await proposer.getAddress()
 
-    const proposal = await proposer.sendTransaction({ to: safeAddress, value: 0n, data: '0x' })
+    const proposal = await proposer.propose({ to: safeAddress, value: 0n, data: '0x' })
     expect(proposal.proposalId).toMatch(/^0x[0-9a-fA-F]{64}$/)
     expect(proposal.confirmations).toBe(1)
 
@@ -57,7 +57,7 @@ suite('SafeTxServiceTransport — real Safe Transaction Service V7 round-trip (o
     expect(retrieved.proposalId).toBe(proposal.proposalId)
     expect(retrieved.confirmations).toBe(1)
 
-    const approval = await approver.approveTx(proposal.proposalId)
+    const approval = await approver.approveProposal(proposal.proposalId)
     expect(approval.confirmations).toBe(2)
 
     proposer.dispose()

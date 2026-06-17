@@ -21,18 +21,19 @@ import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 import {
   // eslint-disable-next-line camelcase
   SafeAccountV0_3_0 as SafeAccount030,
-  AbstractionKitError
+  AbstractionKitError,
+  calculateUserOperationMaxGasCost
 } from 'abstractionkit'
 
 import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
 
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountMultisig} IWalletAccountMultisig */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
-/** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountMultisig} IWalletAccountMultisig */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigOwnerManagement} IMultisigOwnerManagement */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposalResult} MultisigProposalResult */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
 
@@ -52,6 +53,7 @@ import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only
  * Provides full transaction and message signing operations.
  *
  * @implements {IWalletAccountMultisig}
+ * @implements {IMultisigOwnerManagement}
  */
 export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadOnlyMultisigEvmSafe4337 {
   /**
@@ -110,11 +112,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   }
 
   /**
-   * The account's key pair.
+   * The key pair of the signer associated with this account.
    *
    * @type {KeyPair}
    */
-  get keyPair () {
+  get signerKeyPair () {
     return this._signerAccount.keyPair
   }
 
@@ -134,7 +136,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Proposes a new message for the other owners to confirm.
    *
    * @param {string} message - The message to sign
-   * @returns {Promise<MessageProposal>} The sign result
+   * @returns {Promise<MultisigMessageProposal>} The sign result
    * @throws {Error} If the signer is not an owner of the Safe.
    */
   async proposeMessage (message) {
@@ -165,7 +167,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Approves an existing message proposal.
    *
    * @param {string} messageHash - The message hash to approve
-   * @returns {Promise<MessageProposal>} The approval result
+   * @returns {Promise<MultisigMessageProposal>} The approval result
    * @throws {Error} If the signer is not an owner of the Safe.
    * @throws {Error} If no message exists for the given hash.
    */
@@ -244,62 +246,52 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   }
 
   /**
-   * Sends a transaction - proposes for multisig approval.
+   * Proposes a transaction for multisig approval.
    * Auto-executes if `autoExecute` is true and threshold is met after proposing.
    *
-   * @param {EvmTransaction} tx - The transaction to send
-   * @param {MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigTransactionResult>} The transaction result
+   * @param {EvmTransaction} tx - The transaction to propose
+   * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
+   * @returns {Promise<MultisigProposalResult>} The proposal result
    */
-  async sendTransaction (tx, options = {}) {
+  async propose (tx, options = {}) {
     const { autoExecute = false, ...config } = options
-    const { fee } = await this.quoteSendTransaction(tx, config)
 
-    return await this._submitTransaction(tx, config, fee, autoExecute)
+    return await this._submitTransaction(tx, config, autoExecute)
   }
 
   /**
-   * Transfers a token to another address.
+   * Proposes transferring a token to another address for multisig approval.
    * Auto-executes if `autoExecute` is true and threshold is met after proposing.
    *
    * @param {TransferOptions} transferOptions - Transfer options
-   * @param {MultisigSendOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigTransactionResult>} The transfer result
+   * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
+   * @returns {Promise<MultisigProposalResult>} The proposal result
    * @throws {Error} If the estimated fee exceeds the configured `transferMaxFee`.
    */
-  async transfer (transferOptions, options = {}) {
+  async proposeTransfer (transferOptions, options = {}) {
     const { autoExecute = false, ...config } = options
     const mergedConfig = { ...this._config, ...config }
     const tx = await WalletAccountEvm._getTransferTransaction(transferOptions)
-    const { fee } = await this.quoteSendTransaction(tx, config)
 
     const { isSponsored, useNativeCoins, transferMaxFee } = mergedConfig
-    if (!isSponsored && !useNativeCoins && transferMaxFee !== undefined && fee >= transferMaxFee) {
-      throw new Error('Exceeded maximum fee cost for transfer operation.')
+    if (!isSponsored && !useNativeCoins && transferMaxFee !== undefined) {
+      const { fee } = await this.quoteSendTransaction(tx, config)
+      if (fee >= transferMaxFee) {
+        throw new Error('Exceeded maximum fee cost for transfer operation.')
+      }
     }
 
-    return await this._submitTransaction(tx, config, fee, autoExecute)
+    return await this._submitTransaction(tx, config, autoExecute)
   }
 
-  /**
-   * Proposes a transaction, optionally executes if threshold is met.
-   *
-   * @private
-   * @param {EvmTransaction} tx - The transaction
-   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - Paymaster config override
-   * @param {bigint} fee - The estimated fee
-   * @param {boolean} autoExecute - Whether to auto-execute if threshold is met
-   * @returns {Promise<MultisigTransactionResult>} The transaction result
-   */
-  async _submitTransaction (tx, config, fee, autoExecute) {
+  /** @private */
+  async _submitTransaction (tx, config, autoExecute) {
     const proposeResult = await this._propose(tx, config)
 
     if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
-      const execResult = await this.executeTx(proposeResult.proposalId)
+      await this.executeProposal(proposeResult.proposalId)
       return {
         proposalId: proposeResult.proposalId,
-        hash: execResult.hash,
-        fee,
         confirmations: proposeResult.confirmations,
         threshold: proposeResult.threshold,
         executed: true
@@ -308,8 +300,6 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     return {
       proposalId: proposeResult.proposalId,
-      hash: proposeResult.proposalId,
-      fee,
       confirmations: proposeResult.confirmations,
       threshold: proposeResult.threshold,
       executed: false
@@ -320,12 +310,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Proposes a new transaction for multisig approval.
    * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
    *
-   * Note: `rejectTx()` passes `customNonce` via config to reuse the original proposal's nonce.
+   * Note: `rejectProposal()` passes `customNonce` via config to reuse the original proposal's nonce.
    *
    * @protected
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<MultisigResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The proposal result
    * @throws {Error} If the signer is not an owner of the Safe.
    */
   async _propose (transaction, config) {
@@ -355,12 +345,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   /**
    * Approves (signs) an existing proposal.
    *
-   * @param {string} proposalId - The Safe operation hash to approveTx
-   * @returns {Promise<MultisigResult>} Approval result
+   * @param {string} proposalId - The Safe operation hash to approve
+   * @returns {Promise<MultisigProposal>} Approval result
    * @throws {Error} If the signer is not an owner of the Safe.
    * @throws {Error} If no proposal exists for the given id.
    */
-  async approveTx (proposalId) {
+  async approveProposal (proposalId) {
     await this.validateSignerIsOwner()
 
     const threshold = await this.getThreshold()
@@ -386,12 +376,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Rejects a proposal by creating a rejection transaction.
    * A rejection is a zero-value transaction to the Safe itself with the same nonce.
    *
-   * @param {string} proposalId - The Safe operation hash to rejectTx
-   * @returns {Promise<MultisigResult>} The rejection proposal result
+   * @param {string} proposalId - The Safe operation hash to reject
+   * @returns {Promise<MultisigProposal>} The rejection proposal result
    * @throws {Error} If no proposal exists for the given id.
    * @throws {Error} If the original proposal has no nonce to reuse.
    */
-  async rejectTx (proposalId) {
+  async rejectProposal (proposalId) {
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
@@ -416,12 +406,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   /**
    * Executes a fully signed Safe operation via the bundler.
    *
-   * @param {string} proposalId - The Safe operation hash to executeTx
-   * @returns {Promise<MultisigExecuteResult>} The execution result
+   * @param {string} proposalId - The Safe operation hash to execute
+   * @returns {Promise<TransactionResult>} The execution result
    * @throws {Error} If no proposal exists for the given id.
    * @throws {Error} If the proposal does not have enough confirmations to meet the threshold.
    */
-  async executeTx (proposalId) {
+  async executeProposal (proposalId) {
     const threshold = await this.getThreshold()
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
@@ -441,12 +431,14 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
     userOp.signature = this._aggregateSignatures(safeOperationResponse)
 
+    const fee = calculateUserOperationMaxGasCost(userOp)
     const hash = await this._sendUserOperation(userOp)
 
     this._resetState()
 
     return {
-      hash
+      hash,
+      fee
     }
   }
 
@@ -455,7 +447,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} ownerAddress - Address of new owner
    * @param {MultisigOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Options with optional threshold and paymaster config
-   * @returns {Promise<MultisigResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The proposal result
    */
   async addOwner (ownerAddress, options = {}) {
     const { threshold: newThreshold, ...config } = options
@@ -473,7 +465,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} ownerAddress - Address of owner to remove
    * @param {MultisigOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Options with optional threshold and paymaster config
-   * @returns {Promise<MultisigResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The proposal result
    */
   async removeOwner (ownerAddress, options = {}) {
     const { threshold: newThreshold, ...config } = options
@@ -496,7 +488,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {string} oldOwnerAddress - Address of owner to remove
    * @param {string} newOwnerAddress - Address of new owner
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<MultisigResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The proposal result
    */
   async swapOwner (oldOwnerAddress, newOwnerAddress, config) {
     const smartAccount = await this._getSmartAccount()
@@ -515,7 +507,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {number} newThreshold - New threshold value
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<MultisigResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The proposal result
    */
   async changeThreshold (newThreshold, config) {
     const smartAccount = await this._getSmartAccount()
@@ -531,7 +523,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {string[]} newOwners - Array of new owner addresses
    * @param {number} newThreshold - New threshold value
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<MultisigResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The proposal result
    * @throws {Error} If there are no owner or threshold changes to make.
    */
   async updateOwners (newOwners, newThreshold, config) {
@@ -628,23 +620,6 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       safeAddress,
       userOperation: userOp,
       options: { validAfter: 0, validUntil: 0 }
-    }
-  }
-
-  /** @private */
-  _rebuildUserOperation (userOperation) {
-    const toBigInt = (value) => (value === undefined || value === null) ? value : BigInt(value)
-
-    return {
-      ...userOperation,
-      nonce: toBigInt(userOperation.nonce),
-      callGasLimit: toBigInt(userOperation.callGasLimit),
-      verificationGasLimit: toBigInt(userOperation.verificationGasLimit),
-      preVerificationGas: toBigInt(userOperation.preVerificationGas),
-      maxFeePerGas: toBigInt(userOperation.maxFeePerGas),
-      maxPriorityFeePerGas: toBigInt(userOperation.maxPriorityFeePerGas),
-      paymasterVerificationGasLimit: toBigInt(userOperation.paymasterVerificationGasLimit),
-      paymasterPostOpGasLimit: toBigInt(userOperation.paymasterPostOpGasLimit)
     }
   }
 

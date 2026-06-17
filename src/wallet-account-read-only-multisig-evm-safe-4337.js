@@ -37,12 +37,13 @@ import { ConfigurationError } from './errors.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
-/** @typedef {import('./transports/i-multisig-transport.js').default} IMultisigTransport */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
 
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigExecuteQuote} MultisigExecuteQuote */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
@@ -512,7 +513,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * Returns a list of message proposals by their hashes.
    *
    * @param {string[]} messageHashes - The list of message hashes
-   * @returns {Promise<(MessageInfo | null)[]>} The message details, or null for messages not found
+   * @returns {Promise<(MultisigMessage | null)[]>} The message details, or null for messages not found
    */
   async getMessages (messageHashes) {
     const threshold = await this.getThreshold()
@@ -586,6 +587,48 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   async quoteTransfer (transferOptions, config) {
     const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(transferOptions)
     return await this.quoteSendTransaction(tx, config)
+  }
+
+  /**
+   * Quotes the on-chain cost of executing a pending proposal.
+   *
+   * @param {string} proposalId - The proposal's id
+   * @returns {Promise<MultisigExecuteQuote>} The execution cost estimate
+   * @throws {Error} If no proposal exists for the given id.
+   */
+  async quoteExecuteProposal (proposalId) {
+    const safeOperation = await this._transport.getProposal(proposalId)
+
+    if (!safeOperation) {
+      throw new Error(`SafeOperation not found: ${proposalId}`)
+    }
+
+    const userOp = this._rebuildUserOperation(safeOperation.userOperation)
+
+    return { fee: calculateUserOperationMaxGasCost(userOp) }
+  }
+
+  /**
+   * Coerces a stored UserOperation's numeric fields back to BigInt (a transport may serialize them as strings).
+   *
+   * @protected
+   * @param {UserOperationV7} userOperation - The stored UserOperation.
+   * @returns {UserOperationV7} The UserOperation with BigInt numeric fields.
+   */
+  _rebuildUserOperation (userOperation) {
+    const toBigInt = (value) => (value === undefined || value === null) ? value : BigInt(value)
+
+    return {
+      ...userOperation,
+      nonce: toBigInt(userOperation.nonce),
+      callGasLimit: toBigInt(userOperation.callGasLimit),
+      verificationGasLimit: toBigInt(userOperation.verificationGasLimit),
+      preVerificationGas: toBigInt(userOperation.preVerificationGas),
+      maxFeePerGas: toBigInt(userOperation.maxFeePerGas),
+      maxPriorityFeePerGas: toBigInt(userOperation.maxPriorityFeePerGas),
+      paymasterVerificationGasLimit: toBigInt(userOperation.paymasterVerificationGasLimit),
+      paymasterPostOpGasLimit: toBigInt(userOperation.paymasterPostOpGasLimit)
+    }
   }
 
   /**

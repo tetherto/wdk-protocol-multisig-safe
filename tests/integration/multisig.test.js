@@ -137,17 +137,17 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
     const amount = ethers.parseEther('1')
     const balanceBefore = await ethersProvider.getBalance(recipient)
 
-    const proposal = await signerA.sendTransaction({ to: recipient, value: amount, data: '0x' })
+    const proposal = await signerA.propose({ to: recipient, value: amount, data: '0x' })
     expect(proposal.executed).toBe(false)
     expect(proposal.confirmations).toBe(1)
     expect(proposal.threshold).toBe(2)
 
-    const approval = await signerB.approveTx(proposal.proposalId)
+    const approval = await signerB.approveProposal(proposal.proposalId)
     expect(approval.confirmations).toBe(2)
 
     expect(await signerC.isReadyToExecute(proposal.proposalId)).toBe(true)
 
-    const exec = await signerC.executeTx(proposal.proposalId)
+    const exec = await signerC.executeProposal(proposal.proposalId)
     await waitForTx(exec.hash, signerA)
 
     const balanceAfter = await ethersProvider.getBalance(recipient)
@@ -155,7 +155,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
   }, TIMEOUT)
 
   test('autoExecute does not execute below threshold', async () => {
-    const result = await signerA.sendTransaction(
+    const result = await signerA.propose(
       { to: '0x000000000000000000000000000000000000dEaD', value: 0n, data: '0x' },
       { autoExecute: true }
     )
@@ -183,9 +183,9 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
     const newOwner = deriveEoa(SEED_D)
 
     const proposal = await signerA.addOwner(newOwner)
-    await signerB.approveTx(proposal.proposalId)
+    await signerB.approveProposal(proposal.proposalId)
 
-    const exec = await signerA.executeTx(proposal.proposalId)
+    const exec = await signerA.executeProposal(proposal.proposalId)
     await waitForTx(exec.hash, signerA)
 
     signerA._resetState()

@@ -114,4 +114,17 @@ export default class WalletManagerMultisigEvmSafe4337 extends WalletManager {
       fast: maxFeePerGas * WalletManagerEvm._FEE_RATE_FAST_MULTIPLIER / 100n
     }
   }
+
+  /**
+   * Disposes all the wallet accounts, erasing their private keys from the memory.
+   */
+  dispose () {
+    for (const account of Object.values(this._accounts)) {
+      if (account.signerKeyPair.privateKey) {
+        account.dispose()
+      }
+    }
+
+    this._accounts = {}
+  }
 }

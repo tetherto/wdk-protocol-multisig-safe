@@ -17,15 +17,14 @@
 // ============================================
 // Re-export types from @tetherto/wdk-wallet
 // ============================================
-/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposalResult} MultisigProposalResult */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigExecuteQuote} MultisigExecuteQuote */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 
 // ============================================
 // Re-export types from @tetherto/wdk-wallet-evm
@@ -63,9 +62,6 @@
 // ============================================
 
 /** @typedef {import('./src/transports/safe-tx-service.js').SafeTxServiceTransportConfig} SafeTxServiceTransportConfig */
-/** @typedef {import('./src/transports/i-multisig-transport.js').TransportProposal} TransportProposal */
-/** @typedef {import('./src/transports/i-multisig-transport.js').TransportMessage} TransportMessage */
-/** @typedef {import('./src/transports/i-multisig-transport.js').TransportMessageInput} TransportMessageInput */
 
 // ============================================
 // Export classes and constants
@@ -81,7 +77,7 @@ export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-accoun
 // Export transports
 // ============================================
 
-export { default as IMultisigTransport } from './src/transports/i-multisig-transport.js'
+export { IMultisigTransport } from '@tetherto/wdk-wallet/multisig'
 
 export { default as SafeTxServiceTransport } from './src/transports/safe-tx-service.js'
 

@@ -16,7 +16,7 @@
 
 import SafeApiKit from '@safe-global/api-kit'
 
-import IMultisigTransport from './i-multisig-transport.js'
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
 
 /**
  * @typedef {Object} SafeTxServiceTransportConfig
@@ -32,16 +32,16 @@ import IMultisigTransport from './i-multisig-transport.js'
  * This is the only place in the package that talks to `@safe-global/api-kit`
  * directly. The underlying `SafeApiKit` instance is created lazily on first
  * use, so constructing the transport is cheap and never performs I/O.
+ *
+ * @implements {IMultisigTransport}
  */
-export default class SafeTxServiceTransport extends IMultisigTransport {
+export default class SafeTxServiceTransport {
   /**
    * Creates a new Safe Transaction Service transport.
    *
    * @param {SafeTxServiceTransportConfig} config - The transport configuration.
    */
   constructor (config) {
-    super()
-
     /** @private */
     this._chainId = config.chainId
 

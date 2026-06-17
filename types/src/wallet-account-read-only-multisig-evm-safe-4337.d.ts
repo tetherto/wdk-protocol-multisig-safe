@@ -1,9 +1,10 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
-/** @typedef {import('./transports/i-multisig-transport.js').default} IMultisigTransport */
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigExecuteQuote} MultisigExecuteQuote */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
@@ -207,9 +208,9 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * Returns a list of message proposals by their hashes.
      *
      * @param {string[]} messageHashes - The list of message hashes
-     * @returns {Promise<(MessageInfo | null)[]>} The message details, or null for messages not found
+     * @returns {Promise<(MultisigMessage | null)[]>} The message details, or null for messages not found
      */
-    getMessages(messageHashes: string[]): Promise<(MessageInfo | null)[]>;
+    getMessages(messageHashes: string[]): Promise<(MultisigMessage | null)[]>;
     /**
      * Estimates the gas cost for deploying the Safe.
      *
@@ -240,6 +241,22 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     quoteTransfer(transferOptions: TransferOptions, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<{
         fee: bigint;
     }>;
+    /**
+     * Quotes the on-chain cost of executing a pending proposal.
+     *
+     * @param {string} proposalId - The proposal's id
+     * @returns {Promise<MultisigExecuteQuote>} The execution cost estimate
+     * @throws {Error} If no proposal exists for the given id.
+     */
+    quoteExecuteProposal(proposalId: string): Promise<MultisigExecuteQuote>;
+    /**
+     * Coerces a stored UserOperation's numeric fields back to BigInt (a transport may serialize them as strings).
+     *
+     * @protected
+     * @param {UserOperationV7} userOperation - The stored UserOperation.
+     * @returns {UserOperationV7} The UserOperation with BigInt numeric fields.
+     */
+    protected _rebuildUserOperation(userOperation: UserOperationV7): UserOperationV7;
     /**
      * Builds an unsigned UserOperation from the given transaction(s), applying the configured paymaster.
      *
@@ -339,11 +356,12 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     private _validateConfig;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
-export type IMultisigTransport = import("./transports/i-multisig-transport.js").default;
-export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet").IWalletAccountReadOnlyMultisig;
-export type MultisigInfo = import("@tetherto/wdk-wallet").MultisigInfo;
-export type MessageInfo = import("@tetherto/wdk-wallet").MessageInfo;
-export type MultisigProposal = import("@tetherto/wdk-wallet").MultisigProposal;
+export type IMultisigTransport = import("@tetherto/wdk-wallet/multisig").IMultisigTransport;
+export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet/multisig").IWalletAccountReadOnlyMultisig;
+export type MultisigInfo = import("@tetherto/wdk-wallet/multisig").MultisigInfo;
+export type MultisigMessage = import("@tetherto/wdk-wallet/multisig").MultisigMessage;
+export type MultisigProposal = import("@tetherto/wdk-wallet/multisig").MultisigProposal;
+export type MultisigExecuteQuote = import("@tetherto/wdk-wallet/multisig").MultisigExecuteQuote;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
