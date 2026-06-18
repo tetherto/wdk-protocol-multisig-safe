@@ -12,14 +12,14 @@
  * directly. The underlying `SafeApiKit` instance is created lazily on first
  * use, so constructing the transport is cheap and never performs I/O.
  */
-export default class SafeTxServiceTransport implements IMultisigTransport {
+export default class SafeTxServiceTransport implements IMultisigTransport<import("@safe-global/api-kit").AddSafeOperationProps> {
     /**
      * Creates a new Safe Transaction Service transport.
      *
      * @param {SafeTxServiceTransportConfig} config - The transport configuration.
      */
     constructor(config: SafeTxServiceTransportConfig);
-    submitProposal(proposal: Record<string, unknown>): Promise<void>;
+    submitProposal(proposal: import("@safe-global/api-kit").AddSafeOperationProps): Promise<void>;
     getProposal(proposalId: string): Promise<import("@tetherto/wdk-wallet/multisig").MultisigTransportProposal | null>;
     confirmProposal(proposalId: string, signature: string): Promise<void>;
     submitMessage(safeAddress: string, message: import("@tetherto/wdk-wallet/multisig").MultisigTransportMessageInput): Promise<void>;
