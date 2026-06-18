@@ -23,8 +23,8 @@ export default class SafeTxServiceTransport implements IMultisigTransport<import
     getProposal(proposalId: string): Promise<import("@tetherto/wdk-wallet/multisig").MultisigTransportProposal | null>;
     confirmProposal(proposalId: string, signature: string): Promise<void>;
     submitMessage(safeAddress: string, message: import("@tetherto/wdk-wallet/multisig").MultisigTransportMessageInput): Promise<void>;
-    getMessage(messageHash: string): Promise<import("@tetherto/wdk-wallet/multisig").MultisigTransportMessage | null>;
-    confirmMessage(messageHash: string, signature: string): Promise<void>;
+    getMessage(messageId: string): Promise<import("@tetherto/wdk-wallet/multisig").MultisigTransportMessage | null>;
+    confirmMessage(messageId: string, signature: string): Promise<void>;
     /** @private */
     private _chainId;
     /** @private */

@@ -80,12 +80,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     /**
      * Approves an existing message proposal.
      *
-     * @param {string} messageHash - The message hash to approve
+     * @param {string} messageId - The message hash to approve
      * @returns {Promise<MultisigMessageProposal>} The approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no message exists for the given hash.
      */
-    approveMessage(messageHash: string): Promise<MultisigMessageProposal>;
+    approveMessage(messageId: string): Promise<MultisigMessageProposal>;
     /**
      * Validates that the signer is an owner of the Safe.
      *

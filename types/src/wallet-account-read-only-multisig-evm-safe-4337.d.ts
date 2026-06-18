@@ -207,10 +207,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     /**
      * Returns a list of message proposals by their hashes.
      *
-     * @param {string[]} messageHashes - The list of message hashes
+     * @param {string[]} messageIds - The list of message hashes
      * @returns {Promise<(MultisigMessage | null)[]>} The message details, or null for messages not found
      */
-    getMessages(messageHashes: string[]): Promise<(MultisigMessage | null)[]>;
+    getMessages(messageIds: string[]): Promise<(MultisigMessage | null)[]>;
     /**
      * Estimates the gas cost for deploying the Safe.
      *

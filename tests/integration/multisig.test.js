@@ -171,7 +171,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
     expect(proposal.confirmations).toBe(1)
     expect(proposal.threshold).toBe(2)
 
-    const approval = await signerB.approveMessage(proposal.messageHash)
+    const approval = await signerB.approveMessage(proposal.messageId)
     expect(approval.confirmations).toBe(2)
     expect(approval.combinedSignature).toBeTruthy()
 

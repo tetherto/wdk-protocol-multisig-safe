@@ -510,20 +510,20 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Returns a list of message proposals by their hashes.
+   * Returns a list of message proposals by their ids.
    *
-   * @param {string[]} messageHashes - The list of message hashes
+   * @param {string[]} messageIds - The list of message ids
    * @returns {Promise<(MultisigMessage | null)[]>} The message details, or null for messages not found
    */
-  async getMessages (messageHashes) {
+  async getMessages (messageIds) {
     const threshold = await this.getThreshold()
 
-    return Promise.all(messageHashes.map(async (messageHash) => {
+    return Promise.all(messageIds.map(async (messageId) => {
       try {
-        const safeMessage = await this._transport.getMessage(messageHash)
+        const safeMessage = await this._transport.getMessage(messageId)
 
         return {
-          messageHash: safeMessage.messageHash,
+          messageId,
           message: safeMessage.message,
           confirmations: safeMessage.confirmations?.length || 0,
           threshold,

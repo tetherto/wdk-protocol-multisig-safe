@@ -79,50 +79,50 @@ export default class InMemoryTransport extends IMultisigTransport {
   }
 
   async submitMessage (safeAddress, { message, signature }) {
-    const messageHash = this._messageHash(safeAddress, message)
-    const owner = recoverAddress(messageHash, signature)
+    const messageId = this._messageId(safeAddress, message)
+    const owner = recoverAddress(messageId, signature)
 
-    this._messages.set(messageHash, {
-      messageHash,
+    this._messages.set(messageId, {
+      messageId,
       message,
       confirmations: [{ owner, signature }]
     })
 
-    this._refreshCombinedSignature(messageHash)
+    this._refreshCombinedSignature(messageId)
   }
 
-  async getMessage (messageHash) {
-    const message = this._messages.get(messageHash)
+  async getMessage (messageId) {
+    const message = this._messages.get(messageId)
 
     if (!message) {
-      throw new Error(`Message not found: ${messageHash}`)
+      throw new Error(`Message not found: ${messageId}`)
     }
 
     return {
-      messageHash: message.messageHash,
+      messageId: message.messageId,
       message: message.message,
       confirmations: message.confirmations.map(confirmation => ({ ...confirmation })),
       preparedSignature: message.preparedSignature
     }
   }
 
-  async confirmMessage (messageHash, signature) {
-    const message = this._messages.get(messageHash)
+  async confirmMessage (messageId, signature) {
+    const message = this._messages.get(messageId)
 
     if (!message) {
-      throw new Error(`Message not found: ${messageHash}`)
+      throw new Error(`Message not found: ${messageId}`)
     }
 
-    const owner = recoverAddress(messageHash, signature)
+    const owner = recoverAddress(messageId, signature)
 
     if (!message.confirmations.some(confirmation => sameAddress(confirmation.owner, owner))) {
       message.confirmations.push({ owner, signature })
     }
 
-    this._refreshCombinedSignature(messageHash)
+    this._refreshCombinedSignature(messageId)
   }
 
-  _messageHash (safeAddress, message) {
+  _messageId (safeAddress, message) {
     const domain = { chainId: Number(this._chainId), verifyingContract: safeAddress }
     const types = { SafeMessage: [{ type: 'bytes', name: 'message' }] }
     const value = { message: hashMessage(message) }
@@ -130,8 +130,8 @@ export default class InMemoryTransport extends IMultisigTransport {
     return TypedDataEncoder.hash(domain, types, value)
   }
 
-  _refreshCombinedSignature (messageHash) {
-    const message = this._messages.get(messageHash)
+  _refreshCombinedSignature (messageId) {
+    const message = this._messages.get(messageId)
 
     const sorted = [...message.confirmations].sort((a, b) =>
       a.owner.toLowerCase() < b.owner.toLowerCase() ? -1 : 1

@@ -147,15 +147,15 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const smartAccount = await this._getSmartAccount()
 
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, message)
-    const messageHash = TypedDataEncoder.hash(domain, types, messageValue)
-    const signature = this._signDigest(messageHash)
+    const messageId = TypedDataEncoder.hash(domain, types, messageValue)
+    const signature = this._signDigest(messageId)
 
     await this._transport.submitMessage(safeAddress, { message, signature })
 
-    const safeMessageResponse = await this._transport.getMessage(messageHash)
+    const safeMessageResponse = await this._transport.getMessage(messageId)
 
     return {
-      messageHash,
+      messageId,
       signature,
       confirmations: safeMessageResponse.confirmations?.length || 0,
       threshold,
@@ -166,18 +166,18 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   /**
    * Approves an existing message proposal.
    *
-   * @param {string} messageHash - The message hash to approve
+   * @param {string} messageId - The message hash to approve
    * @returns {Promise<MultisigMessageProposal>} The approval result
    * @throws {Error} If the signer is not an owner of the Safe.
    * @throws {Error} If no message exists for the given hash.
    */
-  async approveMessage (messageHash) {
+  async approveMessage (messageId) {
     await this.validateSignerIsOwner()
 
-    const existingMessage = await this._transport.getMessage(messageHash)
+    const existingMessage = await this._transport.getMessage(messageId)
 
     if (!existingMessage) {
-      throw new Error(`Message not found: ${messageHash}`)
+      throw new Error(`Message not found: ${messageId}`)
     }
 
     const smartAccount = await this._getSmartAccount()
@@ -185,13 +185,13 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const digest = TypedDataEncoder.hash(domain, types, messageValue)
     const signature = this._signDigest(digest)
 
-    await this._transport.confirmMessage(messageHash, signature)
+    await this._transport.confirmMessage(messageId, signature)
 
-    const safeMessageResponse = await this._transport.getMessage(messageHash)
+    const safeMessageResponse = await this._transport.getMessage(messageId)
     const threshold = await this.getThreshold()
 
     return {
-      messageHash,
+      messageId,
       signature,
       confirmations: safeMessageResponse.confirmations?.length || 0,
       threshold,

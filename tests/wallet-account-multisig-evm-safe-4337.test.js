@@ -278,7 +278,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       const result = await account.proposeMessage('Hello!')
 
-      expect(result.messageHash).toBe(EXPECTED_MESSAGE_HASH)
+      expect(result.messageId).toBe(EXPECTED_MESSAGE_HASH)
       expect(result.signature).toBe('0xmocksignature')
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)

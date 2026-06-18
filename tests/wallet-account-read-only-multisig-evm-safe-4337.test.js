@@ -508,7 +508,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       const result = await account.getMessages([MOCK_MESSAGE_HASH])
 
       expect(result).toHaveLength(1)
-      expect(result[0].messageHash).toBe(MOCK_MESSAGE_HASH)
+      expect(result[0].messageId).toBe(MOCK_MESSAGE_HASH)
       expect(result[0].message).toBe('Hello!')
       expect(result[0].confirmations).toBe(1)
       expect(result[0].threshold).toBe(1)

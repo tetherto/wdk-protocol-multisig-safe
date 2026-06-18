@@ -81,15 +81,15 @@ export default class SafeTxServiceTransport {
   }
 
   /** @inheritdoc */
-  async getMessage (messageHash) {
+  async getMessage (messageId) {
     const apiKit = this._getApiKit()
-    return apiKit.getMessage(messageHash)
+    return apiKit.getMessage(messageId)
   }
 
   /** @inheritdoc */
-  async confirmMessage (messageHash, signature) {
+  async confirmMessage (messageId, signature) {
     const apiKit = this._getApiKit()
-    return apiKit.addMessageSignature(messageHash, signature)
+    return apiKit.addMessageSignature(messageId, signature)
   }
 
   /** @private */
