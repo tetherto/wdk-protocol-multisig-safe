@@ -30,7 +30,6 @@ import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountMultisig} IWalletAccountMultisig */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigOwnerManagement} IMultisigOwnerManagement */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposalResult} MultisigProposalResult */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
@@ -251,7 +250,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {EvmTransaction} tx - The transaction to propose
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigProposalResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
    */
   async propose (tx, options = {}) {
     const { autoExecute = false, ...config } = options
@@ -265,7 +264,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {TransferOptions} transferOptions - Transfer options
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigProposalResult>} The proposal result
+   * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
    * @throws {Error} If the estimated fee exceeds the configured `transferMaxFee`.
    */
   async proposeTransfer (transferOptions, options = {}) {
@@ -286,24 +285,14 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
   /** @private */
   async _submitTransaction (tx, config, autoExecute) {
-    const proposeResult = await this._propose(tx, config)
+    const proposal = await this._propose(tx, config)
 
-    if (autoExecute && proposeResult.confirmations >= proposeResult.threshold) {
-      await this.executeProposal(proposeResult.proposalId)
-      return {
-        proposalId: proposeResult.proposalId,
-        confirmations: proposeResult.confirmations,
-        threshold: proposeResult.threshold,
-        executed: true
-      }
+    if (autoExecute && proposal.confirmations >= proposal.threshold) {
+      await this.executeProposal(proposal.proposalId)
+      return { ...proposal, status: 'executed' }
     }
 
-    return {
-      proposalId: proposeResult.proposalId,
-      confirmations: proposeResult.confirmations,
-      threshold: proposeResult.threshold,
-      executed: false
-    }
+    return proposal
   }
 
   /**
@@ -338,7 +327,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     return {
       proposalId,
       confirmations: safeOperationResponse.confirmations?.length || 0,
-      threshold
+      threshold,
+      status: 'pending'
     }
   }
 
@@ -369,7 +359,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const updatedOperation = await this._transport.getProposal(proposalId)
     const confirmations = updatedOperation.confirmations?.length || 0
 
-    return { proposalId, confirmations, threshold }
+    return { proposalId, confirmations, threshold, status: 'pending' }
   }
 
   /**

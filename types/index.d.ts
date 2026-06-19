@@ -2,7 +2,6 @@ export { default } from "./src/wallet-manager-multisig-evm-safe-4337.js";
 export { default as WalletAccountMultisigEvmSafe4337 } from "./src/wallet-account-multisig-evm-safe-4337.js";
 export type MultisigInfo = import("@tetherto/wdk-wallet/multisig").MultisigInfo;
 export type MultisigProposal = import("@tetherto/wdk-wallet/multisig").MultisigProposal;
-export type MultisigProposalResult = import("@tetherto/wdk-wallet/multisig").MultisigProposalResult;
 export type MultisigMessage = import("@tetherto/wdk-wallet/multisig").MultisigMessage;
 export type MultisigMessageProposal = import("@tetherto/wdk-wallet/multisig").MultisigMessageProposal;
 export type MultisigTransactionOptions = import("@tetherto/wdk-wallet/multisig").MultisigTransactionOptions;

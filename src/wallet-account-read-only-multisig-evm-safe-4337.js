@@ -482,7 +482,8 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
         return {
           proposalId,
           confirmations: safeOperation.confirmations?.length || 0,
-          threshold
+          threshold,
+          status: safeOperation.userOperation?.ethereumTxHash ? 'executed' : 'pending'
         }
       } catch (error) {
         if (error.message?.includes('not found')) {

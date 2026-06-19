@@ -578,6 +578,26 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       expect(result[0].proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result[0].confirmations).toBe(1)
       expect(result[0].threshold).toBe(1)
+      expect(result[0].status).toBe('pending')
+    })
+
+    test('should mark a proposal executed when its user operation has an on-chain tx hash', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      const mockTransport = createMockTransport({
+        getProposal: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }],
+          userOperation: { ethereumTxHash: '0xabc' }
+        })
+      })
+      account._threshold = 1
+      account._transport = mockTransport
+
+      const [proposal] = await account.getProposals([MOCK_SAFE_OP_HASH])
+
+      expect(proposal.status).toBe('executed')
     })
 
     test('should return null for proposals not found', async () => {

@@ -546,7 +546,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
-      expect(result.executed).toBe(true)
+      expect(result.status).toBe('executed')
     })
 
     test('should not auto-execute when threshold not met', async () => {
@@ -567,7 +567,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const tx = { to: ACCOUNT_2.address, value: '1000', data: '0x' }
       const result = await account.propose(tx)
 
-      expect(result.executed).toBe(false)
+      expect(result.status).toBe('pending')
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
     })
 
@@ -617,7 +617,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const result = await account.proposeTransfer(transferOptions, { autoExecute: true })
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(result.executed).toBe(true)
+      expect(result.status).toBe('executed')
     })
 
     test('should throw when the fee exceeds transferMaxFee', async () => {

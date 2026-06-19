@@ -138,7 +138,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
     const balanceBefore = await ethersProvider.getBalance(recipient)
 
     const proposal = await signerA.propose({ to: recipient, value: amount, data: '0x' })
-    expect(proposal.executed).toBe(false)
+    expect(proposal.status).toBe('pending')
     expect(proposal.confirmations).toBe(1)
     expect(proposal.threshold).toBe(2)
 
@@ -160,7 +160,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
       { autoExecute: true }
     )
 
-    expect(result.executed).toBe(false)
+    expect(result.status).toBe('pending')
     expect(result.confirmations).toBe(1)
   }, TIMEOUT)
 
