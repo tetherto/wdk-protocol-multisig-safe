@@ -12,7 +12,7 @@
  * directly. The underlying `SafeApiKit` instance is created lazily on first
  * use, so constructing the transport is cheap and never performs I/O.
  */
-export default class SafeTxServiceTransport implements IMultisigTransport<import("@safe-global/api-kit").AddSafeOperationProps> {
+export default class SafeTxServiceTransport implements IMultisigTransport<import("@safe-global/api-kit").AddSafeOperationProps, import("@tetherto/wdk-wallet/multisig").MultisigTransportMessageInput, Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>>, Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>>> {
     /**
      * Creates a new Safe Transaction Service transport.
      *
@@ -20,10 +20,10 @@ export default class SafeTxServiceTransport implements IMultisigTransport<import
      */
     constructor(config: SafeTxServiceTransportConfig);
     submitProposal(proposal: import("@safe-global/api-kit").AddSafeOperationProps): Promise<void>;
-    getProposal(proposalId: string): Promise<import("@tetherto/wdk-wallet/multisig").MultisigTransportProposal | null>;
+    getProposal(proposalId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>> | null>;
     confirmProposal(proposalId: string, signature: string): Promise<void>;
     submitMessage(safeAddress: string, message: import("@tetherto/wdk-wallet/multisig").MultisigTransportMessageInput): Promise<void>;
-    getMessage(messageId: string): Promise<import("@tetherto/wdk-wallet/multisig").MultisigTransportMessage | null>;
+    getMessage(messageId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>> | null>;
     confirmMessage(messageId: string, signature: string): Promise<void>;
     /** @private */
     private _chainId;

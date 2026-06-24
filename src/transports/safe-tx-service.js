@@ -17,7 +17,10 @@
 import SafeApiKit from '@safe-global/api-kit'
 
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransportMessageInput} MultisigTransportMessageInput */
 /** @typedef {import('@safe-global/api-kit').AddSafeOperationProps} AddSafeOperationProps */
+/** @typedef {Awaited<ReturnType<import('@safe-global/api-kit').default['getSafeOperation']>>} SafeOperationResponse */
+/** @typedef {Awaited<ReturnType<import('@safe-global/api-kit').default['getMessage']>>} SafeMessage */
 
 /**
  * @typedef {Object} SafeTxServiceTransportConfig
@@ -34,7 +37,7 @@ import SafeApiKit from '@safe-global/api-kit'
  * directly. The underlying `SafeApiKit` instance is created lazily on first
  * use, so constructing the transport is cheap and never performs I/O.
  *
- * @implements {IMultisigTransport<AddSafeOperationProps>}
+ * @implements {IMultisigTransport<AddSafeOperationProps, MultisigTransportMessageInput, SafeOperationResponse, SafeMessage>}
  */
 export default class SafeTxServiceTransport {
   /**
