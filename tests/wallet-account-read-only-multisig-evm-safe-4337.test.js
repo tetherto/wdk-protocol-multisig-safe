@@ -521,7 +521,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockTransport = createMockTransport({
-        getMessage: jest.fn().mockRejectedValue(new Error('not found'))
+        getMessage: jest.fn().mockResolvedValue(null)
       })
       account._threshold = 1
       account._transport = mockTransport
@@ -539,7 +539,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       })
       const mockTransport = createMockTransport({
         getMessage: jest.fn()
-          .mockRejectedValueOnce(new Error('not found'))
+          .mockResolvedValueOnce(null)
           .mockResolvedValueOnce({
             messageHash: 'hash2',
             message: 'Second',
@@ -606,7 +606,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
       const mockTransport = createMockTransport({
-        getProposal: jest.fn().mockRejectedValue(new Error('not found'))
+        getProposal: jest.fn().mockResolvedValue(null)
       })
       account._threshold = 1
       account._transport = mockTransport
@@ -627,7 +627,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
           .mockResolvedValueOnce({
             confirmations: [{ owner: ACCOUNT.address }]
           })
-          .mockRejectedValueOnce(new Error('not found'))
+          .mockResolvedValueOnce(null)
           .mockResolvedValueOnce({
             confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }]
           })

@@ -68,7 +68,14 @@ export default class SafeTxServiceTransport {
   /** @inheritdoc */
   async getProposal (proposalId) {
     const apiKit = this._getApiKit()
-    return apiKit.getSafeOperation(proposalId)
+    try {
+      return await apiKit.getSafeOperation(proposalId)
+    } catch (error) {
+      if (this._isNotFoundError(error)) {
+        return null
+      }
+      throw error
+    }
   }
 
   /** @inheritdoc */
@@ -86,13 +93,25 @@ export default class SafeTxServiceTransport {
   /** @inheritdoc */
   async getMessage (messageId) {
     const apiKit = this._getApiKit()
-    return apiKit.getMessage(messageId)
+    try {
+      return await apiKit.getMessage(messageId)
+    } catch (error) {
+      if (this._isNotFoundError(error)) {
+        return null
+      }
+      throw error
+    }
   }
 
   /** @inheritdoc */
   async confirmMessage (messageId, signature) {
     const apiKit = this._getApiKit()
     return apiKit.addMessageSignature(messageId, signature)
+  }
+
+  /** @private */
+  _isNotFoundError (error) {
+    return error?.message?.includes('Not found')
   }
 
   /** @private */

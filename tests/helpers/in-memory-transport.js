@@ -55,7 +55,7 @@ export default class InMemoryTransport extends IMultisigTransport {
     const proposal = this._proposals.get(proposalId)
 
     if (!proposal) {
-      throw new Error(`SafeOperation not found: ${proposalId}`)
+      return null
     }
 
     return {
@@ -95,7 +95,7 @@ export default class InMemoryTransport extends IMultisigTransport {
     const message = this._messages.get(messageId)
 
     if (!message) {
-      throw new Error(`Message not found: ${messageId}`)
+      return null
     }
 
     return {

@@ -34,6 +34,8 @@ export default class SafeTxServiceTransport implements IMultisigTransport<import
     /** @private */
     private _apiKit;
     /** @private */
+    private _isNotFoundError;
+    /** @private */
     private _getApiKit;
 }
 export type SafeTxServiceTransportConfig = {

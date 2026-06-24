@@ -472,24 +472,17 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const threshold = await this.getThreshold()
 
     return Promise.all(proposalIds.map(async (proposalId) => {
-      try {
-        const safeOperation = await this._transport.getProposal(proposalId)
+      const safeOperation = await this._transport.getProposal(proposalId)
 
-        if (!safeOperation) {
-          return null
-        }
+      if (!safeOperation) {
+        return null
+      }
 
-        return {
-          proposalId,
-          confirmations: safeOperation.confirmations?.length || 0,
-          threshold,
-          status: safeOperation.userOperation?.ethereumTxHash ? 'executed' : 'pending'
-        }
-      } catch (error) {
-        if (error.message?.includes('not found')) {
-          return null
-        }
-        throw error
+      return {
+        proposalId,
+        confirmations: safeOperation.confirmations?.length || 0,
+        threshold,
+        status: safeOperation.userOperation?.ethereumTxHash ? 'executed' : 'pending'
       }
     }))
   }
@@ -520,21 +513,18 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const threshold = await this.getThreshold()
 
     return Promise.all(messageIds.map(async (messageId) => {
-      try {
-        const safeMessage = await this._transport.getMessage(messageId)
+      const safeMessage = await this._transport.getMessage(messageId)
 
-        return {
-          messageId,
-          message: safeMessage.message,
-          confirmations: safeMessage.confirmations?.length || 0,
-          threshold,
-          combinedSignature: safeMessage.preparedSignature || null
-        }
-      } catch (error) {
-        if (error.message?.includes('not found')) {
-          return null
-        }
-        throw error
+      if (!safeMessage) {
+        return null
+      }
+
+      return {
+        messageId,
+        message: safeMessage.message,
+        confirmations: safeMessage.confirmations?.length || 0,
+        threshold,
+        combinedSignature: safeMessage.preparedSignature || null
       }
     }))
   }
