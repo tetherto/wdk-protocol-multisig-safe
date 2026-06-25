@@ -33,8 +33,6 @@ import {
 
 import SafeTxServiceTransport from './transports/safe-tx-service.js'
 
-import { rebuildUserOperation } from './user-operation-serialization.js'
-
 import { ConfigurationError } from './errors.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
@@ -609,7 +607,19 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {UserOperationV7} The UserOperation with BigInt numeric fields.
    */
   _rebuildUserOperation (userOperation) {
-    return rebuildUserOperation(userOperation)
+    const toBigInt = (value) => (value === undefined || value === null) ? value : BigInt(value)
+
+    return {
+      ...userOperation,
+      nonce: toBigInt(userOperation.nonce),
+      callGasLimit: toBigInt(userOperation.callGasLimit),
+      verificationGasLimit: toBigInt(userOperation.verificationGasLimit),
+      preVerificationGas: toBigInt(userOperation.preVerificationGas),
+      maxFeePerGas: toBigInt(userOperation.maxFeePerGas),
+      maxPriorityFeePerGas: toBigInt(userOperation.maxPriorityFeePerGas),
+      paymasterVerificationGasLimit: toBigInt(userOperation.paymasterVerificationGasLimit),
+      paymasterPostOpGasLimit: toBigInt(userOperation.paymasterPostOpGasLimit)
+    }
   }
 
   /**
