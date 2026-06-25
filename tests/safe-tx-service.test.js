@@ -12,6 +12,34 @@ function transportWithApiKit (apiKit) {
 }
 
 describe('SafeTxServiceTransport', () => {
+  describe('submitProposal', () => {
+    test('restores the serialized userOperation BigInts before calling api-kit', async () => {
+      const addSafeOperation = jest.fn().mockResolvedValue(undefined)
+      const transport = transportWithApiKit({ addSafeOperation })
+
+      await transport.submitProposal({
+        entryPoint: '0xentry',
+        moduleAddress: '0xmodule',
+        safeAddress: '0xsafe',
+        userOperation: {
+          sender: '0xsafe',
+          nonce: '5',
+          callGasLimit: '100000',
+          maxFeePerGas: '2000000000'
+        },
+        options: { validAfter: 0, validUntil: 0 }
+      })
+
+      const submitted = addSafeOperation.mock.calls[0][0]
+
+      expect(submitted.userOperation.nonce).toBe(5n)
+      expect(submitted.userOperation.callGasLimit).toBe(100000n)
+      expect(submitted.userOperation.maxFeePerGas).toBe(2000000000n)
+      expect(submitted.userOperation.sender).toBe('0xsafe')
+      expect(submitted.entryPoint).toBe('0xentry')
+    })
+  })
+
   describe('getProposal', () => {
     test('returns null when the service reports the operation was not found', async () => {
       const transport = transportWithApiKit({

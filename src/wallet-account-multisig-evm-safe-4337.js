@@ -25,6 +25,8 @@ import {
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
 
+import { toTransportJson } from '@tetherto/wdk-wallet/multisig'
+
 import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
 
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountMultisig} IWalletAccountMultisig */
@@ -604,13 +606,13 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const { entrypointAddress, safe4337ModuleAddress } = this._getSafeOperationOptions()
     const safeAddress = await this.getAddress()
 
-    return {
+    return toTransportJson({
       entryPoint: entrypointAddress,
       moduleAddress: safe4337ModuleAddress,
       safeAddress,
       userOperation: userOp,
       options: { validAfter: 0, validUntil: 0 }
-    }
+    })
   }
 
   /** @private */

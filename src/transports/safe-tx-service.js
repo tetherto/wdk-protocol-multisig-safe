@@ -16,6 +16,8 @@
 
 import SafeApiKit from '@safe-global/api-kit'
 
+import { rebuildUserOperation } from '../user-operation-serialization.js'
+
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransportMessageInput} MultisigTransportMessageInput */
 /** @typedef {import('@safe-global/api-kit').AddSafeOperationProps} AddSafeOperationProps */
@@ -62,7 +64,10 @@ export default class SafeTxServiceTransport {
   /** @inheritdoc */
   async submitProposal (proposal) {
     const apiKit = this._getApiKit()
-    return apiKit.addSafeOperation(proposal)
+    return apiKit.addSafeOperation({
+      ...proposal,
+      userOperation: rebuildUserOperation(proposal.userOperation)
+    })
   }
 
   /** @inheritdoc */
