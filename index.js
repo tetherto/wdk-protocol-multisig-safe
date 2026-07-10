@@ -22,7 +22,6 @@
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigExecuteQuote} MultisigExecuteQuote */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 
 // ============================================

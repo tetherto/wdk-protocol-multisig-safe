@@ -43,7 +43,7 @@ import { ConfigurationError } from './errors.js'
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigExecuteQuote} MultisigExecuteQuote */
+/** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
@@ -584,7 +584,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * Quotes the on-chain cost of executing a pending proposal.
    *
    * @param {string} proposalId - The proposal's id
-   * @returns {Promise<MultisigExecuteQuote>} The execution cost estimate
+   * @returns {Promise<Omit<TransactionResult, 'hash'>>} The execution cost estimate
    * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
   async quoteExecuteProposal (proposalId) {

@@ -5,7 +5,6 @@ export type MultisigProposal = import("@tetherto/wdk-wallet/multisig").MultisigP
 export type MultisigMessage = import("@tetherto/wdk-wallet/multisig").MultisigMessage;
 export type MultisigMessageProposal = import("@tetherto/wdk-wallet/multisig").MultisigMessageProposal;
 export type MultisigTransactionOptions = import("@tetherto/wdk-wallet/multisig").MultisigTransactionOptions;
-export type MultisigExecuteQuote = import("@tetherto/wdk-wallet/multisig").MultisigExecuteQuote;
 export type MultisigOptions = import("@tetherto/wdk-wallet/multisig").MultisigOptions;
 export type FeeRates = import("@tetherto/wdk-wallet-evm").FeeRates;
 export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;

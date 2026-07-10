@@ -4,7 +4,7 @@
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigExecuteQuote} MultisigExecuteQuote */
+/** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
@@ -245,10 +245,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * Quotes the on-chain cost of executing a pending proposal.
      *
      * @param {string} proposalId - The proposal's id
-     * @returns {Promise<MultisigExecuteQuote>} The execution cost estimate
+     * @returns {Promise<Omit<TransactionResult, 'hash'>>} The execution cost estimate
      * @throws {Error} If no proposal exists for the given id.
      */
-    quoteExecuteProposal(proposalId: string): Promise<MultisigExecuteQuote>;
+    quoteExecuteProposal(proposalId: string): Promise<Omit<TransactionResult, "hash">>;
     /**
      * Coerces a stored UserOperation's numeric fields back to BigInt (a transport may serialize them as strings).
      *
@@ -361,7 +361,7 @@ export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet/multis
 export type MultisigInfo = import("@tetherto/wdk-wallet/multisig").MultisigInfo;
 export type MultisigMessage = import("@tetherto/wdk-wallet/multisig").MultisigMessage;
 export type MultisigProposal = import("@tetherto/wdk-wallet/multisig").MultisigProposal;
-export type MultisigExecuteQuote = import("@tetherto/wdk-wallet/multisig").MultisigExecuteQuote;
+export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
 export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransactionReceipt;
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
