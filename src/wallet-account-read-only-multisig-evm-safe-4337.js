@@ -16,7 +16,7 @@
 
 import { keccak256, toUtf8Bytes, hashMessage, Interface, JsonRpcProvider } from 'ethers'
 
-import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
+import { WalletAccountReadOnly, NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 
 import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
@@ -291,7 +291,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * Returns the list of Safe owners.
    *
    * @returns {Promise<string[]>} Array of owner addresses
-   * @throws {Error} If the Safe is not deployed and no owners are provided in the configuration.
+   * @throws {ValueError} If the Safe is not deployed and no owners are provided in the configuration.
    */
   async getOwners () {
     if (this._owners) {
@@ -305,7 +305,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
       this._owners = await smartAccount.getOwners(this._provider)
     } else {
       if (!this._config.safeOptions?.owners) {
-        throw new Error('Safe is not deployed and no owners provided in options')
+        throw new ValueError('Safe is not deployed and no owners provided in options')
       }
       this._owners = this._config.safeOptions.owners
     }
@@ -317,7 +317,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * Returns the Safe threshold.
    *
    * @returns {Promise<number>} The threshold
-   * @throws {Error} If the Safe is not deployed and no threshold is provided in the configuration.
+   * @throws {ValueError} If the Safe is not deployed and no threshold is provided in the configuration.
    */
   async getThreshold () {
     if (this._threshold !== null) {
@@ -331,7 +331,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
       this._threshold = await smartAccount.getThreshold(this._provider)
     } else {
       if (!this._config.safeOptions?.threshold) {
-        throw new Error('Safe is not deployed and no threshold provided in options')
+        throw new ValueError('Safe is not deployed and no threshold provided in options')
       }
       this._threshold = this._config.safeOptions.threshold
     }
@@ -585,13 +585,13 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    *
    * @param {string} proposalId - The proposal's id
    * @returns {Promise<MultisigExecuteQuote>} The execution cost estimate
-   * @throws {Error} If no proposal exists for the given id.
+   * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
   async quoteExecuteProposal (proposalId) {
     const safeOperation = await this._transport.getProposal(proposalId)
 
     if (!safeOperation) {
-      throw new Error(`SafeOperation not found: ${proposalId}`)
+      throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
     }
 
     const userOp = this._rebuildUserOperation(safeOperation.userOperation)

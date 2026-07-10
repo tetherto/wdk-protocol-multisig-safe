@@ -27,6 +27,8 @@ import {
 
 import { toTransportJson } from '@tetherto/wdk-wallet/multisig'
 
+import { NoSuchElementError, SignerError, ValueError } from '@tetherto/wdk-wallet'
+
 import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
 
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountMultisig} IWalletAccountMultisig */
@@ -138,7 +140,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} message - The message to sign
    * @returns {Promise<MultisigMessageProposal>} The sign result
-   * @throws {Error} If the signer is not an owner of the Safe.
+   * @throws {SignerError} If the signer is not an owner of the Safe.
    */
   async proposeMessage (message) {
     await this.validateSignerIsOwner()
@@ -169,8 +171,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} messageId - The message hash to approve
    * @returns {Promise<MultisigMessageProposal>} The approval result
-   * @throws {Error} If the signer is not an owner of the Safe.
-   * @throws {Error} If no message exists for the given hash.
+   * @throws {SignerError} If the signer is not an owner of the Safe.
+   * @throws {NoSuchElementError} If no message exists for the given hash.
    */
   async approveMessage (messageId) {
     await this.validateSignerIsOwner()
@@ -178,7 +180,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const existingMessage = await this._transport.getMessage(messageId)
 
     if (!existingMessage) {
-      throw new Error(`Message not found: ${messageId}`)
+      throw new NoSuchElementError(`Message not found: ${messageId}`)
     }
 
     const smartAccount = await this._getSmartAccount()
@@ -204,7 +206,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Validates that the signer is an owner of the Safe.
    *
    * @returns {Promise<void>}
-   * @throws {Error} If signer is not an owner
+   * @throws {SignerError} If signer is not an owner
    */
   async validateSignerIsOwner () {
     const signerAddress = await this.getSignerAddress()
@@ -216,7 +218,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     if (!isOwner) {
       const safeAddress = await this.getAddress()
-      throw new Error(
+      throw new SignerError(
         `Signer ${signerAddress} is not an owner of Safe ${safeAddress}. ` +
         `Current owners: ${owners.join(', ')}`
       )
@@ -267,7 +269,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {TransferOptions} transferOptions - Transfer options
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
    * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
-   * @throws {Error} If the estimated fee exceeds the configured `transferMaxFee`.
+   * @throws {ValueError} If the estimated fee exceeds the configured `transferMaxFee`.
    */
   async proposeTransfer (transferOptions, options = {}) {
     const { autoExecute = false, ...config } = options
@@ -278,7 +280,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     if (!isSponsored && !useNativeCoins && transferMaxFee !== undefined) {
       const { fee } = await this.quoteSendTransaction(tx, config)
       if (fee >= transferMaxFee) {
-        throw new Error('Exceeded maximum fee cost for transfer operation.')
+        throw new ValueError('Exceeded maximum fee cost for transfer operation.')
       }
     }
 
@@ -307,7 +309,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigProposal>} The proposal result
-   * @throws {Error} If the signer is not an owner of the Safe.
+   * @throws {SignerError} If the signer is not an owner of the Safe.
    */
   async _propose (transaction, config) {
     await this.validateSignerIsOwner()
@@ -339,8 +341,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} proposalId - The Safe operation hash to approve
    * @returns {Promise<MultisigProposal>} Approval result
-   * @throws {Error} If the signer is not an owner of the Safe.
-   * @throws {Error} If no proposal exists for the given id.
+   * @throws {SignerError} If the signer is not an owner of the Safe.
+   * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
   async approveProposal (proposalId) {
     await this.validateSignerIsOwner()
@@ -349,7 +351,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
-      throw new Error(`SafeOperation not found: ${proposalId}`)
+      throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
     }
 
     const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
@@ -370,19 +372,19 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} proposalId - The Safe operation hash to reject
    * @returns {Promise<MultisigProposal>} The rejection proposal result
-   * @throws {Error} If no proposal exists for the given id.
-   * @throws {Error} If the original proposal has no nonce to reuse.
+   * @throws {NoSuchElementError} If no proposal exists for the given id.
+   * @throws {ValueError} If the original proposal has no nonce to reuse.
    */
   async rejectProposal (proposalId) {
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
-      throw new Error(`SafeOperation not found: ${proposalId}`)
+      throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
     }
 
     const nonce = safeOperationResponse.userOperation?.nonce
     if (nonce === undefined) {
-      throw new Error('Cannot reject: original proposal has no nonce')
+      throw new ValueError('Cannot reject: original proposal has no nonce')
     }
 
     const safeAddress = await this.getAddress()
@@ -400,21 +402,21 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {string} proposalId - The Safe operation hash to execute
    * @returns {Promise<TransactionResult>} The execution result
-   * @throws {Error} If no proposal exists for the given id.
-   * @throws {Error} If the proposal does not have enough confirmations to meet the threshold.
+   * @throws {NoSuchElementError} If no proposal exists for the given id.
+   * @throws {ValueError} If the proposal does not have enough confirmations to meet the threshold.
    */
   async executeProposal (proposalId) {
     const threshold = await this.getThreshold()
     const safeOperationResponse = await this._transport.getProposal(proposalId)
 
     if (!safeOperationResponse) {
-      throw new Error(`SafeOperation not found: ${proposalId}`)
+      throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
     }
 
     const confirmations = safeOperationResponse.confirmations?.length || 0
 
     if (confirmations < threshold) {
-      throw new Error(
+      throw new ValueError(
         `Not enough confirmations: ${confirmations}/${threshold}. ` +
         `Need ${threshold - confirmations} more signature(s).`
       )
@@ -516,7 +518,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @param {number} newThreshold - New threshold value
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
    * @returns {Promise<MultisigProposal>} The proposal result
-   * @throws {Error} If there are no owner or threshold changes to make.
+   * @throws {ValueError} If there are no owner or threshold changes to make.
    */
   async updateOwners (newOwners, newThreshold, config) {
     const smartAccount = await this._getSmartAccount()
@@ -549,7 +551,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     }
 
     if (transactions.length === 0) {
-      throw new Error('No changes to make - owners and threshold are the same')
+      throw new ValueError('No changes to make - owners and threshold are the same')
     }
 
     return await this._propose(transactions, config)
