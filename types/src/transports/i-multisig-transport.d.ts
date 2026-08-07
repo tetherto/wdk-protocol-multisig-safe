@@ -34,12 +34,6 @@
  * Implementations that serialize the payloads themselves (rather than handing them to an
  * SDK that already does it) can pass them through {@link toTransportJson} to convert native
  * values such as BigInt into JSON-safe forms before persisting or transmitting them.
- *
- * @interface
- * @template [TProposal=Record<string, unknown>]
- * @template [TMessage=MultisigTransportMessageInput]
- * @template [TProposalResponse=MultisigTransportProposal]
- * @template [TMessageResponse=MultisigTransportMessage]
  */
 export interface IMultisigTransport<TProposal = Record<string, unknown>, TMessage = MultisigTransportMessageInput, TProposalResponse = MultisigTransportProposal, TMessageResponse = MultisigTransportMessage> {
     /**
@@ -110,3 +104,13 @@ export type MultisigTransportMessage = {
      */
     confirmations: unknown[];
 };
+/**
+ * Recursively converts a value into a JSON-safe form so it survives JSON.stringify: every BigInt
+ * becomes its decimal string and every byte array (Uint8Array, including Buffer) becomes a
+ * 0x-prefixed lowercase hex string. Arrays and plain objects are converted entry by entry; all
+ * other values are returned unchanged.
+ *
+ * @param {unknown} value - The value to convert (object, array, or primitive).
+ * @returns {unknown} A JSON-safe copy of the value.
+ */
+export function toTransportJson(value: unknown): unknown;

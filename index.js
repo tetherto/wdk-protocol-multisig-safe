@@ -60,7 +60,10 @@
 // Re-export types from transports
 // ============================================
 
-/** @typedef {import('./src/transports/safe-tx-service.js').SafeTxServiceTransportConfig} SafeTxServiceTransportConfig */
+/** @typedef {import('./src/transports/index.js').MultisigTransportProposal} MultisigTransportProposal */
+/** @typedef {import('./src/transports/index.js').MultisigTransportMessage} MultisigTransportMessage */
+/** @typedef {import('./src/transports/index.js').MultisigTransportMessageInput} MultisigTransportMessageInput */
+/** @typedef {import('./src/transports/index.js').SafeTxServiceTransportConfig} SafeTxServiceTransportConfig */
 
 // ============================================
 // Export classes and constants
@@ -76,9 +79,7 @@ export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-accoun
 // Export transports
 // ============================================
 
-export { IMultisigTransport } from './src/transports/i-multisig-transport.js'
-
-export { default as SafeTxServiceTransport } from './src/transports/safe-tx-service.js'
+export { IMultisigTransport, SafeTxServiceTransport, toTransportJson } from './src/transports/index.js'
 
 // ============================================
 // Export errors

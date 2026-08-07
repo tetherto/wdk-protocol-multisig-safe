@@ -25,7 +25,7 @@ import {
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
 
-import { toTransportJson } from './transports/serialization.js'
+import { toTransportJson } from './transports/i-multisig-transport.js'
 
 import { NoSuchElementError, SignerError, ValueError } from '@tetherto/wdk-wallet'
 
