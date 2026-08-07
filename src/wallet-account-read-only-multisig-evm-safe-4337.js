@@ -37,11 +37,11 @@ import { ConfigurationError } from './errors.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
-/** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
+/** @typedef {import('./transports/i-multisig-transport.js').IMultisigTransport} IMultisigTransport */
 
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 
@@ -147,11 +147,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   /**
    * Creates a new read-only EVM multisig Safe wallet account.
    *
-   * @param {string | null} signerAddress - The signer's EOA address or null for pure read-only
    * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
    * @throws {ConfigurationError} If the configuration is invalid or has missing required fields.
    */
-  constructor (signerAddress, config) {
+  constructor (config) {
     super(undefined)
     this._validateConfig(config)
 
@@ -230,9 +229,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * @type {number | null}
      */
     this._threshold = null
-
-    /** @private */
-    this._signerAddress = signerAddress
   }
 
   /**
@@ -247,16 +243,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const sortedOwners = [...owners].map(o => o.toLowerCase()).sort()
     const data = JSON.stringify({ owners: sortedOwners, threshold })
     return keccak256(toUtf8Bytes(data))
-  }
-
-  /**
-   * Returns the signer's EOA address.
-   * For read-only accounts created with a signerAddress, returns that address.
-   *
-   * @returns {Promise<string | null>} The signer's address or null
-   */
-  async getSignerAddress () {
-    return this._signerAddress
   }
 
   /**
@@ -348,13 +334,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const address = await this.getAddress()
     const owners = await this.getOwners()
     const threshold = await this.getThreshold()
-    const isCreated = await this.isDeployed()
 
     return {
       address,
       owners,
-      threshold,
-      isCreated
+      threshold
     }
   }
 
@@ -463,28 +447,40 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Returns a list of proposals by their identifiers.
+   * Returns a proposal by its identifier.
    *
-   * @param {string[]} proposalIds - The list of proposal identifiers
-   * @returns {Promise<(MultisigProposal | null)[]>} The proposal details, or null for proposals not found
+   * @param {string} proposalId - The proposal's identifier
+   * @returns {Promise<MultisigProposal | null>} The proposal details, or null if the proposal has not been found.
    */
-  async getProposals (proposalIds) {
+  async getProposal (proposalId) {
+    const safeOperation = await this._transport.getProposal(proposalId)
+
+    if (!safeOperation) {
+      return null
+    }
+
     const threshold = await this.getThreshold()
 
-    return Promise.all(proposalIds.map(async (proposalId) => {
-      const safeOperation = await this._transport.getProposal(proposalId)
+    return {
+      proposalId,
+      confirmations: safeOperation.confirmations?.length || 0,
+      threshold,
+      status: safeOperation.userOperation?.ethereumTxHash ? 'executed' : 'pending'
+    }
+  }
 
-      if (!safeOperation) {
-        return null
-      }
+  /**
+   * Returns a map from each proposal identifier to its details.
+   *
+   * @param {string[]} proposalIds - The list of proposal identifiers
+   * @returns {Promise<Record<string, MultisigProposal | null>>} For each proposal id, the proposal details or null if it has not been found.
+   */
+  async getProposals (proposalIds) {
+    const entries = await Promise.all(
+      proposalIds.map(async (proposalId) => [proposalId, await this.getProposal(proposalId)])
+    )
 
-      return {
-        proposalId,
-        confirmations: safeOperation.confirmations?.length || 0,
-        threshold,
-        status: safeOperation.userOperation?.ethereumTxHash ? 'executed' : 'pending'
-      }
-    }))
+    return Object.fromEntries(entries)
   }
 
   /**
@@ -494,7 +490,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<boolean>} True if confirmations >= threshold
    */
   async isReadyToExecute (proposalId) {
-    const [operation] = await this.getProposals([proposalId])
+    const operation = await this.getProposal(proposalId)
 
     if (!operation) {
       return false
@@ -504,29 +500,41 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Returns a list of message proposals by their ids.
+   * Returns a message proposal by its identifier.
    *
-   * @param {string[]} messageIds - The list of message ids
-   * @returns {Promise<(MultisigMessage | null)[]>} The message details, or null for messages not found
+   * @param {string} messageId - The message's hash
+   * @returns {Promise<MultisigMessageProposal | null>} The message details, or null if the message has not been found.
    */
-  async getMessages (messageIds) {
+  async getMessageProposal (messageId) {
+    const safeMessage = await this._transport.getMessage(messageId)
+
+    if (!safeMessage) {
+      return null
+    }
+
     const threshold = await this.getThreshold()
 
-    return Promise.all(messageIds.map(async (messageId) => {
-      const safeMessage = await this._transport.getMessage(messageId)
+    return {
+      messageId,
+      message: safeMessage.message,
+      confirmations: safeMessage.confirmations?.length || 0,
+      threshold,
+      combinedSignature: safeMessage.preparedSignature || null
+    }
+  }
 
-      if (!safeMessage) {
-        return null
-      }
+  /**
+   * Returns a map from each message hash to its details.
+   *
+   * @param {string[]} messageIds - The list of message hashes
+   * @returns {Promise<Record<string, MultisigMessageProposal | null>>} For each message hash, the message details or null if it has not been found.
+   */
+  async getMessageProposals (messageIds) {
+    const entries = await Promise.all(
+      messageIds.map(async (messageId) => [messageId, await this.getMessageProposal(messageId)])
+    )
 
-      return {
-        messageId,
-        message: safeMessage.message,
-        confirmations: safeMessage.confirmations?.length || 0,
-        threshold,
-        combinedSignature: safeMessage.preparedSignature || null
-      }
-    }))
+    return Object.fromEntries(entries)
   }
 
   /**

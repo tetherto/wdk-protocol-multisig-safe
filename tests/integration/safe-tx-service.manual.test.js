@@ -52,7 +52,7 @@ suite('SafeTxServiceTransport — real Safe Transaction Service V7 round-trip (o
     expect(proposal.proposalId).toMatch(/^0x[0-9a-fA-F]{64}$/)
     expect(proposal.confirmations).toBe(1)
 
-    const [retrieved] = await approver.getProposals([proposal.proposalId])
+    const retrieved = await approver.getProposal(proposal.proposalId)
     expect(retrieved).not.toBeNull()
     expect(retrieved.proposalId).toBe(proposal.proposalId)
     expect(retrieved.confirmations).toBe(1)

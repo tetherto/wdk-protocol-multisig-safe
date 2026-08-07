@@ -66,7 +66,7 @@ const createMockTransport = (overrides = {}) => ({
 describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
   describe('constructor', () => {
     test('should successfully initialize with safeAddress', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -78,7 +78,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with PredictedSafeOptions', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address, ACCOUNT_2.address],
@@ -90,20 +90,8 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       expect(account._safeAddress).toBe(null)
     })
 
-    test('should successfully initialize with signerAddress', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(ACCOUNT.address, {
-        ...MOCK_CONFIG,
-        safeOptions: {
-          safeAddress: MOCK_SAFE_ADDRESS
-        }
-      })
-
-      expect(account).toBeDefined()
-      expect(account._signerAddress).toBe(ACCOUNT.address)
-    })
-
     test('should store config correctly', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -117,13 +105,13 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
     test('should throw if options is missing', () => {
       expect(() => {
-        new WalletAccountReadOnlyMultisigEvmSafe4337(null, MOCK_CONFIG)
+        new WalletAccountReadOnlyMultisigEvmSafe4337(MOCK_CONFIG)
       }).toThrow('safeOptions is required')
     })
 
     test('should throw if owners is not an array', () => {
       expect(() => {
-        new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+        new WalletAccountReadOnlyMultisigEvmSafe4337({
           ...MOCK_CONFIG,
           safeOptions: {
             owners: ACCOUNT.address,
@@ -135,7 +123,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
     test('should throw if threshold is less than 1', () => {
       expect(() => {
-        new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+        new WalletAccountReadOnlyMultisigEvmSafe4337({
           ...MOCK_CONFIG,
           safeOptions: {
             owners: [ACCOUNT.address],
@@ -147,7 +135,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
     test('should throw if threshold is negative', () => {
       expect(() => {
-        new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+        new WalletAccountReadOnlyMultisigEvmSafe4337({
           ...MOCK_CONFIG,
           safeOptions: {
             owners: [ACCOUNT.address],
@@ -159,7 +147,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
     test('should throw if threshold exceeds number of owners', () => {
       expect(() => {
-        new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+        new WalletAccountReadOnlyMultisigEvmSafe4337({
           ...MOCK_CONFIG,
           safeOptions: {
             owners: [ACCOUNT.address],
@@ -171,7 +159,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
     test('should throw if safe modules version is unsupported', () => {
       expect(() => {
-        new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+        new WalletAccountReadOnlyMultisigEvmSafe4337({
           ...MOCK_CONFIG,
           safeModulesVersion: '0.1.0',
           safeOptions: {
@@ -182,7 +170,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should accept valid 2-of-3 config', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address, ACCOUNT_2.address, '0x3333333333333333333333333333333333333333'],
@@ -194,7 +182,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should accept valid 1-of-1 config', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -206,7 +194,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should accept PredictedSafeOptions with saltNonce', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -220,7 +208,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with ERC-20 paymaster options', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
         paymasterTokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -234,7 +222,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -251,7 +239,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getAddress', () => {
     test('should return cached safeAddress when provided via ExistingSafeOptions', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -264,7 +252,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return deterministic address when PredictedSafeOptions provided', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -280,7 +268,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('isDeployed', () => {
     test('should return true when Safe is deployed', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -294,7 +282,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return false when Safe is not deployed', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -310,7 +298,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getOwners', () => {
     test('should return owners from deployed Safe', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -330,7 +318,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
     test('should return owners from options when not deployed', async () => {
       const configOwners = [ACCOUNT.address, ACCOUNT_2.address]
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: configOwners,
@@ -347,7 +335,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getThreshold', () => {
     test('should return threshold from deployed Safe', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -364,7 +352,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return threshold from options when not deployed', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address, ACCOUNT_2.address],
@@ -381,7 +369,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getNonce', () => {
     test('should return the entrypoint nonce', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -399,7 +387,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getPaymasterTokenBalance', () => {
     test('should throw error when isSponsored=true (no token configured)', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -413,7 +401,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should throw error when no paymaster token configured', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -445,7 +433,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('quoteDeploy', () => {
     test('should return fee estimate for deployment', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -475,7 +463,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should throw if Safe is already deployed', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -488,9 +476,9 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('getMessages', () => {
-    test('should return array of MessageInfo', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+  describe('getMessageProposals', () => {
+    test('should return a map of message proposals', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -505,18 +493,18 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       account._threshold = 1
       account._transport = mockTransport
 
-      const result = await account.getMessages([MOCK_MESSAGE_HASH])
+      const result = await account.getMessageProposals([MOCK_MESSAGE_HASH])
+      const message = result[MOCK_MESSAGE_HASH]
 
-      expect(result).toHaveLength(1)
-      expect(result[0].messageId).toBe(MOCK_MESSAGE_HASH)
-      expect(result[0].message).toBe('Hello!')
-      expect(result[0].confirmations).toBe(1)
-      expect(result[0].threshold).toBe(1)
-      expect(result[0].combinedSignature).toBe('0xpreparedsig')
+      expect(message.messageId).toBe(MOCK_MESSAGE_HASH)
+      expect(message.message).toBe('Hello!')
+      expect(message.confirmations).toBe(1)
+      expect(message.threshold).toBe(1)
+      expect(message.combinedSignature).toBe('0xpreparedsig')
     })
 
-    test('should return null for messages not found', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+    test('should map an id to null when the message is not found', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -526,14 +514,13 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       account._threshold = 1
       account._transport = mockTransport
 
-      const result = await account.getMessages([MOCK_MESSAGE_HASH])
+      const result = await account.getMessageProposals([MOCK_MESSAGE_HASH])
 
-      expect(result).toHaveLength(1)
-      expect(result[0]).toBeNull()
+      expect(result[MOCK_MESSAGE_HASH]).toBeNull()
     })
 
-    test('should preserve positional mapping', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+    test('should map each id to its message proposal', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -550,17 +537,16 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       account._threshold = 1
       account._transport = mockTransport
 
-      const result = await account.getMessages(['hash1', 'hash2'])
+      const result = await account.getMessageProposals(['hash1', 'hash2'])
 
-      expect(result).toHaveLength(2)
-      expect(result[0]).toBeNull()
-      expect(result[1].message).toBe('Second')
+      expect(result.hash1).toBeNull()
+      expect(result.hash2.message).toBe('Second')
     })
   })
 
   describe('getProposals', () => {
-    test('should return array of proposals', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+    test('should return a map of proposals', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -573,16 +559,16 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       account._transport = mockTransport
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
+      const proposal = result[MOCK_SAFE_OP_HASH]
 
-      expect(result).toHaveLength(1)
-      expect(result[0].proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(result[0].confirmations).toBe(1)
-      expect(result[0].threshold).toBe(1)
-      expect(result[0].status).toBe('pending')
+      expect(proposal.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(proposal.confirmations).toBe(1)
+      expect(proposal.threshold).toBe(1)
+      expect(proposal.status).toBe('pending')
     })
 
     test('should mark a proposal executed when its user operation has an on-chain tx hash', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -595,13 +581,13 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       account._threshold = 1
       account._transport = mockTransport
 
-      const [proposal] = await account.getProposals([MOCK_SAFE_OP_HASH])
+      const result = await account.getProposals([MOCK_SAFE_OP_HASH])
 
-      expect(proposal.status).toBe('executed')
+      expect(result[MOCK_SAFE_OP_HASH].status).toBe('executed')
     })
 
-    test('should return null for proposals not found', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+    test('should map an id to null when the proposal is not found', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -613,12 +599,11 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
 
-      expect(result).toHaveLength(1)
-      expect(result[0]).toBeNull()
+      expect(result[MOCK_SAFE_OP_HASH]).toBeNull()
     })
 
-    test('should preserve positional mapping', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+    test('should map each id to its proposal', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -637,16 +622,15 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
       const result = await account.getProposals(['hash1', 'hash2', 'hash3'])
 
-      expect(result).toHaveLength(3)
-      expect(result[0].confirmations).toBe(1)
-      expect(result[1]).toBeNull()
-      expect(result[2].confirmations).toBe(2)
+      expect(result.hash1.confirmations).toBe(1)
+      expect(result.hash2).toBeNull()
+      expect(result.hash3.confirmations).toBe(2)
     })
   })
 
   describe('verify', () => {
     test('should return true when the Safe returns the EIP-1271 magic value', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -660,7 +644,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return false for invalid signature', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -674,7 +658,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return false when the call reverts', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -690,7 +674,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getVersion', () => {
     test('should return "not deployed" when the Safe is not deployed', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -702,7 +686,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return the on-chain version when deployed', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -719,7 +703,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
 
   describe('getTransactionReceipt', () => {
     test('should return EvmTransactionReceipt for regular tx hash', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -737,7 +721,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return UserOperationReceipt for UserOp hash', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
@@ -758,7 +742,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
     })
 
     test('should return null when hash is not found', async () => {
-      const account = new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })

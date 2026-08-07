@@ -19,9 +19,10 @@
 // ============================================
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigAutoExecuteResult} MultisigAutoExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigSignature} MultisigSignature */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 
 // ============================================
@@ -75,7 +76,7 @@ export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-accoun
 // Export transports
 // ============================================
 
-export { IMultisigTransport } from '@tetherto/wdk-wallet/multisig'
+export { IMultisigTransport } from './src/transports/i-multisig-transport.js'
 
 export { default as SafeTxServiceTransport } from './src/transports/safe-tx-service.js'
 

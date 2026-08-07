@@ -25,7 +25,7 @@ import {
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
 
-import { toTransportJson } from '@tetherto/wdk-wallet/multisig'
+import { toTransportJson } from './transports/serialization.js'
 
 import { NoSuchElementError, SignerError, ValueError } from '@tetherto/wdk-wallet'
 
@@ -35,7 +35,9 @@ import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigOwnerManagement} IMultisigOwnerManagement */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigAutoExecuteResult} MultisigAutoExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigSignature} MultisigSignature */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
@@ -69,7 +71,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   constructor (seed, path, config) {
     const signerAccount = new WalletAccountEvm(seed, path, config)
 
-    super(signerAccount._address, config)
+    super(config)
 
     /**
      * The multisig Safe configuration.
@@ -115,12 +117,21 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   }
 
   /**
-   * The key pair of the signer associated with this account.
+   * The key pair of this account.
    *
    * @type {KeyPair}
    */
-  get signerKeyPair () {
+  get keyPair () {
     return this._signerAccount.keyPair
+  }
+
+  /**
+   * Returns the signer's address.
+   *
+   * @returns {Promise<string>} The signer's address.
+   */
+  async getSignerAddress () {
+    return this._signerAccount._address
   }
 
   /**
@@ -139,7 +150,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Proposes a new message for the other owners to confirm.
    *
    * @param {string} message - The message to sign
-   * @returns {Promise<MultisigMessageProposal>} The sign result
+   * @returns {Promise<MultisigMessageProposal & MultisigSignature>} The sign result
    * @throws {SignerError} If the signer is not an owner of the Safe.
    */
   async proposeMessage (message) {
@@ -159,6 +170,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     return {
       messageId,
+      message,
       signature,
       confirmations: safeMessageResponse.confirmations?.length || 0,
       threshold,
@@ -170,11 +182,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Approves an existing message proposal.
    *
    * @param {string} messageId - The message hash to approve
-   * @returns {Promise<MultisigMessageProposal>} The approval result
+   * @returns {Promise<MultisigMessageProposal & MultisigSignature>} The approval result
    * @throws {SignerError} If the signer is not an owner of the Safe.
    * @throws {NoSuchElementError} If no message exists for the given hash.
    */
-  async approveMessage (messageId) {
+  async approveMessageProposal (messageId) {
     await this.validateSignerIsOwner()
 
     const existingMessage = await this._transport.getMessage(messageId)
@@ -195,6 +207,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     return {
       messageId,
+      message: existingMessage.message,
       signature,
       confirmations: safeMessageResponse.confirmations?.length || 0,
       threshold,
@@ -254,7 +267,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {EvmTransaction} tx - The transaction to propose
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
+   * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
    */
   async propose (tx, options = {}) {
     const { autoExecute = false, ...config } = options
@@ -268,7 +281,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {TransferOptions} transferOptions - Transfer options
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
+   * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
    * @throws {ValueError} If the estimated fee exceeds the configured `transferMaxFee`.
    */
   async proposeTransfer (transferOptions, options = {}) {
@@ -292,8 +305,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const proposal = await this._propose(tx, config)
 
     if (autoExecute && proposal.confirmations >= proposal.threshold) {
-      await this.executeProposal(proposal.proposalId)
-      return { ...proposal, status: 'executed' }
+      const transaction = await this.executeProposal(proposal.proposalId)
+      return { ...proposal, status: 'executed', transaction }
     }
 
     return proposal
@@ -340,7 +353,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Approves (signs) an existing proposal.
    *
    * @param {string} proposalId - The Safe operation hash to approve
-   * @returns {Promise<MultisigProposal>} Approval result
+   * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} Approval result
    * @throws {SignerError} If the signer is not an owner of the Safe.
    * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
@@ -565,7 +578,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   async toReadOnlyAccount () {
     const address = await this.getAddress()
 
-    return new WalletAccountReadOnlyMultisigEvmSafe4337(null, {
+    return new WalletAccountReadOnlyMultisigEvmSafe4337({
       ...this._config,
       safeOptions: { safeAddress: address }
     })

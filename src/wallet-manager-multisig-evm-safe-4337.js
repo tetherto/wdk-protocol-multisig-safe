@@ -120,7 +120,7 @@ export default class WalletManagerMultisigEvmSafe4337 extends WalletManager {
    */
   dispose () {
     for (const account of Object.values(this._accounts)) {
-      if (account.signerKeyPair.privateKey) {
+      if (account.keyPair.privateKey) {
         account.dispose()
       }
     }

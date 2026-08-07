@@ -206,9 +206,9 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('signerKeyPair', () => {
+  describe('keyPair', () => {
     test('should return deterministic key pair with privateKey and publicKey', () => {
-      const keyPair = account.signerKeyPair
+      const keyPair = account.keyPair
 
       expect(keyPair).toBeDefined()
       expect(Buffer.from(keyPair.privateKey).toString('hex')).toBe('1ab42cc412b618bdea3a599e3c9bae199ebf030895b039e9db1e30dafb12b727')
@@ -290,7 +290,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
   })
 
-  describe('approveMessage', () => {
+  describe('approveMessageProposal', () => {
     test('should approve existing message and return MessageProposal', async () => {
       const mockTransport = createMockTransport({
         getMessage: jest.fn()
@@ -313,7 +313,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       account._threshold = 2
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const result = await account.approveMessage(EXPECTED_MESSAGE_HASH)
+      const result = await account.approveMessageProposal(EXPECTED_MESSAGE_HASH)
 
       expect(result.signature).toBe('0xmocksignature')
       expect(result.confirmations).toBe(2)
@@ -547,6 +547,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
       expect(result.status).toBe('executed')
+      expect(result.transaction.hash).toBe(MOCK_USER_OP_HASH)
     })
 
     test('should not auto-execute when threshold not met', async () => {

@@ -12,7 +12,7 @@
  * directly. The underlying `SafeApiKit` instance is created lazily on first
  * use, so constructing the transport is cheap and never performs I/O.
  */
-export default class SafeTxServiceTransport implements IMultisigTransport<import("@safe-global/api-kit").AddSafeOperationProps, import("@tetherto/wdk-wallet/multisig").MultisigTransportMessageInput, Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>>, Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>>> {
+export default class SafeTxServiceTransport implements IMultisigTransport<import("@safe-global/api-kit").AddSafeOperationProps, import("./i-multisig-transport.js").MultisigTransportMessageInput, Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>>, Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>>> {
     /**
      * Creates a new Safe Transaction Service transport.
      *
@@ -22,7 +22,7 @@ export default class SafeTxServiceTransport implements IMultisigTransport<import
     submitProposal(proposal: import("@safe-global/api-kit").AddSafeOperationProps): Promise<void>;
     getProposal(proposalId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>> | null>;
     confirmProposal(proposalId: string, signature: string): Promise<void>;
-    submitMessage(safeAddress: string, message: import("@tetherto/wdk-wallet/multisig").MultisigTransportMessageInput): Promise<void>;
+    submitMessage(safeAddress: string, message: import("./i-multisig-transport.js").MultisigTransportMessageInput): Promise<void>;
     getMessage(messageId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>> | null>;
     confirmMessage(messageId: string, signature: string): Promise<void>;
     /** @private */
@@ -52,4 +52,4 @@ export type SafeTxServiceTransportConfig = {
      */
     apiKey?: string;
 };
-import { IMultisigTransport } from '@tetherto/wdk-wallet/multisig';
+import { IMultisigTransport } from './i-multisig-transport.js';

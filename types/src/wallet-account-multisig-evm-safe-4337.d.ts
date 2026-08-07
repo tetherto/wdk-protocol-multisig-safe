@@ -2,7 +2,9 @@
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigOwnerManagement} IMultisigOwnerManagement */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigAutoExecuteResult} MultisigAutoExecuteResult */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigSignature} MultisigSignature */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 /** @typedef {import('@tetherto/wdk-wallet-evm').KeyPair} KeyPair */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
@@ -55,11 +57,17 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      */
     get path(): string;
     /**
-     * The key pair of the signer associated with this account.
+     * The key pair of this account.
      *
      * @type {KeyPair}
      */
-    get signerKeyPair(): KeyPair;
+    get keyPair(): KeyPair;
+    /**
+     * Returns the signer's address.
+     *
+     * @returns {Promise<string>} The signer's address.
+     */
+    getSignerAddress(): Promise<string>;
     /**
      * Signs a message.
      *
@@ -72,19 +80,19 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * Proposes a new message for the other owners to confirm.
      *
      * @param {string} message - The message to sign
-     * @returns {Promise<MultisigMessageProposal>} The sign result
+     * @returns {Promise<MultisigMessageProposal & MultisigSignature>} The sign result
      * @throws {Error} If the signer is not an owner of the Safe.
      */
-    proposeMessage(message: string): Promise<MultisigMessageProposal>;
+    proposeMessage(message: string): Promise<MultisigMessageProposal & MultisigSignature>;
     /**
      * Approves an existing message proposal.
      *
      * @param {string} messageId - The message hash to approve
-     * @returns {Promise<MultisigMessageProposal>} The approval result
+     * @returns {Promise<MultisigMessageProposal & MultisigSignature>} The approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no message exists for the given hash.
      */
-    approveMessage(messageId: string): Promise<MultisigMessageProposal>;
+    approveMessageProposal(messageId: string): Promise<MultisigMessageProposal & MultisigSignature>;
     /**
      * Validates that the signer is an owner of the Safe.
      *
@@ -106,19 +114,19 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      *
      * @param {EvmTransaction} tx - The transaction to propose
      * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-     * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
+     * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
      */
-    propose(tx: EvmTransaction, options?: MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigProposal>;
+    propose(tx: EvmTransaction, options?: MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigProposal & MultisigAutoExecuteResult>;
     /**
      * Proposes transferring a token to another address for multisig approval.
      * Auto-executes if `autoExecute` is true and threshold is met after proposing.
      *
      * @param {TransferOptions} transferOptions - Transfer options
      * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-     * @returns {Promise<MultisigProposal>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`.
+     * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
      * @throws {Error} If the estimated fee exceeds the configured `transferMaxFee`.
      */
-    proposeTransfer(transferOptions: TransferOptions, options?: MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigProposal>;
+    proposeTransfer(transferOptions: TransferOptions, options?: MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<MultisigProposal & MultisigAutoExecuteResult>;
     /** @private */
     private _submitTransaction;
     /**
@@ -138,11 +146,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * Approves (signs) an existing proposal.
      *
      * @param {string} proposalId - The Safe operation hash to approve
-     * @returns {Promise<MultisigProposal>} Approval result
+     * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} Approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no proposal exists for the given id.
      */
-    approveProposal(proposalId: string): Promise<MultisigProposal>;
+    approveProposal(proposalId: string): Promise<MultisigProposal & MultisigAutoExecuteResult>;
     /**
      * Rejects a proposal by creating a rejection transaction.
      * A rejection is a zero-value transaction to the Safe itself with the same nonce.
@@ -232,7 +240,9 @@ export type IWalletAccountMultisig = import("@tetherto/wdk-wallet/multisig").IWa
 export type IMultisigOwnerManagement = import("@tetherto/wdk-wallet/multisig").IMultisigOwnerManagement;
 export type MultisigProposal = import("@tetherto/wdk-wallet/multisig").MultisigProposal;
 export type MultisigTransactionOptions = import("@tetherto/wdk-wallet/multisig").MultisigTransactionOptions;
+export type MultisigAutoExecuteResult = import("@tetherto/wdk-wallet/multisig").MultisigAutoExecuteResult;
 export type MultisigMessageProposal = import("@tetherto/wdk-wallet/multisig").MultisigMessageProposal;
+export type MultisigSignature = import("@tetherto/wdk-wallet/multisig").MultisigSignature;
 export type MultisigOptions = import("@tetherto/wdk-wallet/multisig").MultisigOptions;
 export type KeyPair = import("@tetherto/wdk-wallet-evm").KeyPair;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;

@@ -1,8 +1,8 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigTransport} IMultisigTransport */
+/** @typedef {import('./transports/i-multisig-transport.js').IMultisigTransport} IMultisigTransport */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessage} MultisigMessage */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
@@ -33,11 +33,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     /**
      * Creates a new read-only EVM multisig Safe wallet account.
      *
-     * @param {string | null} signerAddress - The signer's EOA address or null for pure read-only
      * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
      * @throws {ConfigurationError} If the configuration is invalid or has missing required fields.
      */
-    constructor(signerAddress: string | null, config: EvmMultisigSafeReadOnlyConfig);
+    constructor(config: EvmMultisigSafeReadOnlyConfig);
     /**
      * The multisig Safe configuration.
      *
@@ -101,15 +100,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * @type {number | null}
      */
     protected _threshold: number | null;
-    /** @private */
-    private _signerAddress;
-    /**
-     * Returns the signer's EOA address.
-     * For read-only accounts created with a signerAddress, returns that address.
-     *
-     * @returns {Promise<string | null>} The signer's address or null
-     */
-    getSignerAddress(): Promise<string | null>;
     /**
      * Returns the predicted Safe address.
      *
@@ -191,12 +181,19 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     getPaymasterTokenBalance(): Promise<bigint>;
     /**
-     * Returns a list of proposals by their identifiers.
+     * Returns a proposal by its identifier.
+     *
+     * @param {string} proposalId - The proposal's identifier
+     * @returns {Promise<MultisigProposal | null>} The proposal details, or null if the proposal has not been found.
+     */
+    getProposal(proposalId: string): Promise<MultisigProposal | null>;
+    /**
+     * Returns a map from each proposal identifier to its details.
      *
      * @param {string[]} proposalIds - The list of proposal identifiers
-     * @returns {Promise<(MultisigProposal | null)[]>} The proposal details, or null for proposals not found
+     * @returns {Promise<Record<string, MultisigProposal | null>>} For each proposal id, the proposal details or null if it has not been found.
      */
-    getProposals(proposalIds: string[]): Promise<(MultisigProposal | null)[]>;
+    getProposals(proposalIds: string[]): Promise<Record<string, MultisigProposal | null>>;
     /**
      * Checks if a Safe operation is ready to be executed.
      *
@@ -205,12 +202,19 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     isReadyToExecute(proposalId: string): Promise<boolean>;
     /**
-     * Returns a list of message proposals by their hashes.
+     * Returns a message proposal by its identifier.
+     *
+     * @param {string} messageId - The message's hash
+     * @returns {Promise<MultisigMessageProposal | null>} The message details, or null if the message has not been found.
+     */
+    getMessageProposal(messageId: string): Promise<MultisigMessageProposal | null>;
+    /**
+     * Returns a map from each message hash to its details.
      *
      * @param {string[]} messageIds - The list of message hashes
-     * @returns {Promise<(MultisigMessage | null)[]>} The message details, or null for messages not found
+     * @returns {Promise<Record<string, MultisigMessageProposal | null>>} For each message hash, the message details or null if it has not been found.
      */
-    getMessages(messageIds: string[]): Promise<(MultisigMessage | null)[]>;
+    getMessageProposals(messageIds: string[]): Promise<Record<string, MultisigMessageProposal | null>>;
     /**
      * Estimates the gas cost for deploying the Safe.
      *
@@ -356,10 +360,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     private _validateConfig;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
-export type IMultisigTransport = import("@tetherto/wdk-wallet/multisig").IMultisigTransport;
+export type IMultisigTransport = import("./transports/i-multisig-transport.js").IMultisigTransport;
 export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet/multisig").IWalletAccountReadOnlyMultisig;
 export type MultisigInfo = import("@tetherto/wdk-wallet/multisig").MultisigInfo;
-export type MultisigMessage = import("@tetherto/wdk-wallet/multisig").MultisigMessage;
+export type MultisigMessageProposal = import("@tetherto/wdk-wallet/multisig").MultisigMessageProposal;
 export type MultisigProposal = import("@tetherto/wdk-wallet/multisig").MultisigProposal;
 export type TransactionResult = import("@tetherto/wdk-wallet-evm").TransactionResult;
 export type EvmTransaction = import("@tetherto/wdk-wallet-evm").EvmTransaction;
