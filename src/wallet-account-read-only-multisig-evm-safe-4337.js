@@ -425,8 +425,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     try {
       const raw = await this._provider.request({ method: 'eth_call', params: [{ to: safeAddress, data }, 'latest'] })
       return raw.slice(0, 10).toLowerCase() === EIP1271_MAGIC_VALUE
-    } catch {
-      return false
+    } catch (error) {
+      if (error.code === 'CALL_EXCEPTION' || /revert/i.test(error.message ?? '')) {
+        return false
+      }
+      throw error
     }
   }
 
@@ -440,7 +443,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const paymasterTokenAddress = this._config.paymasterTokenAddress
 
     if (!paymasterTokenAddress) {
-      throw new Error('No paymaster token configured')
+      throw new Error("The account has no 'paymasterTokenAddress' configured.")
     }
 
     return await this.getTokenBalance(paymasterTokenAddress)
@@ -981,11 +984,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     }
 
     if (isSponsored && !paymasterUrl) {
-      throw new ConfigurationError('Missing required sponsorship configuration field: paymasterUrl.')
+      throw new ConfigurationError("The 'paymasterUrl' option is required when 'isSponsored' is set.")
     }
 
     if (!isSponsored && !useNativeCoins && paymasterUrl && !paymasterTokenAddress) {
-      throw new ConfigurationError('Missing required paymaster token configuration field: paymasterTokenAddress.')
+      throw new ConfigurationError("The 'paymasterTokenAddress' option is required when a 'paymasterUrl' is configured.")
     }
   }
 }

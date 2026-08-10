@@ -643,7 +643,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       }
 
       await expect(erc20Account.proposeTransfer(transferOptions))
-        .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
+        .rejects.toThrow("The estimated fee exceeds the configured 'transferMaxFee' option.")
 
       erc20Account.dispose()
     })

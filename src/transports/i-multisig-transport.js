@@ -126,7 +126,12 @@ export class IMultisigTransport {
   }
 }
 
-/** @private */
+/**
+ * Converts a byte array to a 0x-prefixed lowercase hex string.
+ *
+ * @param {Uint8Array} bytes - The byte array to encode.
+ * @returns {string} The 0x-prefixed hex encoding.
+ */
 function bytesToHex (bytes) {
   let hex = '0x'
   for (const byte of bytes) {

@@ -293,60 +293,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     if (!isSponsored && !useNativeCoins && transferMaxFee !== undefined) {
       const { fee } = await this.quoteSendTransaction(tx, config)
       if (fee >= transferMaxFee) {
-        throw new ValueError('Exceeded maximum fee cost for transfer operation.')
+        throw new ValueError("The estimated fee exceeds the configured 'transferMaxFee' option.")
       }
     }
 
     return await this._submitTransaction(tx, config, autoExecute)
-  }
-
-  /** @private */
-  async _submitTransaction (tx, config, autoExecute) {
-    const proposal = await this._propose(tx, config)
-
-    if (autoExecute && proposal.confirmations >= proposal.threshold) {
-      const transaction = await this.executeProposal(proposal.proposalId)
-      return { ...proposal, status: 'executed', transaction }
-    }
-
-    return proposal
-  }
-
-  /**
-   * Proposes a new transaction for multisig approval.
-   * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
-   *
-   * Note: `rejectProposal()` passes `customNonce` via config to reuse the original proposal's nonce.
-   *
-   * @protected
-   * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
-   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<MultisigProposal>} The proposal result
-   * @throws {SignerError} If the signer is not an owner of the Safe.
-   */
-  async _propose (transaction, config) {
-    await this.validateSignerIsOwner()
-
-    const threshold = await this.getThreshold()
-    const chainId = this._config.chainId
-
-    const { userOp, smartAccount } = await this._createSafeOperation(transaction, config)
-
-    const signer = this._buildSigner()
-    userOp.signature = await smartAccount.signUserOperationWithSigners(userOp, [signer], chainId)
-
-    const proposalId = this._getProposalId(userOp)
-
-    await this._transport.submitProposal(await this._buildProposalPayload(userOp))
-
-    const safeOperationResponse = await this._transport.getProposal(proposalId)
-
-    return {
-      proposalId,
-      confirmations: safeOperationResponse.confirmations?.length || 0,
-      threshold,
-      status: 'pending'
-    }
   }
 
   /**
@@ -588,14 +539,61 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Disposes the wallet account, clearing sensitive data from memory.
    */
   dispose () {
-    if (this._signerAccount) {
-      this._signerAccount.dispose()
-      this._signerAccount = null
-    }
+    this._signerAccount.dispose()
+    this._signerAccount = null
     this._paymasters.clear()
     this._bundler = undefined
     this._deployedSmartAccount = undefined
     this._transport = null
+  }
+
+  /**
+   * Proposes a new transaction for multisig approval.
+   * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
+   *
+   * Note: `rejectProposal()` passes `customNonce` via config to reuse the original proposal's nonce.
+   *
+   * @protected
+   * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s) to propose
+   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+   * @returns {Promise<MultisigProposal>} The proposal result
+   * @throws {SignerError} If the signer is not an owner of the Safe.
+   */
+  async _propose (transaction, config) {
+    await this.validateSignerIsOwner()
+
+    const threshold = await this.getThreshold()
+    const chainId = this._config.chainId
+
+    const { userOp, smartAccount } = await this._createSafeOperation(transaction, config)
+
+    const signer = this._buildSigner()
+    userOp.signature = await smartAccount.signUserOperationWithSigners(userOp, [signer], chainId)
+
+    const proposalId = this._getProposalId(userOp)
+
+    await this._transport.submitProposal(await this._buildProposalPayload(userOp))
+
+    const safeOperationResponse = await this._transport.getProposal(proposalId)
+
+    return {
+      proposalId,
+      confirmations: safeOperationResponse.confirmations?.length || 0,
+      threshold,
+      status: 'pending'
+    }
+  }
+
+  /** @private */
+  async _submitTransaction (tx, config, autoExecute) {
+    const proposal = await this._propose(tx, config)
+
+    if (autoExecute && proposal.confirmations >= proposal.threshold) {
+      const transaction = await this.executeProposal(proposal.proposalId)
+      return { ...proposal, status: 'executed', transaction }
+    }
+
+    return proposal
   }
 
   /** @private */

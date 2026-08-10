@@ -397,7 +397,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       })
 
       await expect(account.getPaymasterTokenBalance())
-        .rejects.toThrow('No paymaster token configured')
+        .rejects.toThrow("The account has no 'paymasterTokenAddress' configured.")
     })
 
     test('should throw error when no paymaster token configured', async () => {
@@ -409,7 +409,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       })
 
       await expect(account.getPaymasterTokenBalance())
-        .rejects.toThrow('No paymaster token configured')
+        .rejects.toThrow("The account has no 'paymasterTokenAddress' configured.")
     })
   })
 
