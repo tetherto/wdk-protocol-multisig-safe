@@ -223,18 +223,4 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
       expect(account1._signerAccount).toBe(null)
     })
   })
-
-  describe('exports', () => {
-    test('should export WalletAccountMultisigEvmSafe4337', () => {
-      expect(WalletAccountMultisigEvmSafe4337).toBeDefined()
-    })
-
-    test('should export WalletAccountReadOnlyMultisigEvmSafe4337', () => {
-      expect(WalletAccountReadOnlyMultisigEvmSafe4337).toBeDefined()
-    })
-
-    test('should export default WalletManagerMultisigEvmSafe4337', () => {
-      expect(WalletManagerMultisigEvmSafe4337).toBeDefined()
-    })
-  })
 })

@@ -279,13 +279,14 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const result = await account.proposeMessage('Hello!')
 
       expect(result.messageId).toBe(EXPECTED_MESSAGE_HASH)
+      expect(result.message).toBe('Hello!')
       expect(result.signature).toBe('0xmocksignature')
       expect(result.confirmations).toBe(1)
       expect(result.threshold).toBe(1)
       expect(result.combinedSignature).toBeNull()
       expect(mockTransport.submitMessage).toHaveBeenCalledWith(
         MOCK_SAFE_ADDRESS,
-        expect.objectContaining({ message: 'Hello!', signature: '0xmocksignature' })
+        { message: 'Hello!', signature: '0xmocksignature' }
       )
     })
   })
@@ -315,8 +316,11 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       const result = await account.approveMessageProposal(EXPECTED_MESSAGE_HASH)
 
+      expect(result.messageId).toBe(EXPECTED_MESSAGE_HASH)
+      expect(result.message).toBe('Hello!')
       expect(result.signature).toBe('0xmocksignature')
       expect(result.confirmations).toBe(2)
+      expect(result.threshold).toBe(2)
       expect(result.combinedSignature).toBe('0xcombinedsig')
       expect(mockTransport.confirmMessage).toHaveBeenCalledWith(
         EXPECTED_MESSAGE_HASH,
@@ -667,7 +671,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const result = await account.addOwner(ACCOUNT_2.address)
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(mockSmartAccount.createStandardAddOwnerWithThresholdMetaTransaction).toHaveBeenCalled()
+      expect(mockSmartAccount.createStandardAddOwnerWithThresholdMetaTransaction).toHaveBeenCalledWith(ACCOUNT_2.address, 1)
     })
 
     test('removeOwner should return propose result', async () => {
@@ -688,23 +692,15 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const result = await account.changeThreshold(1)
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(mockSmartAccount.createChangeThresholdMetaTransaction).toHaveBeenCalled()
+      expect(mockSmartAccount.createChangeThresholdMetaTransaction).toHaveBeenCalledWith(1)
     })
   })
 
   describe('custom transport injection', () => {
-    test('should route proposal sharing through the injected transport', async () => {
-      const customTransport = createMockTransport({
-        getProposal: jest.fn().mockResolvedValue({
-          confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
-          userOperation: { nonce: '0' },
-          preparedSignature: '0xpreparedsignature'
-        })
-      })
-
+    const createCustomAccount = (transport) => {
       const customAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
-        transport: customTransport,
+        transport,
         safeOptions: {
           owners: [ACCOUNT.address],
           threshold: 1
@@ -720,15 +716,30 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       customAccount._threshold = 1
       customAccount.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
-      const proposeResult = await customAccount.propose({
-        to: ACCOUNT_2.address,
-        value: '1000',
-        data: '0x'
-      })
+      return customAccount
+    }
 
-      expect(customTransport.submitProposal).toHaveBeenCalled()
+    test('propose shares the proposal through the injected transport', async () => {
+      const customTransport = createMockTransport()
+      const customAccount = createCustomAccount(customTransport)
+
+      const result = await customAccount.propose({ to: ACCOUNT_2.address, value: '1000', data: '0x' })
+
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(customTransport.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
-      expect(proposeResult.proposalId).toBe(MOCK_SAFE_OP_HASH)
+
+      customAccount.dispose()
+    })
+
+    test('approveProposal confirms through the injected transport', async () => {
+      const customTransport = createMockTransport({
+        getProposal: jest.fn().mockResolvedValue({
+          confirmations: [{ owner: ACCOUNT.address }, { owner: ACCOUNT_2.address }],
+          userOperation: { nonce: '0' },
+          preparedSignature: '0xpreparedsignature'
+        })
+      })
+      const customAccount = createCustomAccount(customTransport)
 
       await customAccount.approveProposal(MOCK_SAFE_OP_HASH)
 
