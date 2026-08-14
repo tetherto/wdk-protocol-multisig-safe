@@ -1,4 +1,4 @@
-# @tetherto/wdk-wallet-evm-multisig-safe
+# @tetherto/wdk-protocol-multisig-safe
 
 **Note**: This package is currently in beta. Please test thoroughly in development environments before using in production.
 
@@ -25,7 +25,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 ## ⬇️ Installation
 
 ```bash
-npm install @tetherto/wdk-wallet-evm-multisig-safe
+npm install @tetherto/wdk-protocol-multisig-safe
 ```
 
 ## 🚀 Quick Start
@@ -33,10 +33,10 @@ npm install @tetherto/wdk-wallet-evm-multisig-safe
 ### Creating a New 2-of-2 Multisig Safe
 
 ```javascript
-import WalletManagerEvmMultisigSafe, {
-  WalletAccountEvmMultisigSafe,
-  WalletAccountReadOnlyEvmMultisigSafe
-} from '@tetherto/wdk-wallet-evm-multisig-safe'
+import WalletManagerMultisigEvmSafe4337, {
+  WalletAccountMultisigEvmSafe4337,
+  WalletAccountReadOnlyMultisigEvmSafe4337
+} from '@tetherto/wdk-protocol-multisig-safe'
 
 // Owner seed phrases
 const aliceSeed = 'alice seed phrase here...'
@@ -47,7 +47,7 @@ const aliceEoa = '0x...'
 const bobEoa = '0x...'
 
 // Create Alice's multisig account using PredictedSafeOptions
-const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -75,7 +75,7 @@ console.log('Is Deployed:', isDeployed)
 
 ```javascript
 // Import using ExistingSafeOptions
-const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -117,37 +117,39 @@ console.log('SafeOp Hash:', proposal.proposalId)
 console.log('Confirmations:', proposal.confirmations, '/', proposal.threshold)
 
 // Bob approves
-const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", config)
-const approval = await bob.approve(proposal.proposalId)
+const bob = new WalletAccountMultisigEvmSafe4337(bobSeed, "0'/0/0", config)
+const approval = await bob.approveProposal(proposal.proposalId)
 console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
 
 // Execute when threshold met
-const result = await alice.execute(proposal.proposalId)
+const result = await alice.executeProposal(proposal.proposalId)
 console.log('UserOp Hash:', result.hash)
-
 ```
 
-### Using sendTransaction (Auto-Execute)
+### Using `propose` (Auto-Execute)
 
-`sendTransaction` and `transfer` accept an optional `autoExecute` flag. When `autoExecute: true` and the threshold is met after proposing, the transaction is executed automatically:
+`propose` and `proposeTransfer` accept an optional `autoExecute` flag. When `autoExecute: true` and the threshold is met after proposing, the transaction is executed automatically and its on-chain result is returned under `transaction`:
 
 ```javascript
 // With autoExecute: true, executes immediately if threshold is met
-const result = await alice.sendTransaction({
+const result = await alice.propose({
   to: '0x...',
   value: '1000000000000000000', // 1 ETH
   data: '0x'
 }, { autoExecute: true })
 
-console.log('Hash:', result.hash)
-console.log('Fee:', result.fee)
+console.log('Proposal:', result.proposalId)
 console.log('Confirmations:', result.confirmations, '/', result.threshold)
-console.log('Executed:', result.executed)
+console.log('Status:', result.status) // 'pending' | 'executed'
 
-if (!result.executed) {
+if (result.status === 'executed') {
+  console.log('Tx Hash:', result.transaction.hash)
+  console.log('Fee:', result.transaction.fee)
+} else {
   // Need more signatures
-  await bob.approve(result.hash)
-  const execResult = await alice.execute(result.hash)
+  await bob.approveProposal(result.proposalId)
+  const execResult = await alice.executeProposal(result.proposalId)
+  console.log('Tx Hash:', execResult.hash)
 }
 ```
 
@@ -157,7 +159,7 @@ if (!result.executed) {
 
 ```javascript
 // Ensure the signer's EOA has ETH for deployment gas
-const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -180,12 +182,12 @@ console.log('Estimated deployment fee:', fee)
 
 // Deploy the Safe (requires ETH in signer's EOA)
 const deployResult = await alice.deploy()
-console.log('TX Hash:', deployResult.txHash)
+console.log('Tx Hash:', deployResult.hash)
 console.log('Fee:', deployResult.fee)
 
 // After deployment, transactions can use paymaster or sponsored mode
 // No more ETH needed in the Safe or signer's EOA!
-const result = await alice.sendTransaction({
+const result = await alice.propose({
   to: '0x...',
   value: '0',
   data: '0x...'
@@ -197,7 +199,7 @@ const result = await alice.sendTransaction({
 The Safe pays gas fees using ERC-20 tokens (e.g., USDT). The Safe must hold sufficient tokens.
 
 ```javascript
-const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -212,7 +214,7 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
 // Propose with token approval for gas
 const quote = await alice.quoteSendTransaction(tx)
 const proposal = await alice.propose(tx, {
-  amountToApprove: quote.fee * 150n / 100n 
+  amountToApprove: quote.fee * 150n / 100n
 })
 ```
 
@@ -221,7 +223,7 @@ const proposal = await alice.propose(tx, {
 A sponsor pays the gas fees, making transactions completely free for the Safe. No tokens required in the Safe.
 
 ```javascript
-const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -239,10 +241,10 @@ const proposal = await alice.propose(tx)
 console.log('SafeOp Hash:', proposal.proposalId)
 
 // Bob approves
-const approval = await bob.approve(proposal.proposalId)
+const approval = await bob.approveProposal(proposal.proposalId)
 
 // Execute - completely gasless for the Safe
-const result = await alice.execute(proposal.proposalId)
+const result = await alice.executeProposal(proposal.proposalId)
 console.log('UserOp Hash:', result.hash)
 ```
 
@@ -251,7 +253,7 @@ console.log('UserOp Hash:', result.hash)
 You can override the paymaster mode on a per-transaction basis, regardless of the account's default configuration
 ```javascript
 // Account configured with ERC-20 paymaster (USDT)
-const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -264,19 +266,19 @@ const alice = new WalletAccountEvmMultisigSafe(aliceSeed, "0'/0/0", {
 })
 
 // Override to sponsored mode for this specific transaction
-const result = await alice.sendTransaction(tx, {
+const result = await alice.propose(tx, {
   isSponsored: true  // This transaction will be gasless!
 })
 
 // Or override to use a different token
-const result2 = await alice.sendTransaction(tx, {
+const result2 = await alice.propose(tx, {
   paymasterTokenAddress: '0xUSDT...'  // Pay gas with USDT instead
 })
 ```
 
 ```javascript
 // Account configured with sponsored mode
-const bob = new WalletAccountEvmMultisigSafe(bobSeed, "0'/0/0", {
+const bob = new WalletAccountMultisigEvmSafe4337(bobSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -294,7 +296,7 @@ const quote = await bob.quoteSendTransaction(tx, {
   paymasterTokenAddress: '0xUSDT...'
 })
 
-const result = await bob.sendTransaction(tx, {
+const result = await bob.propose(tx, {
   isSponsored: false,
   paymasterTokenAddress: '0xUSDT...',
   amountToApprove: quote.fee * 150n / 100n
@@ -342,11 +344,11 @@ const proposal = await alice.updateOwners(
 // Alice proposes signing a message
 const result = await alice.proposeMessage('Hello from Safe!')
 console.log('Alice Signature:', result.signature)
-console.log('Message Hash:', result.messageHash)
+console.log('Message Id:', result.messageId)
 console.log('Confirmations:', result.confirmations, '/', result.threshold)
 
 // Bob approves the message
-const approval = await bob.approveMessage(result.messageHash)
+const approval = await bob.approveMessageProposal(result.messageId)
 console.log('Bob Signature:', approval.signature)
 console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
 
@@ -359,8 +361,9 @@ if (approval.combinedSignature) {
   console.log('Signature valid:', isValid)
 }
 
-// Get message status anytime
-const [message] = await alice.getMessages([result.messageHash])
+// Get message status anytime (returns a map keyed by message id)
+const messages = await alice.getMessageProposals([result.messageId])
+const message = messages[result.messageId]
 console.log('Message:', message.message)
 console.log('Confirmations:', message.confirmations, '/', message.threshold)
 console.log('Combined Signature:', message.combinedSignature)
@@ -369,9 +372,9 @@ console.log('Combined Signature:', message.combinedSignature)
 ### Read-Only Account
 
 ```javascript
-import { WalletAccountReadOnlyEvmMultisigSafe } from '@tetherto/wdk-wallet-evm-multisig-safe'
+import { WalletAccountReadOnlyMultisigEvmSafe4337 } from '@tetherto/wdk-protocol-multisig-safe'
 
-const readOnly = new WalletAccountReadOnlyEvmMultisigSafe(null, {
+const readOnly = new WalletAccountReadOnlyMultisigEvmSafe4337({
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -386,14 +389,11 @@ const owners = await readOnly.getOwners()
 const threshold = await readOnly.getThreshold()
 const balance = await readOnly.getBalance()
 
-// Get fee estimates
-const quote = await readOnly.quoteSendTransaction(tx)
-
-// Get proposals status
+// Get proposals status (returns a map keyed by proposal id)
 const proposals = await readOnly.getProposals([proposalHash1, proposalHash2])
 
-// Get messages status
-const messages = await readOnly.getMessages([messageHash1, messageHash2])
+// Get messages status (returns a map keyed by message id)
+const messages = await readOnly.getMessageProposals([messageHash1, messageHash2])
 
 // Get fee estimates
 const quote = await readOnly.quoteSendTransaction(tx)
@@ -422,12 +422,13 @@ To route calldata through your own backend instead (a relay, a database, a peer-
 
 ### Writing a custom transport
 
-A transport implements six methods — three for transaction proposals and three for message proposals. Extend `IMultisigTransport` (so unimplemented methods throw a clear error) and return objects shaped like the ones the Safe Transaction Service returns (a `confirmations` array, and `preparedSignature` for messages).
+A transport implements six methods — three for transaction proposals and three for message proposals. Extend `IMultisigTransport` (so unimplemented methods throw a clear error), return `null` from the getters when nothing is found, and shape the results like the ones the Safe Transaction Service returns (a `confirmations` array, and `preparedSignature` for messages). Serialize outgoing payloads with the exported `toTransportJson` helper so native values (BigInt, byte arrays) survive `JSON.stringify`.
 
 ```javascript
-import WalletManagerEvmMultisigSafe, {
-  IMultisigTransport
-} from '@tetherto/wdk-wallet-evm-multisig-safe'
+import WalletManagerMultisigEvmSafe4337, {
+  IMultisigTransport,
+  toTransportJson
+} from '@tetherto/wdk-protocol-multisig-safe'
 
 class MyBackendTransport extends IMultisigTransport {
   constructor (baseUrl) {
@@ -440,7 +441,7 @@ class MyBackendTransport extends IMultisigTransport {
   async submitProposal (proposal) {
     await fetch(`${this._baseUrl}/proposals`, {
       method: 'POST',
-      body: JSON.stringify(proposal)
+      body: JSON.stringify(toTransportJson(proposal))
     })
   }
 
@@ -465,20 +466,20 @@ class MyBackendTransport extends IMultisigTransport {
     })
   }
 
-  async getMessage (messageHash) {
-    const res = await fetch(`${this._baseUrl}/messages/${messageHash}`)
-    return res.json() // { messageHash, message, confirmations: [...], preparedSignature }
+  async getMessage (messageId) {
+    const res = await fetch(`${this._baseUrl}/messages/${messageId}`)
+    return res.ok ? res.json() : null // { message, confirmations: [...], preparedSignature }
   }
 
-  async confirmMessage (messageHash, signature) {
-    await fetch(`${this._baseUrl}/messages/${messageHash}/confirmations`, {
+  async confirmMessage (messageId, signature) {
+    await fetch(`${this._baseUrl}/messages/${messageId}/confirmations`, {
       method: 'POST',
       body: JSON.stringify({ signature })
     })
   }
 }
 
-const wallet = new WalletManagerEvmMultisigSafe(seed, {
+const wallet = new WalletManagerMultisigEvmSafe4337(seed, {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -492,7 +493,7 @@ const wallet = new WalletManagerEvmMultisigSafe(seed, {
 You can also instantiate the default transport explicitly, for example to share a single instance:
 
 ```javascript
-import { SafeTxServiceTransport } from '@tetherto/wdk-wallet-evm-multisig-safe'
+import { SafeTxServiceTransport } from '@tetherto/wdk-protocol-multisig-safe'
 
 const transport = new SafeTxServiceTransport({
   chainId: 11155111n,
@@ -533,7 +534,6 @@ When using sponsored (gasless) mode, the `sponsorshipPolicyId` is visible to the
 - **Policy rules**: Restrict by sender address, contract, gas limit, time window, etc.
 
 Consult your paymaster provider's documentation for configuring sponsorship policies and webhook verification. This package is provider-agnostic and works with any ERC-4337 bundler and ERC-7677 paymaster.
-```
 
 ## 🛠️ Development
 
