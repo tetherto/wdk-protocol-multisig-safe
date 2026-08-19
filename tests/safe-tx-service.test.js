@@ -30,7 +30,7 @@ describe('SafeTxServiceTransport', () => {
         options: { validAfter: 0, validUntil: 0 }
       }
 
-      await transport.submitProposal(proposal)
+      await transport.submitProposal('0xproposalid', proposal)
 
       const submitted = addSafeOperation.mock.calls[0][0]
 

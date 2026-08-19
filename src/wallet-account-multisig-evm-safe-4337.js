@@ -20,7 +20,7 @@ import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
 import {
   // eslint-disable-next-line camelcase
-  SafeAccountV0_3_0 as SafeAccount030,
+  SafeAccountV0_2_0 as SafeAccount020,
   AbstractionKitError,
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
@@ -131,7 +131,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<string>} The signer's address.
    */
   async getSignerAddress () {
-    return this._signerAccount._address
+    return await this._signerAccount.getAddress()
   }
 
   /**
@@ -162,9 +162,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, message)
     const messageId = TypedDataEncoder.hash(domain, types, messageValue)
-    const signature = this._signDigest(messageId)
+    const signature = await this._signTypedData({ domain, types, message: messageValue })
 
-    await this._transport.submitMessage(safeAddress, { message, signature })
+    await this._transport.submitMessage(safeAddress, messageId, { message, signature })
 
     const safeMessageResponse = await this._transport.getMessage(messageId)
 
@@ -172,9 +172,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       messageId,
       message,
       signature,
-      confirmations: safeMessageResponse.confirmations?.length || 0,
+      confirmations: safeMessageResponse?.confirmations?.length || 0,
       threshold,
-      combinedSignature: safeMessageResponse.preparedSignature || null
+      combinedSignature: safeMessageResponse?.preparedSignature || null
     }
   }
 
@@ -197,8 +197,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const smartAccount = await this._getSmartAccount()
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, existingMessage.message)
-    const digest = TypedDataEncoder.hash(domain, types, messageValue)
-    const signature = this._signDigest(digest)
+    const signature = await this._signTypedData({ domain, types, message: messageValue })
 
     await this._transport.confirmMessage(messageId, signature)
 
@@ -319,8 +318,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     }
 
     const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
-    const digest = this._getProposalId(userOp)
-    const signature = this._signDigest(digest)
+    const { domain, types, messageValue } = this._getProposalTypedData(userOp)
+    const signature = await this._signTypedData({ domain, types, message: messageValue })
 
     await this._transport.confirmProposal(proposalId, signature)
 
@@ -567,18 +566,16 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const { userOp, smartAccount } = await this._createSafeOperation(transaction, config)
 
-    const signer = this._buildSigner()
+    const signer = await this._buildSigner()
     userOp.signature = await smartAccount.signUserOperationWithSigners(userOp, [signer], chainId)
 
     const proposalId = this._getProposalId(userOp)
 
-    await this._transport.submitProposal(await this._buildProposalPayload(userOp))
-
-    const safeOperationResponse = await this._transport.getProposal(proposalId)
+    await this._transport.submitProposal(proposalId, await this._buildProposalPayload(userOp))
 
     return {
       proposalId,
-      confirmations: safeOperationResponse.confirmations?.length || 0,
+      confirmations: 1,
       threshold,
       status: 'pending'
     }
@@ -597,21 +594,26 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   }
 
   /** @private */
-  _buildSigner () {
+  async _buildSigner () {
     return {
-      address: this._signerAccount._address,
-      signHash: async (hash) => this._signDigest(hash)
+      address: await this._signerAccount.getAddress(),
+      signTypedData: async (typedData) => this._signTypedData(typedData)
     }
   }
 
   /** @private */
-  _signDigest (digest) {
-    return this._signerAccount._account.signingKey.sign(digest).serialized
+  async _signTypedData (typedData) {
+    return await this._signerAccount.signTypedData(typedData)
   }
 
   /** @private */
   _getProposalId (userOp) {
-    return SafeAccount030.getUserOperationEip712Hash(userOp, this._config.chainId, this._getSafeOperationOptions())
+    return SafeAccount020.getUserOperationEip712Hash(userOp, this._config.chainId, this._getSafeOperationOptions())
+  }
+
+  /** @private */
+  _getProposalTypedData (userOp) {
+    return SafeAccount020.getUserOperationEip712Data(userOp, this._config.chainId, this._getSafeOperationOptions())
   }
 
   /** @private */
@@ -639,7 +641,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
       signature: confirmation.signature
     }))
 
-    return SafeAccount030.formatSignaturesToUseroperationSignature(pairs, { validAfter: 0n, validUntil: 0n })
+    return SafeAccount020.formatSignaturesToUseroperationSignature(pairs, { validAfter: 0n, validUntil: 0n })
   }
 
   /** @private */

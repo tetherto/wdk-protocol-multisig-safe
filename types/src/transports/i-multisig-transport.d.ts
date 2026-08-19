@@ -42,7 +42,7 @@ export interface IMultisigTransport<TProposal = Record<string, unknown>, TMessag
      * @param {TProposal} proposal - The signed transaction proposal to share. Opaque to the transport, which must persist it so {@link getProposal} can return it intact.
      * @returns {Promise<void>}
      */
-    submitProposal(proposal: TProposal): Promise<void>;
+    submitProposal(proposalId: string, proposal: TProposal): Promise<void>;
     /**
      * Returns a transaction proposal by its identifier.
      *
@@ -65,7 +65,7 @@ export interface IMultisigTransport<TProposal = Record<string, unknown>, TMessag
      * @param {TMessage} message - The message proposal to share.
      * @returns {Promise<void>}
      */
-    submitMessage(accountAddress: string, message: TMessage): Promise<void>;
+    submitMessage(accountAddress: string, messageId: string, message: TMessage): Promise<void>;
     /**
      * Returns a message proposal by its hash.
      *

@@ -60,7 +60,7 @@ export default class SafeTxServiceTransport {
   }
 
   /** @inheritdoc */
-  async submitProposal (proposal) {
+  async submitProposal (proposalId, proposal) {
     const apiKit = this._getApiKit()
     return apiKit.addSafeOperation(proposal)
   }
@@ -85,7 +85,7 @@ export default class SafeTxServiceTransport {
   }
 
   /** @inheritdoc */
-  async submitMessage (safeAddress, message) {
+  async submitMessage (safeAddress, messageId, message) {
     const apiKit = this._getApiKit()
     return apiKit.addMessage(safeAddress, message)
   }

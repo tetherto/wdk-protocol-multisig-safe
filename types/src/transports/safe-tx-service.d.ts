@@ -19,10 +19,10 @@ export default class SafeTxServiceTransport implements IMultisigTransport<import
      * @param {SafeTxServiceTransportConfig} config - The transport configuration.
      */
     constructor(config: SafeTxServiceTransportConfig);
-    submitProposal(proposal: import("@safe-global/api-kit").AddSafeOperationProps): Promise<void>;
+    submitProposal(proposalId: string, proposal: import("@safe-global/api-kit").AddSafeOperationProps): Promise<void>;
     getProposal(proposalId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>> | null>;
     confirmProposal(proposalId: string, signature: string): Promise<void>;
-    submitMessage(safeAddress: string, message: import("./i-multisig-transport.js").MultisigTransportMessageInput): Promise<void>;
+    submitMessage(safeAddress: string, messageId: string, message: import("./i-multisig-transport.js").MultisigTransportMessageInput): Promise<void>;
     getMessage(messageId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>> | null>;
     confirmMessage(messageId: string, signature: string): Promise<void>;
     /** @private */

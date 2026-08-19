@@ -8,7 +8,7 @@ import InMemoryTransport from '../helpers/in-memory-transport.js'
 
 const TIMEOUT = 120000
 
-const ENTRY_POINT_ADDRESS = '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
+const ENTRY_POINT_ADDRESS = '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789'
 const PROVIDER_URL = 'http://localhost:8545'
 const BUNDLER_URL = 'http://localhost:4337'
 const CHAIN_ID = 1n
@@ -55,12 +55,12 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
   let signerA, signerB, signerC
   let safeAddress
 
-  const deriveEoa = (seed) => {
+  const deriveEoa = async (seed) => {
     const tmp = new WalletAccountMultisigEvmSafe4337(seed, "0'/0/0", {
       ...baseConfig,
       safeOptions: { owners: ['0x0000000000000000000000000000000000000001'], threshold: 1 }
     })
-    const address = tmp._signerAccount._address
+    const address = await tmp.getSignerAddress()
     tmp.dispose()
     return address
   }
@@ -84,12 +84,12 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
       chainId: CHAIN_ID,
       provider: PROVIDER_URL,
       bundlerUrl: BUNDLER_URL,
-      safeModulesVersion: '0.3.0',
+      safeModulesVersion: '0.2.0',
       useNativeCoins: true,
       transport
     }
 
-    owners = [deriveEoa(SEED_A), deriveEoa(SEED_B), deriveEoa(SEED_C)]
+    owners = await Promise.all([deriveEoa(SEED_A), deriveEoa(SEED_B), deriveEoa(SEED_C)])
 
     const config = { ...baseConfig, safeOptions: { owners, threshold: 2 } }
 
@@ -107,8 +107,9 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
     // On the 2026 mainnet fork these well-known test EOAs carry EIP-7702 delegations whose delegate
     // reverts on a plain call, so clear the deployer EOA's code and fund via direct state writes
     // (the deployer EOA pays the Safe deployment gas; the Safe pays its own UserOperation gas).
-    await clearCode(signerA._signerAccount._address)
-    await setBalance(signerA._signerAccount._address, '10')
+    const signerAEoa = await signerA.getSignerAddress()
+    await clearCode(signerAEoa)
+    await setBalance(signerAEoa, '10')
     await setBalance(safeAddress, '20')
 
     await signerA.deploy()
@@ -180,7 +181,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
   }, TIMEOUT)
 
   test('owner management: addOwner proposed, approved and executed adds the owner on-chain', async () => {
-    const newOwner = deriveEoa(SEED_D)
+    const newOwner = await deriveEoa(SEED_D)
 
     const proposal = await signerA.addOwner(newOwner)
     await signerB.approveProposal(proposal.proposalId)

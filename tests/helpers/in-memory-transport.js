@@ -1,9 +1,6 @@
 'use strict'
 
-import { recoverAddress, hashMessage, TypedDataEncoder } from 'ethers'
-
-// eslint-disable-next-line camelcase
-import { SafeAccountV0_3_0 as SafeAccount } from 'abstractionkit'
+import { recoverAddress } from 'ethers'
 
 import { IMultisigTransport } from '../../index.js'
 
@@ -32,15 +29,8 @@ export default class InMemoryTransport extends IMultisigTransport {
     this._messages = new Map()
   }
 
-  async submitProposal (proposal) {
-    const { userOperation, entryPoint, moduleAddress } = proposal
-
-    const proposalId = SafeAccount.getUserOperationEip712Hash(userOperation, this._chainId, {
-      validAfter: 0n,
-      validUntil: 0n,
-      entrypointAddress: entryPoint,
-      safe4337ModuleAddress: moduleAddress
-    })
+  async submitProposal (proposalId, proposal) {
+    const { userOperation } = proposal
 
     const signature = rawSignatureOf(userOperation.signature)
     const owner = recoverAddress(proposalId, signature)
@@ -78,8 +68,7 @@ export default class InMemoryTransport extends IMultisigTransport {
     }
   }
 
-  async submitMessage (safeAddress, { message, signature }) {
-    const messageId = this._messageId(safeAddress, message)
+  async submitMessage (safeAddress, messageId, { message, signature }) {
     const owner = recoverAddress(messageId, signature)
 
     this._messages.set(messageId, {
@@ -120,14 +109,6 @@ export default class InMemoryTransport extends IMultisigTransport {
     }
 
     this._refreshCombinedSignature(messageId)
-  }
-
-  _messageId (safeAddress, message) {
-    const domain = { chainId: Number(this._chainId), verifyingContract: safeAddress }
-    const types = { SafeMessage: [{ type: 'bytes', name: 'message' }] }
-    const value = { message: hashMessage(message) }
-
-    return TypedDataEncoder.hash(domain, types, value)
   }
 
   _refreshCombinedSignature (messageId) {

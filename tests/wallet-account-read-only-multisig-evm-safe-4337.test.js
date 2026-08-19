@@ -18,7 +18,7 @@ import { describe, expect, test, jest } from '@jest/globals'
 
 import { AbiCoder } from 'ethers'
 
-import { WalletAccountReadOnlyMultisigEvmSafe4337 } from '../index.js'
+import { WalletAccountReadOnlyMultisigEvmSafe4337, SafeTxServiceTransport } from '../index.js'
 
 const ACCOUNT = {
   address: '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
@@ -26,6 +26,15 @@ const ACCOUNT = {
 
 const ACCOUNT_2 = {
   address: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+}
+
+class DummyTransport {
+  async submitProposal () {}
+  async getProposal () { return null }
+  async confirmProposal () {}
+  async submitMessage () {}
+  async getMessage () { return null }
+  async confirmMessage () {}
 }
 
 const MOCK_CONFIG = {
@@ -37,7 +46,7 @@ const MOCK_CONFIG = {
 const MOCK_SAFE_ADDRESS = '0x1234567890123456789012345678901234567890'
 const MOCK_SAFE_OP_HASH = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
 const MOCK_MESSAGE_HASH = '0xdeadbeef1234567890abcdef1234567890abcdef1234567890abcdef12345678'
-const PREDICTED_SAFE_ADDRESS = '0x957173d0Edbcb407e112A11674674ffe55445977'
+const PREDICTED_SAFE_ADDRESS = '0x2298cce24D20586409b765A86B44f535982395b2'
 const EIP1271_MAGIC_VALUE = '0x1626ba7e'
 const VALID_SIGNATURE = '0x' + '11'.repeat(65)
 
@@ -103,6 +112,26 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       expect(account._config.chainId).toBe(MOCK_CONFIG.chainId)
     })
 
+    test('should default to the hosted SafeTxServiceTransport when no transport is provided', () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      expect(account._transport).toBeInstanceOf(SafeTxServiceTransport)
+    })
+
+    test('should use the provided transport when given', () => {
+      const transport = new DummyTransport()
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
+        ...MOCK_CONFIG,
+        transport,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+
+      expect(account._transport).toBe(transport)
+    })
+
     test('should throw if options is missing', () => {
       expect(() => {
         new WalletAccountReadOnlyMultisigEvmSafe4337(MOCK_CONFIG)
@@ -166,7 +195,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
             safeAddress: MOCK_SAFE_ADDRESS
           }
         })
-      }).toThrow('Unsupported safe modules version: 0.1.0')
+      }).toThrow("Unsupported 'safeModulesVersion': '0.1.0'. Supported versions: 0.2.0.")
     })
 
     test('should accept valid 2-of-3 config', () => {
@@ -428,6 +457,36 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       const nonce2 = WalletAccountReadOnlyMultisigEvmSafe4337.generateDeterministicSaltNonce(['0xBBB', '0xAAA'], 2)
 
       expect(nonce1).toBe(nonce2)
+    })
+  })
+
+  describe('quoteExecuteProposal', () => {
+    test('should include verificationGasLimit in the prefund quote for a no-paymaster operation', async () => {
+      const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
+        ...MOCK_CONFIG,
+        safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
+      })
+      account._transport = {
+        getProposal: jest.fn().mockResolvedValue({
+          userOperation: {
+            nonce: '0',
+            initCode: '0x',
+            callGasLimit: '100000',
+            verificationGasLimit: '200000',
+            preVerificationGas: '50000',
+            maxFeePerGas: '1000000000',
+            maxPriorityFeePerGas: '1000000000',
+            paymasterAndData: '0x',
+            paymasterVerificationGasLimit: '0',
+            paymasterPostOpGasLimit: '0'
+          }
+        })
+      }
+
+      const { fee } = await account.quoteExecuteProposal(MOCK_SAFE_OP_HASH)
+
+      expect(fee).toBe(350000000000000n)
+      expect(account._transport.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
     })
   })
 

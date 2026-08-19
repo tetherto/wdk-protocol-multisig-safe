@@ -65,11 +65,12 @@ export class IMultisigTransport {
   /**
    * Submits a new transaction proposal so the other owners can confirm it.
    *
+   * @param {string} proposalId - The proposal's identifier, which the transport may use as its storage key.
    * @param {TProposal} proposal - The signed transaction proposal to share. Opaque to the transport, which must persist it so {@link getProposal} can return it intact.
    * @returns {Promise<void>}
    */
-  async submitProposal (proposal) {
-    throw new NotImplementedError('submitProposal(proposal)')
+  async submitProposal (proposalId, proposal) {
+    throw new NotImplementedError('submitProposal(proposalId, proposal)')
   }
 
   /**
@@ -97,11 +98,12 @@ export class IMultisigTransport {
    * Submits a new message proposal so the other owners can confirm it.
    *
    * @param {string} accountAddress - The multisig account's address.
+   * @param {string} messageId - The message's hash, which the transport may use as its storage key.
    * @param {TMessage} message - The message proposal to share.
    * @returns {Promise<void>}
    */
-  async submitMessage (accountAddress, message) {
-    throw new NotImplementedError('submitMessage(accountAddress, message)')
+  async submitMessage (accountAddress, messageId, message) {
+    throw new NotImplementedError('submitMessage(accountAddress, messageId, message)')
   }
 
   /**

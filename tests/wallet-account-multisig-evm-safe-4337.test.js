@@ -64,6 +64,12 @@ const EXPECTED_MESSAGE_HASH = TypedDataEncoder.hash(
   MOCK_MESSAGE_EIP712.messageValue
 )
 
+const MOCK_SAFE_OP_TYPED_DATA = {
+  domain: { chainId: 11155111, verifyingContract: MOCK_SAFE_ADDRESS },
+  types: { SafeOp: [{ type: 'address', name: 'safe' }] },
+  messageValue: { safe: MOCK_SAFE_ADDRESS }
+}
+
 const createMockSmartAccount = (overrides = {}) => ({
   getOwners: jest.fn().mockResolvedValue([ACCOUNT.address]),
   getThreshold: jest.fn().mockResolvedValue(1),
@@ -227,7 +233,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
   describe('sign', () => {
     test('should return signature string', async () => {
       account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
-      account._signDigest = jest.fn().mockReturnValue('0xmocksignature')
+      account._signTypedData = jest.fn().mockResolvedValue('0xmocksignature')
       account._transport = createMockTransport()
       account._safeAddress = MOCK_SAFE_ADDRESS
       account._threshold = 1
@@ -270,7 +276,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         })
       })
       account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
-      account._signDigest = jest.fn().mockReturnValue('0xmocksignature')
+      account._signTypedData = jest.fn().mockResolvedValue('0xmocksignature')
       account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
       account._threshold = 1
@@ -286,6 +292,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(result.combinedSignature).toBeNull()
       expect(mockTransport.submitMessage).toHaveBeenCalledWith(
         MOCK_SAFE_ADDRESS,
+        EXPECTED_MESSAGE_HASH,
         { message: 'Hello!', signature: '0xmocksignature' }
       )
     })
@@ -308,7 +315,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
           })
       })
       account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
-      account._signDigest = jest.fn().mockReturnValue('0xmocksignature')
+      account._signTypedData = jest.fn().mockResolvedValue('0xmocksignature')
       account._transport = mockTransport
       account._safeAddress = MOCK_SAFE_ADDRESS
       account._threshold = 2
@@ -369,8 +376,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         })
       })
       account._transport = mockTransport
-      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
-      account._signDigest = jest.fn().mockReturnValue('0xrawsig')
+      account._getProposalTypedData = jest.fn().mockReturnValue(MOCK_SAFE_OP_TYPED_DATA)
+      account._signTypedData = jest.fn().mockResolvedValue('0xrawsig')
       account._threshold = 2
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
@@ -382,8 +389,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     test('should call confirmProposal on transport', async () => {
       const mockTransport = createMockTransport()
       account._transport = mockTransport
-      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
-      account._signDigest = jest.fn().mockReturnValue('0xrawsig')
+      account._getProposalTypedData = jest.fn().mockReturnValue(MOCK_SAFE_OP_TYPED_DATA)
+      account._signTypedData = jest.fn().mockResolvedValue('0xrawsig')
       account._threshold = 1
       account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
 
@@ -710,7 +717,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       customAccount.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
       customAccount._createSafeOperation = jest.fn().mockResolvedValue({ userOp: {}, smartAccount: createMockSmartAccount(), chainId: 11155111n })
       customAccount._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
-      customAccount._signDigest = jest.fn().mockReturnValue('0xrawsig')
+      customAccount._getProposalTypedData = jest.fn().mockReturnValue(MOCK_SAFE_OP_TYPED_DATA)
+      customAccount._signTypedData = jest.fn().mockResolvedValue('0xrawsig')
       customAccount._getBundler = jest.fn().mockReturnValue(createMockBundler())
       customAccount._safeAddress = MOCK_SAFE_ADDRESS
       customAccount._threshold = 1
@@ -726,7 +734,8 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const result = await customAccount.propose({ to: ACCOUNT_2.address, value: '1000', data: '0x' })
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
-      expect(customTransport.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
+      expect(result.confirmations).toBe(1)
+      expect(customTransport.submitProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, expect.anything())
 
       customAccount.dispose()
     })

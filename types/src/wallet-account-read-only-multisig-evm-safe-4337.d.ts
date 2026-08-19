@@ -10,9 +10,9 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 /** @typedef {import('abstractionkit').UserOperationV7} UserOperationV7 */
 /** @typedef {import('abstractionkit').UserOperationReceiptResult} UserOperationReceipt */
-/** @typedef {import('abstractionkit').SafeAccountV0_3_0} SafeAccountV0_3_0 */
+/** @typedef {import('abstractionkit').SafeAccountV0_2_0} SafeAccount */
 /** @typedef {import('abstractionkit').TokenQuote} TokenQuote */
-export const DEFAULT_SAFE_MODULES_VERSION: "0.3.0";
+export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
 export const DEFAULT_SAFE_VERSION: "1.4.1";
 /**
  * Read-only EVM multisig Safe wallet account.
@@ -81,9 +81,9 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * Cached deployed Safe account instance.
      *
      * @protected
-     * @type {SafeAccountV0_3_0 | undefined}
+     * @type {SafeAccount | undefined}
      */
-    protected _deployedSmartAccount: SafeAccountV0_3_0 | undefined;
+    protected _deployedSmartAccount: SafeAccount | undefined;
     /**
      * Cached owners list.
      *
@@ -259,6 +259,8 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * @returns {UserOperationV7} The UserOperation with BigInt numeric fields.
      */
     protected _rebuildUserOperation(userOperation: UserOperationV7): UserOperationV7;
+    /** @private */
+    private _getMaxGasCost;
     /**
      * Builds an unsigned UserOperation from the given transaction(s), applying the configured paymaster.
      *
@@ -305,9 +307,9 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * Returns a Safe account instance, cached once deployed.
      *
      * @protected
-     * @returns {Promise<SafeAccountV0_3_0>} The Safe account instance.
+     * @returns {Promise<SafeAccount>} The Safe account instance.
      */
-    protected _getSmartAccount(): Promise<SafeAccountV0_3_0>;
+    protected _getSmartAccount(): Promise<SafeAccount>;
     /**
      * Returns an AbstractionKit Bundler, cached on first use.
      *
@@ -369,7 +371,7 @@ export type EvmTransactionReceipt = import("@tetherto/wdk-wallet-evm").EvmTransa
 export type TransferOptions = import("@tetherto/wdk-wallet-evm").TransferOptions;
 export type UserOperationV7 = import("abstractionkit").UserOperationV7;
 export type UserOperationReceipt = import("abstractionkit").UserOperationReceiptResult;
-export type SafeAccountV0_3_0 = import("abstractionkit").SafeAccountV0_3_0;
+export type SafeAccount = import("abstractionkit").SafeAccountV0_2_0;
 export type TokenQuote = import("abstractionkit").TokenQuote;
 export type ExistingSafeOptions = {
     /**
@@ -399,7 +401,7 @@ export type BuiltUserOperation = {
     /**
      * - The Safe account that will execute the operation.
      */
-    smartAccount: SafeAccountV0_3_0;
+    smartAccount: SafeAccount;
     /**
      * - The paymaster mode used to build the operation.
      */

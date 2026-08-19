@@ -22,11 +22,11 @@ import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
 import {
   // eslint-disable-next-line camelcase
-  SafeAccountV0_3_0 as SafeAccount030,
+  SafeAccountV0_2_0 as SafeAccount020,
   AbstractionKitError,
   Bundler,
   Erc7677Paymaster,
-  ENTRYPOINT_V7,
+  ENTRYPOINT_V6,
   fetchAccountNonce,
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
@@ -51,7 +51,7 @@ import { ConfigurationError } from './errors.js'
 
 /** @typedef {import('abstractionkit').UserOperationV7} UserOperationV7 */
 /** @typedef {import('abstractionkit').UserOperationReceiptResult} UserOperationReceipt */
-/** @typedef {import('abstractionkit').SafeAccountV0_3_0} SafeAccountV0_3_0 */
+/** @typedef {import('abstractionkit').SafeAccountV0_2_0} SafeAccount */
 /** @typedef {import('abstractionkit').TokenQuote} TokenQuote */
 
 /**
@@ -69,7 +69,7 @@ import { ConfigurationError } from './errors.js'
 /**
  * @typedef {Object} BuiltUserOperation
  * @property {UserOperationV7} userOp - The fully-populated UserOperation ready to sign.
- * @property {SafeAccountV0_3_0} smartAccount - The Safe account that will execute the operation.
+ * @property {SafeAccount} smartAccount - The Safe account that will execute the operation.
  * @property {'native' | 'sponsored' | 'token'} mode - The paymaster mode used to build the operation.
  * @property {bigint} chainId - The chain id captured at build time.
  * @property {TokenQuote} [tokenQuote] - The paymaster token quote, present only in token mode.
@@ -80,8 +80,8 @@ import { ConfigurationError } from './errors.js'
  * @property {string | Eip1193Provider} provider - RPC URL or EIP-1193 provider
  * @property {string} bundlerUrl - ERC-4337 bundler URL
  * @property {bigint} chainId - Chain ID
- * @property {string} [entryPointAddress] - EntryPoint contract address (defaults to the v0.7 EntryPoint)
- * @property {string} [safeModulesVersion='0.3.0'] - Safe modules version
+ * @property {string} [entryPointAddress] - EntryPoint contract address (defaults to the v0.6 EntryPoint)
+ * @property {string} [safeModulesVersion='0.2.0'] - Safe modules version (EntryPoint v0.6)
  * @property {string} [paymasterUrl] - Paymaster service URL (any ERC-7677 paymaster)
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
@@ -119,13 +119,13 @@ import { ConfigurationError } from './errors.js'
 
 /** @typedef {Omit<EvmMultisigSafeConfig, 'transferMaxFee' | 'amountToApprove'>} EvmMultisigSafeReadOnlyConfig */
 
-export const DEFAULT_SAFE_MODULES_VERSION = '0.3.0'
+export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
 export const DEFAULT_SAFE_VERSION = '1.4.1'
 
 const SAFE_MODULES_MAP = {
-  '0.3.0': {
-    safe4337ModuleAddress: '0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226',
-    safeModuleSetupAddress: '0x2dd68b007B46fBe91B9A7c3EDa5A7a1063cB5b47'
+  '0.2.0': {
+    safe4337ModuleAddress: '0xa581c4A4DB7175302464fF3C06380BC3270b4037',
+    safeModuleSetupAddress: '0x8EcD4ec46D4D2a6B64fE960B3D64e8B94B2234eb'
   }
 }
 
@@ -210,7 +210,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * Cached deployed Safe account instance.
      *
      * @protected
-     * @type {SafeAccountV0_3_0 | undefined}
+     * @type {SafeAccount | undefined}
      */
     this._deployedSmartAccount = undefined
 
@@ -258,7 +258,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const { owners } = this._config.safeOptions
     const overrides = this._getInitCodeOverrides()
 
-    this._safeAddress = SafeAccount030.createAccountAddress(owners, overrides)
+    this._safeAddress = SafeAccount020.createAccountAddress(owners, overrides)
 
     return this._safeAddress
   }
@@ -270,7 +270,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    */
   async isDeployed () {
     const safeAddress = await this.getAddress()
-    return await SafeAccount030.isDeployed(safeAddress, this._provider)
+    return await SafeAccount020.isDeployed(safeAddress, this._provider)
   }
 
   /**
@@ -607,7 +607,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
 
     const userOp = this._rebuildUserOperation(safeOperation.userOperation)
 
-    return { fee: calculateUserOperationMaxGasCost(userOp) }
+    return { fee: this._getMaxGasCost(userOp) }
   }
 
   /**
@@ -631,6 +631,18 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
       paymasterVerificationGasLimit: toBigInt(userOperation.paymasterVerificationGasLimit),
       paymasterPostOpGasLimit: toBigInt(userOperation.paymasterPostOpGasLimit)
     }
+  }
+
+  /** @private */
+  _getMaxGasCost (userOperation) {
+    const cost = calculateUserOperationMaxGasCost(userOperation)
+    const hasPaymaster = userOperation.paymasterAndData !== undefined && userOperation.paymasterAndData !== '0x'
+
+    if (!hasPaymaster) {
+      return cost + userOperation.verificationGasLimit * userOperation.maxFeePerGas
+    }
+
+    return cost
   }
 
   /**
@@ -713,7 +725,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
 
       const fee = buildResult.tokenQuote
         ? buildResult.tokenQuote.tokenCost
-        : calculateUserOperationMaxGasCost(buildResult.userOp)
+        : this._getMaxGasCost(buildResult.userOp)
 
       return { fee, ...buildResult }
     } catch (error) {
@@ -733,7 +745,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   _buildDeploymentTransaction () {
     const { owners } = this._config.safeOptions
     const overrides = this._getInitCodeOverrides()
-    const smartAccount = SafeAccount030.initializeNewAccount(owners, overrides)
+    const smartAccount = SafeAccount020.initializeNewAccount(owners, overrides)
 
     return {
       to: smartAccount.factoryAddress,
@@ -746,7 +758,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * Returns a Safe account instance, cached once deployed.
    *
    * @protected
-   * @returns {Promise<SafeAccountV0_3_0>} The Safe account instance.
+   * @returns {Promise<SafeAccount>} The Safe account instance.
    */
   async _getSmartAccount () {
     if (this._deployedSmartAccount) {
@@ -756,12 +768,12 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const overrides = this._getInitCodeOverrides()
     const safeAddress = await this.getAddress()
 
-    if (await SafeAccount030.isDeployed(safeAddress, this._provider)) {
-      this._deployedSmartAccount = new SafeAccount030(safeAddress, overrides)
+    if (await SafeAccount020.isDeployed(safeAddress, this._provider)) {
+      this._deployedSmartAccount = new SafeAccount020(safeAddress, overrides)
       return this._deployedSmartAccount
     }
 
-    return SafeAccount030.initializeNewAccount(this._config.safeOptions.owners, overrides)
+    return SafeAccount020.initializeNewAccount(this._config.safeOptions.owners, overrides)
   }
 
   /**
@@ -801,7 +813,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
 
   /** @private */
   _entryPointAddress () {
-    return this._config.entryPointAddress || ENTRYPOINT_V7
+    return this._config.entryPointAddress || ENTRYPOINT_V6
   }
 
   /** @private */
@@ -953,7 +965,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    */
   _validateConfig (config) {
     if (config.safeModulesVersion && !SAFE_MODULES_MAP[config.safeModulesVersion]) {
-      throw new ConfigurationError(`Unsupported safe modules version: ${config.safeModulesVersion}`)
+      throw new ConfigurationError(`Unsupported 'safeModulesVersion': '${config.safeModulesVersion}'. Supported versions: ${Object.keys(SAFE_MODULES_MAP).join(', ')}.`)
     }
 
     if (!config.safeOptions) {
