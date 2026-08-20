@@ -23,10 +23,10 @@ export type EvmMultisigSafeSponsoredConfig = import("./src/wallet-account-read-o
 export type EvmMultisigSafeNativeCoinsConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeNativeCoinsConfig;
 export type EvmMultisigSafeConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeConfig;
 export type EvmMultisigSafeReadOnlyConfig = import("./src/wallet-account-read-only-multisig-evm-safe-4337.js").EvmMultisigSafeReadOnlyConfig;
-export type MultisigTransportProposal = import("./src/transports/index.js").MultisigTransportProposal;
-export type MultisigTransportMessage = import("./src/transports/index.js").MultisigTransportMessage;
-export type MultisigTransportMessageInput = import("./src/transports/index.js").MultisigTransportMessageInput;
-export type SafeTxServiceTransportConfig = import("./src/transports/index.js").SafeTxServiceTransportConfig;
+export type MultisigCoordinatorProposal = import("./src/coordinators/index.js").MultisigCoordinatorProposal;
+export type MultisigCoordinatorMessage = import("./src/coordinators/index.js").MultisigCoordinatorMessage;
+export type MultisigCoordinatorMessageInput = import("./src/coordinators/index.js").MultisigCoordinatorMessageInput;
+export type SafeTxServiceCoordinatorConfig = import("./src/coordinators/index.js").SafeTxServiceCoordinatorConfig;
 export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from "./src/wallet-account-read-only-multisig-evm-safe-4337.js";
-export { IMultisigTransport, SafeTxServiceTransport, toTransportJson } from "./src/transports/index.js";
+export { IMultisigCoordinator, SafeTxServiceCoordinator, toJsonSafe } from "./src/coordinators/index.js";
 export { ConfigurationError } from "./src/errors.js";

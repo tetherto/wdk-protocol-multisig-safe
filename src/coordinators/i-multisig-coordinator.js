@@ -18,55 +18,55 @@ import { NotImplementedError } from '@tetherto/wdk-wallet'
 /**
  * A message proposal to share with the other owners for them to confirm.
  *
- * @typedef {Object} MultisigTransportMessageInput
+ * @typedef {Object} MultisigCoordinatorMessageInput
  * @property {string} message - The message to sign.
  * @property {string} signature - The submitting owner's signature over the message.
  */
 
 /**
- * A shared transaction proposal returned by the transport. The concrete payload is
- * chain-specific and opaque to the transport: an implementation persists whatever the
+ * A shared transaction proposal returned by the coordinator. The concrete payload is
+ * chain-specific and opaque to the coordinator: an implementation persists whatever the
  * chain's execution layer produced and returns it intact, alongside the owner
  * confirmations collected so far.
  *
- * @typedef {Object} MultisigTransportProposal
+ * @typedef {Object} MultisigCoordinatorProposal
  * @property {unknown[]} confirmations - The owner confirmations (signatures) collected so far.
  */
 
 /**
- * A shared message proposal returned by the transport, alongside the owner confirmations
+ * A shared message proposal returned by the coordinator, alongside the owner confirmations
  * collected so far. As with proposals, any further fields are chain-specific.
  *
- * @typedef {Object} MultisigTransportMessage
+ * @typedef {Object} MultisigCoordinatorMessage
  * @property {unknown[]} confirmations - The owner confirmations (signatures) collected so far.
  */
 
 /**
- * Transport for sharing multisig calldata between the owners of a multisig account.
+ * Coordinator for sharing multisig calldata between the owners of a multisig account.
  *
- * A transport distributes transaction proposals and message proposals (and their
+ * A coordinator distributes transaction proposals and message proposals (and their
  * confirmations) amongst the owners of a multisig account, so that signers running on
  * separate machines can coordinate without a shared process. The proposal and message
- * payloads are opaque to the transport and interpreted by this package, so a custom
+ * payloads are opaque to the coordinator and interpreted by this package, so a custom
  * backend (a hosted service, a database, a peer-to-peer channel, etc.) can be plugged in
  * by implementing this interface.
  *
  * Implementations that serialize the payloads themselves (rather than handing them to an
- * SDK that already does it) can pass them through {@link toTransportJson} to convert native
+ * SDK that already does it) can pass them through {@link toJsonSafe} to convert native
  * values such as BigInt into JSON-safe forms before persisting or transmitting them.
  *
  * @interface
  * @template [TProposal=Record<string, unknown>]
- * @template [TMessage=MultisigTransportMessageInput]
- * @template [TProposalResponse=MultisigTransportProposal]
- * @template [TMessageResponse=MultisigTransportMessage]
+ * @template [TMessage=MultisigCoordinatorMessageInput]
+ * @template [TProposalResponse=MultisigCoordinatorProposal]
+ * @template [TMessageResponse=MultisigCoordinatorMessage]
  */
-export class IMultisigTransport {
+export class IMultisigCoordinator {
   /**
    * Submits a new transaction proposal so the other owners can confirm it.
    *
-   * @param {string} proposalId - The proposal's identifier, which the transport may use as its storage key.
-   * @param {TProposal} proposal - The signed transaction proposal to share. Opaque to the transport, which must persist it so {@link getProposal} can return it intact.
+   * @param {string} proposalId - The proposal's identifier, which the coordinator may use as its storage key.
+   * @param {TProposal} proposal - The signed transaction proposal to share. Opaque to the coordinator, which must persist it so {@link getProposal} can return it intact.
    * @returns {Promise<void>}
    */
   async submitProposal (proposalId, proposal) {
@@ -98,7 +98,7 @@ export class IMultisigTransport {
    * Submits a new message proposal so the other owners can confirm it.
    *
    * @param {string} accountAddress - The multisig account's address.
-   * @param {string} messageId - The message's hash, which the transport may use as its storage key.
+   * @param {string} messageId - The message's hash, which the coordinator may use as its storage key.
    * @param {TMessage} message - The message proposal to share.
    * @returns {Promise<void>}
    */
@@ -154,7 +154,7 @@ function bytesToHex (bytes) {
  * @param {unknown} value - The value to convert (object, array, or primitive).
  * @returns {unknown} A JSON-safe copy of the value.
  */
-export function toTransportJson (value) {
+export function toJsonSafe (value) {
   if (typeof value === 'bigint') {
     return value.toString()
   }
@@ -164,12 +164,12 @@ export function toTransportJson (value) {
   }
 
   if (Array.isArray(value)) {
-    return value.map(toTransportJson)
+    return value.map(toJsonSafe)
   }
 
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, toTransportJson(entry)])
+      Object.entries(value).map(([key, entry]) => [key, toJsonSafe(entry)])
     )
   }
 

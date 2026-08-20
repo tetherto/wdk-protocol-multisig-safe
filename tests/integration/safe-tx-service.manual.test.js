@@ -1,6 +1,6 @@
-// Opt-in validation of the DEFAULT transport (SafeTxServiceTransport -> @safe-global/api-kit)
+// Opt-in validation of the DEFAULT coordinator (SafeTxServiceCoordinator -> @safe-global/api-kit)
 // against a real Safe Transaction Service. The local fork test (multisig.test.js) exercises the
-// distributed flow with an in-memory transport; this one validates the one thing that can only be
+// distributed flow with an in-memory coordinator; this one validates the one thing that can only be
 // checked against a live service: that an abstractionkit EntryPoint-v0.7 (V7) UserOperation
 // round-trips through api-kit's addSafeOperation / getSafeOperation / confirmSafeOperation.
 //
@@ -30,7 +30,7 @@ const TIMEOUT = 180000
 
 const suite = ENABLED ? describe : describe.skip
 
-suite('SafeTxServiceTransport — real Safe Transaction Service V7 round-trip (opt-in)', () => {
+suite('SafeTxServiceCoordinator — real Safe Transaction Service V7 round-trip (opt-in)', () => {
   test('proposes a V7 operation, retrieves it, confirms it, and sees the confirmation count grow', async () => {
     const config = {
       chainId: BigInt(process.env.ST_CHAIN_ID),

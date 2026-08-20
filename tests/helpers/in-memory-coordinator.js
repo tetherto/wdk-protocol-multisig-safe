@@ -2,7 +2,7 @@
 
 import { recoverAddress } from 'ethers'
 
-import { IMultisigTransport } from '../../index.js'
+import { IMultisigCoordinator } from '../../index.js'
 
 // Strips the validAfter|validUntil prefix from a formatted SafeOperation signature,
 // leaving the trailing 65-byte ECDSA signature (the single proposer's signature).
@@ -16,12 +16,12 @@ function sameAddress (a, b) {
 
 /**
  * A faithful in-memory stand-in for the Safe Transaction Service, used by the integration tests
- * so that two separate signer instances can coordinate over a single shared transport.
+ * so that two separate signer instances can coordinate over a single shared coordinator.
  *
  * It recovers each signer from the EIP-712 digest they signed (exactly as the real service does),
  * accumulates confirmations, and exposes the combined message signature once collected.
  */
-export default class InMemoryTransport extends IMultisigTransport {
+export default class InMemoryCoordinator extends IMultisigCoordinator {
   constructor (chainId) {
     super()
     this._chainId = chainId

@@ -18,7 +18,7 @@ import { describe, expect, test, jest } from '@jest/globals'
 
 import { AbiCoder } from 'ethers'
 
-import { WalletAccountReadOnlyMultisigEvmSafe4337, SafeTxServiceTransport } from '../index.js'
+import { WalletAccountReadOnlyMultisigEvmSafe4337, SafeTxServiceCoordinator } from '../index.js'
 
 const ACCOUNT = {
   address: '0x9858EfFD232B4033E47d90003D41EC34EcaEda94'
@@ -28,7 +28,7 @@ const ACCOUNT_2 = {
   address: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
 }
 
-class DummyTransport {
+class DummyCoordinator {
   async submitProposal () {}
   async getProposal () { return null }
   async confirmProposal () {}
@@ -56,7 +56,7 @@ const createMockSmartAccount = (overrides = {}) => ({
   ...overrides
 })
 
-const createMockTransport = (overrides = {}) => ({
+const createMockCoordinator = (overrides = {}) => ({
   submitProposal: jest.fn().mockResolvedValue(undefined),
   getProposal: jest.fn().mockResolvedValue({
     confirmations: [{ owner: ACCOUNT.address }],
@@ -112,24 +112,24 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       expect(account._config.chainId).toBe(MOCK_CONFIG.chainId)
     })
 
-    test('should default to the hosted SafeTxServiceTransport when no transport is provided', () => {
+    test('should default to the hosted SafeTxServiceCoordinator when no coordinator is provided', () => {
       const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
 
-      expect(account._transport).toBeInstanceOf(SafeTxServiceTransport)
+      expect(account._coordinator).toBeInstanceOf(SafeTxServiceCoordinator)
     })
 
-    test('should use the provided transport when given', () => {
-      const transport = new DummyTransport()
+    test('should use the provided coordinator when given', () => {
+      const coordinator = new DummyCoordinator()
       const account = new WalletAccountReadOnlyMultisigEvmSafe4337({
         ...MOCK_CONFIG,
-        transport,
+        coordinator,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
 
-      expect(account._transport).toBe(transport)
+      expect(account._coordinator).toBe(coordinator)
     })
 
     test('should throw if options is missing', () => {
@@ -466,7 +466,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      account._transport = {
+      account._coordinator = {
         getProposal: jest.fn().mockResolvedValue({
           userOperation: {
             nonce: '0',
@@ -486,7 +486,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       const { fee } = await account.quoteExecuteProposal(MOCK_SAFE_OP_HASH)
 
       expect(fee).toBe(350000000000000n)
-      expect(account._transport.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
+      expect(account._coordinator.getProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH)
     })
   })
 
@@ -541,7 +541,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getMessage: jest.fn().mockResolvedValue({
           messageHash: MOCK_MESSAGE_HASH,
           message: 'Hello!',
@@ -550,7 +550,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         })
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getMessageProposals([MOCK_MESSAGE_HASH])
       const message = result[MOCK_MESSAGE_HASH]
@@ -567,11 +567,11 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getMessage: jest.fn().mockResolvedValue(null)
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getMessageProposals([MOCK_MESSAGE_HASH])
 
@@ -583,7 +583,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getMessage: jest.fn()
           .mockResolvedValueOnce(null)
           .mockResolvedValueOnce({
@@ -594,7 +594,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
           })
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getMessageProposals(['hash1', 'hash2'])
 
@@ -609,13 +609,13 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }]
         })
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
       const proposal = result[MOCK_SAFE_OP_HASH]
@@ -631,14 +631,14 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getProposal: jest.fn().mockResolvedValue({
           confirmations: [{ owner: ACCOUNT.address }],
           userOperation: { ethereumTxHash: '0xabc' }
         })
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
 
@@ -650,11 +650,11 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getProposal: jest.fn().mockResolvedValue(null)
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getProposals([MOCK_SAFE_OP_HASH])
 
@@ -666,7 +666,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
         ...MOCK_CONFIG,
         safeOptions: { safeAddress: MOCK_SAFE_ADDRESS }
       })
-      const mockTransport = createMockTransport({
+      const mockCoordinator = createMockCoordinator({
         getProposal: jest.fn()
           .mockResolvedValueOnce({
             confirmations: [{ owner: ACCOUNT.address }]
@@ -677,7 +677,7 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
           })
       })
       account._threshold = 1
-      account._transport = mockTransport
+      account._coordinator = mockCoordinator
 
       const result = await account.getProposals(['hash1', 'hash2', 'hash3'])
 

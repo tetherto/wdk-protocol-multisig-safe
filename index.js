@@ -57,13 +57,13 @@
 /** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeReadOnlyConfig} EvmMultisigSafeReadOnlyConfig */
 
 // ============================================
-// Re-export types from transports
+// Re-export types from coordinators
 // ============================================
 
-/** @typedef {import('./src/transports/index.js').MultisigTransportProposal} MultisigTransportProposal */
-/** @typedef {import('./src/transports/index.js').MultisigTransportMessage} MultisigTransportMessage */
-/** @typedef {import('./src/transports/index.js').MultisigTransportMessageInput} MultisigTransportMessageInput */
-/** @typedef {import('./src/transports/index.js').SafeTxServiceTransportConfig} SafeTxServiceTransportConfig */
+/** @typedef {import('./src/coordinators/index.js').MultisigCoordinatorProposal} MultisigCoordinatorProposal */
+/** @typedef {import('./src/coordinators/index.js').MultisigCoordinatorMessage} MultisigCoordinatorMessage */
+/** @typedef {import('./src/coordinators/index.js').MultisigCoordinatorMessageInput} MultisigCoordinatorMessageInput */
+/** @typedef {import('./src/coordinators/index.js').SafeTxServiceCoordinatorConfig} SafeTxServiceCoordinatorConfig */
 
 // ============================================
 // Export classes and constants
@@ -76,10 +76,10 @@ export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODUL
 export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-account-multisig-evm-safe-4337.js'
 
 // ============================================
-// Export transports
+// Export coordinators
 // ============================================
 
-export { IMultisigTransport, SafeTxServiceTransport, toTransportJson } from './src/transports/index.js'
+export { IMultisigCoordinator, SafeTxServiceCoordinator, toJsonSafe } from './src/coordinators/index.js'
 
 // ============================================
 // Export errors

@@ -13,11 +13,11 @@
 // limitations under the License.
 'use strict'
 
-/** @typedef {import('./i-multisig-transport.js').MultisigTransportProposal} MultisigTransportProposal */
-/** @typedef {import('./i-multisig-transport.js').MultisigTransportMessage} MultisigTransportMessage */
-/** @typedef {import('./i-multisig-transport.js').MultisigTransportMessageInput} MultisigTransportMessageInput */
-/** @typedef {import('./safe-tx-service.js').SafeTxServiceTransportConfig} SafeTxServiceTransportConfig */
+/** @typedef {import('./i-multisig-coordinator.js').MultisigCoordinatorProposal} MultisigCoordinatorProposal */
+/** @typedef {import('./i-multisig-coordinator.js').MultisigCoordinatorMessage} MultisigCoordinatorMessage */
+/** @typedef {import('./i-multisig-coordinator.js').MultisigCoordinatorMessageInput} MultisigCoordinatorMessageInput */
+/** @typedef {import('./safe-tx-service.js').SafeTxServiceCoordinatorConfig} SafeTxServiceCoordinatorConfig */
 
-export { IMultisigTransport, toTransportJson } from './i-multisig-transport.js'
+export { IMultisigCoordinator, toJsonSafe } from './i-multisig-coordinator.js'
 
-export { default as SafeTxServiceTransport } from './safe-tx-service.js'
+export { default as SafeTxServiceCoordinator } from './safe-tx-service.js'

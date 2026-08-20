@@ -128,7 +128,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     private _submitTransaction;
     /**
      * Proposes a new transaction for multisig approval.
-     * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
+     * Builds a UserOperation, signs it as the proposer, and shares it through the coordinator.
      *
      * Note: `rejectProposal()` passes `customNonce` via config to reuse the original proposal's nonce.
      *

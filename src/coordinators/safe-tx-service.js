@@ -16,34 +16,34 @@
 
 import SafeApiKit from '@safe-global/api-kit'
 
-/** @typedef {import('./i-multisig-transport.js').IMultisigTransport} IMultisigTransport */
-/** @typedef {import('./i-multisig-transport.js').MultisigTransportMessageInput} MultisigTransportMessageInput */
+/** @typedef {import('./i-multisig-coordinator.js').IMultisigCoordinator} IMultisigCoordinator */
+/** @typedef {import('./i-multisig-coordinator.js').MultisigCoordinatorMessageInput} MultisigCoordinatorMessageInput */
 /** @typedef {import('@safe-global/api-kit').AddSafeOperationProps} AddSafeOperationProps */
 /** @typedef {Awaited<ReturnType<import('@safe-global/api-kit').default['getSafeOperation']>>} SafeOperationResponse */
 /** @typedef {Awaited<ReturnType<import('@safe-global/api-kit').default['getMessage']>>} SafeMessage */
 
 /**
- * @typedef {Object} SafeTxServiceTransportConfig
+ * @typedef {Object} SafeTxServiceCoordinatorConfig
  * @property {bigint} chainId - Chain ID of the network the Safe lives on.
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL (e.g. a backend proxy). Takes precedence over `apiKey`.
  * @property {string} [apiKey] - Safe API key for the hosted Safe Transaction Service.
  */
 
 /**
- * Default {@link IMultisigTransport} implementation backed by the Safe
+ * Default {@link IMultisigCoordinator} implementation backed by the Safe
  * Transaction Service through `@safe-global/api-kit`.
  *
  * This is the only place in the package that talks to `@safe-global/api-kit`
  * directly. The underlying `SafeApiKit` instance is created lazily on first
- * use, so constructing the transport is cheap and never performs I/O.
+ * use, so constructing the coordinator is cheap and never performs I/O.
  *
- * @implements {IMultisigTransport<AddSafeOperationProps, MultisigTransportMessageInput, SafeOperationResponse, SafeMessage>}
+ * @implements {IMultisigCoordinator<AddSafeOperationProps, MultisigCoordinatorMessageInput, SafeOperationResponse, SafeMessage>}
  */
-export default class SafeTxServiceTransport {
+export default class SafeTxServiceCoordinator {
   /**
-   * Creates a new Safe Transaction Service transport.
+   * Creates a new Safe Transaction Service coordinator.
    *
-   * @param {SafeTxServiceTransportConfig} config - The transport configuration.
+   * @param {SafeTxServiceCoordinatorConfig} config - The coordinator configuration.
    */
   constructor (config) {
     /** @private */

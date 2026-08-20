@@ -4,7 +4,7 @@ import { alto } from 'prool/instances'
 import path from 'path'
 
 import { WalletAccountMultisigEvmSafe4337 } from '../../index.js'
-import InMemoryTransport from '../helpers/in-memory-transport.js'
+import InMemoryCoordinator from '../helpers/in-memory-coordinator.js'
 
 const TIMEOUT = 120000
 
@@ -49,7 +49,7 @@ async function waitForDeploy (account) {
 
 describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', () => {
   let bundlerInstance
-  let transport
+  let coordinator
   let baseConfig
   let owners
   let signerA, signerB, signerC
@@ -78,7 +78,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
     })
     await bundlerInstance.start()
 
-    transport = new InMemoryTransport(CHAIN_ID)
+    coordinator = new InMemoryCoordinator(CHAIN_ID)
 
     baseConfig = {
       chainId: CHAIN_ID,
@@ -86,7 +86,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
       bundlerUrl: BUNDLER_URL,
       safeModulesVersion: '0.2.0',
       useNativeCoins: true,
-      transport
+      coordinator
     }
 
     owners = await Promise.all([deriveEoa(SEED_A), deriveEoa(SEED_B), deriveEoa(SEED_C)])

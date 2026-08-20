@@ -1,45 +1,45 @@
 /**
  * A message proposal to share with the other owners for them to confirm.
  *
- * @typedef {Object} MultisigTransportMessageInput
+ * @typedef {Object} MultisigCoordinatorMessageInput
  * @property {string} message - The message to sign.
  * @property {string} signature - The submitting owner's signature over the message.
  */
 /**
- * A shared transaction proposal returned by the transport. The concrete payload is
- * chain-specific and opaque to the transport: an implementation persists whatever the
+ * A shared transaction proposal returned by the coordinator. The concrete payload is
+ * chain-specific and opaque to the coordinator: an implementation persists whatever the
  * chain's execution layer produced and returns it intact, alongside the owner
  * confirmations collected so far.
  *
- * @typedef {Object} MultisigTransportProposal
+ * @typedef {Object} MultisigCoordinatorProposal
  * @property {unknown[]} confirmations - The owner confirmations (signatures) collected so far.
  */
 /**
- * A shared message proposal returned by the transport, alongside the owner confirmations
+ * A shared message proposal returned by the coordinator, alongside the owner confirmations
  * collected so far. As with proposals, any further fields are chain-specific.
  *
- * @typedef {Object} MultisigTransportMessage
+ * @typedef {Object} MultisigCoordinatorMessage
  * @property {unknown[]} confirmations - The owner confirmations (signatures) collected so far.
  */
 /**
- * Transport for sharing multisig calldata between the owners of a multisig account.
+ * Coordinator for sharing multisig calldata between the owners of a multisig account.
  *
- * A transport distributes transaction proposals and message proposals (and their
+ * A coordinator distributes transaction proposals and message proposals (and their
  * confirmations) amongst the owners of a multisig account, so that signers running on
  * separate machines can coordinate without a shared process. The proposal and message
- * payloads are opaque to the transport and interpreted by this package, so a custom
+ * payloads are opaque to the coordinator and interpreted by this package, so a custom
  * backend (a hosted service, a database, a peer-to-peer channel, etc.) can be plugged in
  * by implementing this interface.
  *
  * Implementations that serialize the payloads themselves (rather than handing them to an
- * SDK that already does it) can pass them through {@link toTransportJson} to convert native
+ * SDK that already does it) can pass them through {@link toJsonSafe} to convert native
  * values such as BigInt into JSON-safe forms before persisting or transmitting them.
  */
-export interface IMultisigTransport<TProposal = Record<string, unknown>, TMessage = MultisigTransportMessageInput, TProposalResponse = MultisigTransportProposal, TMessageResponse = MultisigTransportMessage> {
+export interface IMultisigCoordinator<TProposal = Record<string, unknown>, TMessage = MultisigCoordinatorMessageInput, TProposalResponse = MultisigCoordinatorProposal, TMessageResponse = MultisigCoordinatorMessage> {
     /**
      * Submits a new transaction proposal so the other owners can confirm it.
      *
-     * @param {TProposal} proposal - The signed transaction proposal to share. Opaque to the transport, which must persist it so {@link getProposal} can return it intact.
+     * @param {TProposal} proposal - The signed transaction proposal to share. Opaque to the coordinator, which must persist it so {@link getProposal} can return it intact.
      * @returns {Promise<void>}
      */
     submitProposal(proposalId: string, proposal: TProposal): Promise<void>;
@@ -82,7 +82,7 @@ export interface IMultisigTransport<TProposal = Record<string, unknown>, TMessag
      */
     confirmMessage(messageId: string, signature: string): Promise<void>;
 }
-export type MultisigTransportMessageInput = {
+export type MultisigCoordinatorMessageInput = {
     /**
      * - The message to sign.
      */
@@ -92,13 +92,13 @@ export type MultisigTransportMessageInput = {
      */
     signature: string;
 };
-export type MultisigTransportProposal = {
+export type MultisigCoordinatorProposal = {
     /**
      * - The owner confirmations (signatures) collected so far.
      */
     confirmations: unknown[];
 };
-export type MultisigTransportMessage = {
+export type MultisigCoordinatorMessage = {
     /**
      * - The owner confirmations (signatures) collected so far.
      */
@@ -113,4 +113,4 @@ export type MultisigTransportMessage = {
  * @param {unknown} value - The value to convert (object, array, or primitive).
  * @returns {unknown} A JSON-safe copy of the value.
  */
-export function toTransportJson(value: unknown): unknown;
+export function toJsonSafe(value: unknown): unknown;

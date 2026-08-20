@@ -1,5 +1,5 @@
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
-/** @typedef {import('./transports/i-multisig-transport.js').IMultisigTransport} IMultisigTransport */
+/** @typedef {import('./coordinators/i-multisig-coordinator.js').IMultisigCoordinator} IMultisigCoordinator */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
@@ -50,12 +50,12 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     protected _safeAddress: string | null;
     /**
-     * The transport used to share multisig calldata between signers.
+     * The coordinator used to share multisig calldata between signers.
      *
      * @protected
-     * @type {IMultisigTransport}
+     * @type {IMultisigCoordinator}
      */
-    protected _transport: IMultisigTransport;
+    protected _coordinator: IMultisigCoordinator;
     /**
      * An EIP-1193-compatible provider used to interact with the blockchain.
      *
@@ -252,7 +252,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     quoteExecuteProposal(proposalId: string): Promise<Omit<TransactionResult, "hash">>;
     /**
-     * Coerces a stored UserOperation's numeric fields back to BigInt (a transport may serialize them as strings).
+     * Coerces a stored UserOperation's numeric fields back to BigInt (a coordinator may serialize them as strings).
      *
      * @protected
      * @param {UserOperationV7} userOperation - The stored UserOperation.
@@ -360,7 +360,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     private _validateConfig;
 }
 export type Eip1193Provider = import("ethers").Eip1193Provider;
-export type IMultisigTransport = import("./transports/i-multisig-transport.js").IMultisigTransport;
+export type IMultisigCoordinator = import("./coordinators/i-multisig-coordinator.js").IMultisigCoordinator;
 export type IWalletAccountReadOnlyMultisig = import("@tetherto/wdk-wallet/multisig").IWalletAccountReadOnlyMultisig;
 export type MultisigInfo = import("@tetherto/wdk-wallet/multisig").MultisigInfo;
 export type MultisigMessageProposal = import("@tetherto/wdk-wallet/multisig").MultisigMessageProposal;
@@ -449,9 +449,9 @@ export type EvmMultisigSafeCommonConfig = {
      */
     safeApiKey?: string;
     /**
-     * - Transport used to share multisig calldata between signers. Defaults to a SafeTxServiceTransport built from `txServiceUrl`/`safeApiKey`.
+     * - Coordinator used to share multisig calldata between signers. Defaults to a SafeTxServiceCoordinator built from `txServiceUrl`/`safeApiKey`.
      */
-    transport?: IMultisigTransport;
+    coordinator?: IMultisigCoordinator;
     /**
      * - Safe options (existing or predicted)
      */

@@ -1,28 +1,28 @@
 /**
- * @typedef {Object} SafeTxServiceTransportConfig
+ * @typedef {Object} SafeTxServiceCoordinatorConfig
  * @property {bigint} chainId - Chain ID of the network the Safe lives on.
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL (e.g. a backend proxy). Takes precedence over `apiKey`.
  * @property {string} [apiKey] - Safe API key for the hosted Safe Transaction Service.
  */
 /**
- * Default {@link IMultisigTransport} implementation backed by the Safe
+ * Default {@link IMultisigCoordinator} implementation backed by the Safe
  * Transaction Service through `@safe-global/api-kit`.
  *
  * This is the only place in the package that talks to `@safe-global/api-kit`
  * directly. The underlying `SafeApiKit` instance is created lazily on first
- * use, so constructing the transport is cheap and never performs I/O.
+ * use, so constructing the coordinator is cheap and never performs I/O.
  */
-export default class SafeTxServiceTransport implements IMultisigTransport<import("@safe-global/api-kit").AddSafeOperationProps, import("./i-multisig-transport.js").MultisigTransportMessageInput, Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>>, Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>>> {
+export default class SafeTxServiceCoordinator implements IMultisigCoordinator<import("@safe-global/api-kit").AddSafeOperationProps, import("./i-multisig-coordinator.js").MultisigCoordinatorMessageInput, Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>>, Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>>> {
     /**
-     * Creates a new Safe Transaction Service transport.
+     * Creates a new Safe Transaction Service coordinator.
      *
-     * @param {SafeTxServiceTransportConfig} config - The transport configuration.
+     * @param {SafeTxServiceCoordinatorConfig} config - The coordinator configuration.
      */
-    constructor(config: SafeTxServiceTransportConfig);
+    constructor(config: SafeTxServiceCoordinatorConfig);
     submitProposal(proposalId: string, proposal: import("@safe-global/api-kit").AddSafeOperationProps): Promise<void>;
     getProposal(proposalId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getSafeOperation"]>> | null>;
     confirmProposal(proposalId: string, signature: string): Promise<void>;
-    submitMessage(safeAddress: string, messageId: string, message: import("./i-multisig-transport.js").MultisigTransportMessageInput): Promise<void>;
+    submitMessage(safeAddress: string, messageId: string, message: import("./i-multisig-coordinator.js").MultisigCoordinatorMessageInput): Promise<void>;
     getMessage(messageId: string): Promise<Awaited<ReturnType<import("@safe-global/api-kit").default["getMessage"]>> | null>;
     confirmMessage(messageId: string, signature: string): Promise<void>;
     /** @private */
@@ -38,7 +38,7 @@ export default class SafeTxServiceTransport implements IMultisigTransport<import
     /** @private */
     private _getApiKit;
 }
-export type SafeTxServiceTransportConfig = {
+export type SafeTxServiceCoordinatorConfig = {
     /**
      * - Chain ID of the network the Safe lives on.
      */
@@ -52,4 +52,4 @@ export type SafeTxServiceTransportConfig = {
      */
     apiKey?: string;
 };
-import { IMultisigTransport } from './i-multisig-transport.js';
+import { IMultisigCoordinator } from './i-multisig-coordinator.js';

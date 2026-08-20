@@ -406,31 +406,31 @@ You can track UserOp status on these explorers:
 - **JiffyScan**: `https://jiffyscan.xyz/userOpHash/{userOpHash}?network=sepolia`
 - **Blockscout**: `https://eth-sepolia.blockscout.com/op/{userOpHash}`
 
-## 🔁 Calldata Transport
+## 🔁 Calldata Coordinator
 
-Multisig signing requires sharing transaction and message calldata (proposals and their confirmations) between the Safe's owners. This package isolates that responsibility behind the `IMultisigTransport` interface, so you can choose how calldata is shared.
+Multisig signing requires sharing transaction and message calldata (proposals and their confirmations) between the Safe's owners. This package isolates that responsibility behind the `IMultisigCoordinator` interface, so you can choose how calldata is shared.
 
-By default no extra configuration is needed: when you pass `safeApiKey` or `txServiceUrl`, the account automatically uses the built-in `SafeTxServiceTransport`, which talks to the [Safe Transaction Service](https://docs.safe.global/core-api/transaction-service-overview) via `@safe-global/api-kit`. External behaviour is unchanged.
+By default no extra configuration is needed: when you pass `safeApiKey` or `txServiceUrl`, the account automatically uses the built-in `SafeTxServiceCoordinator`, which talks to the [Safe Transaction Service](https://docs.safe.global/core-api/transaction-service-overview) via `@safe-global/api-kit`. External behaviour is unchanged.
 
-To route calldata through your own backend instead (a relay, a database, a peer-to-peer channel, etc.), pass a custom `transport` in the config. When `transport` is provided it takes precedence and `safeApiKey`/`txServiceUrl` are ignored.
+To route calldata through your own backend instead (a relay, a database, a peer-to-peer channel, etc.), pass a custom `coordinator` in the config. When `coordinator` is provided it takes precedence and `safeApiKey`/`txServiceUrl` are ignored.
 
-### The `transport` config option
+### The `coordinator` config option
 
 | Option | Description |
 |--------|-------------|
-| `transport` | An `IMultisigTransport` instance used to share multisig calldata between signers. Optional. Defaults to a `SafeTxServiceTransport` built from `txServiceUrl`/`safeApiKey`. |
+| `coordinator` | An `IMultisigCoordinator` instance used to share multisig calldata between signers. Optional. Defaults to a `SafeTxServiceCoordinator` built from `txServiceUrl`/`safeApiKey`. |
 
-### Writing a custom transport
+### Writing a custom coordinator
 
-A transport implements six methods — three for transaction proposals and three for message proposals. Extend `IMultisigTransport` (so unimplemented methods throw a clear error), return `null` from the getters when nothing is found, and shape the results like the ones the Safe Transaction Service returns (a `confirmations` array, and `preparedSignature` for messages). Serialize outgoing payloads with the exported `toTransportJson` helper so native values (BigInt, byte arrays) survive `JSON.stringify`.
+A coordinator implements six methods — three for transaction proposals and three for message proposals. Extend `IMultisigCoordinator` (so unimplemented methods throw a clear error), return `null` from the getters when nothing is found, and shape the results like the ones the Safe Transaction Service returns (a `confirmations` array, and `preparedSignature` for messages). Serialize outgoing payloads with the exported `toJsonSafe` helper so native values (BigInt, byte arrays) survive `JSON.stringify`.
 
 ```javascript
 import WalletManagerMultisigEvmSafe4337, {
-  IMultisigTransport,
-  toTransportJson
+  IMultisigCoordinator,
+  toJsonSafe
 } from '@tetherto/wdk-protocol-multisig-safe'
 
-class MyBackendTransport extends IMultisigTransport {
+class MyBackendCoordinator extends IMultisigCoordinator {
   constructor (baseUrl) {
     super()
     this._baseUrl = baseUrl
@@ -441,7 +441,7 @@ class MyBackendTransport extends IMultisigTransport {
   async submitProposal (proposal) {
     await fetch(`${this._baseUrl}/proposals`, {
       method: 'POST',
-      body: JSON.stringify(toTransportJson(proposal))
+      body: JSON.stringify(toJsonSafe(proposal))
     })
   }
 
@@ -483,19 +483,19 @@ const wallet = new WalletManagerMultisigEvmSafe4337(seed, {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
-  transport: new MyBackendTransport('https://your-backend.com/safe'),
+  coordinator: new MyBackendCoordinator('https://your-backend.com/safe'),
   safeOptions: {
     safeAddress: '0x...'
   }
 })
 ```
 
-You can also instantiate the default transport explicitly, for example to share a single instance:
+You can also instantiate the default coordinator explicitly, for example to share a single instance:
 
 ```javascript
-import { SafeTxServiceTransport } from '@tetherto/wdk-protocol-multisig-safe'
+import { SafeTxServiceCoordinator } from '@tetherto/wdk-protocol-multisig-safe'
 
-const transport = new SafeTxServiceTransport({
+const coordinator = new SafeTxServiceCoordinator({
   chainId: 11155111n,
   apiKey: 'YOUR_SAFE_API_KEY' // or txServiceUrl: 'https://your-proxy.com/safe'
 })

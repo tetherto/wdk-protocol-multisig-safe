@@ -25,7 +25,7 @@ import {
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
 
-import { toTransportJson } from './transports/i-multisig-transport.js'
+import { toJsonSafe } from './coordinators/i-multisig-coordinator.js'
 
 import { NoSuchElementError, SignerError, ValueError } from '@tetherto/wdk-wallet'
 
@@ -164,9 +164,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const messageId = TypedDataEncoder.hash(domain, types, messageValue)
     const signature = await this._signTypedData({ domain, types, message: messageValue })
 
-    await this._transport.submitMessage(safeAddress, messageId, { message, signature })
+    await this._coordinator.submitMessage(safeAddress, messageId, { message, signature })
 
-    const safeMessageResponse = await this._transport.getMessage(messageId)
+    const safeMessageResponse = await this._coordinator.getMessage(messageId)
 
     return {
       messageId,
@@ -189,7 +189,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   async approveMessageProposal (messageId) {
     await this.validateSignerIsOwner()
 
-    const existingMessage = await this._transport.getMessage(messageId)
+    const existingMessage = await this._coordinator.getMessage(messageId)
 
     if (!existingMessage) {
       throw new NoSuchElementError(`Message not found: ${messageId}`)
@@ -199,9 +199,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, existingMessage.message)
     const signature = await this._signTypedData({ domain, types, message: messageValue })
 
-    await this._transport.confirmMessage(messageId, signature)
+    await this._coordinator.confirmMessage(messageId, signature)
 
-    const safeMessageResponse = await this._transport.getMessage(messageId)
+    const safeMessageResponse = await this._coordinator.getMessage(messageId)
     const threshold = await this.getThreshold()
 
     return {
@@ -311,7 +311,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     await this.validateSignerIsOwner()
 
     const threshold = await this.getThreshold()
-    const safeOperationResponse = await this._transport.getProposal(proposalId)
+    const safeOperationResponse = await this._coordinator.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
@@ -321,9 +321,9 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const { domain, types, messageValue } = this._getProposalTypedData(userOp)
     const signature = await this._signTypedData({ domain, types, message: messageValue })
 
-    await this._transport.confirmProposal(proposalId, signature)
+    await this._coordinator.confirmProposal(proposalId, signature)
 
-    const updatedOperation = await this._transport.getProposal(proposalId)
+    const updatedOperation = await this._coordinator.getProposal(proposalId)
     const confirmations = updatedOperation.confirmations?.length || 0
 
     return { proposalId, confirmations, threshold, status: 'pending' }
@@ -339,7 +339,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @throws {ValueError} If the original proposal has no nonce to reuse.
    */
   async rejectProposal (proposalId) {
-    const safeOperationResponse = await this._transport.getProposal(proposalId)
+    const safeOperationResponse = await this._coordinator.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
@@ -370,7 +370,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    */
   async executeProposal (proposalId) {
     const threshold = await this.getThreshold()
-    const safeOperationResponse = await this._transport.getProposal(proposalId)
+    const safeOperationResponse = await this._coordinator.getProposal(proposalId)
 
     if (!safeOperationResponse) {
       throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
@@ -543,12 +543,12 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     this._paymasters.clear()
     this._bundler = undefined
     this._deployedSmartAccount = undefined
-    this._transport = null
+    this._coordinator = null
   }
 
   /**
    * Proposes a new transaction for multisig approval.
-   * Builds a UserOperation, signs it as the proposer, and shares it through the transport.
+   * Builds a UserOperation, signs it as the proposer, and shares it through the coordinator.
    *
    * Note: `rejectProposal()` passes `customNonce` via config to reuse the original proposal's nonce.
    *
@@ -571,7 +571,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const proposalId = this._getProposalId(userOp)
 
-    await this._transport.submitProposal(proposalId, await this._buildProposalPayload(userOp))
+    await this._coordinator.submitProposal(proposalId, await this._buildProposalPayload(userOp))
 
     return {
       proposalId,
@@ -621,7 +621,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const { entrypointAddress, safe4337ModuleAddress } = this._getSafeOperationOptions()
     const safeAddress = await this.getAddress()
 
-    return toTransportJson({
+    return toJsonSafe({
       entryPoint: entrypointAddress,
       moduleAddress: safe4337ModuleAddress,
       safeAddress,

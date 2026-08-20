@@ -31,13 +31,13 @@ import {
   calculateUserOperationMaxGasCost
 } from 'abstractionkit'
 
-import SafeTxServiceTransport from './transports/safe-tx-service.js'
+import SafeTxServiceCoordinator from './coordinators/safe-tx-service.js'
 
 import { ConfigurationError } from './errors.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
-/** @typedef {import('./transports/i-multisig-transport.js').IMultisigTransport} IMultisigTransport */
+/** @typedef {import('./coordinators/i-multisig-coordinator.js').IMultisigCoordinator} IMultisigCoordinator */
 
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
@@ -85,7 +85,7 @@ import { ConfigurationError } from './errors.js'
  * @property {string} [paymasterUrl] - Paymaster service URL (any ERC-7677 paymaster)
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
- * @property {IMultisigTransport} [transport] - Transport used to share multisig calldata between signers. Defaults to a SafeTxServiceTransport built from `txServiceUrl`/`safeApiKey`.
+ * @property {IMultisigCoordinator} [coordinator] - Coordinator used to share multisig calldata between signers. Defaults to a SafeTxServiceCoordinator built from `txServiceUrl`/`safeApiKey`.
  * @property {ExistingSafeOptions | PredictedSafeOptions} safeOptions - Safe options (existing or predicted)
  */
 
@@ -171,12 +171,12 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     this._safeAddress = config.safeOptions?.safeAddress || null
 
     /**
-     * The transport used to share multisig calldata between signers.
+     * The coordinator used to share multisig calldata between signers.
      *
      * @protected
-     * @type {IMultisigTransport}
+     * @type {IMultisigCoordinator}
      */
-    this._transport = config.transport ?? new SafeTxServiceTransport({
+    this._coordinator = config.coordinator ?? new SafeTxServiceCoordinator({
       chainId: config.chainId,
       txServiceUrl: config.txServiceUrl,
       apiKey: config.safeApiKey
@@ -456,7 +456,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<MultisigProposal | null>} The proposal details, or null if the proposal has not been found.
    */
   async getProposal (proposalId) {
-    const safeOperation = await this._transport.getProposal(proposalId)
+    const safeOperation = await this._coordinator.getProposal(proposalId)
 
     if (!safeOperation) {
       return null
@@ -509,7 +509,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<MultisigMessageProposal | null>} The message details, or null if the message has not been found.
    */
   async getMessageProposal (messageId) {
-    const safeMessage = await this._transport.getMessage(messageId)
+    const safeMessage = await this._coordinator.getMessage(messageId)
 
     if (!safeMessage) {
       return null
@@ -599,7 +599,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
   async quoteExecuteProposal (proposalId) {
-    const safeOperation = await this._transport.getProposal(proposalId)
+    const safeOperation = await this._coordinator.getProposal(proposalId)
 
     if (!safeOperation) {
       throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
@@ -611,7 +611,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Coerces a stored UserOperation's numeric fields back to BigInt (a transport may serialize them as strings).
+   * Coerces a stored UserOperation's numeric fields back to BigInt (a coordinator may serialize them as strings).
    *
    * @protected
    * @param {UserOperationV7} userOperation - The stored UserOperation.
