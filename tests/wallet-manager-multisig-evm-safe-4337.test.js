@@ -222,5 +222,22 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
       expect(account0._signerAccount).toBe(null)
       expect(account1._signerAccount).toBe(null)
     })
+
+    test('should dispose the remaining accounts even if one was already disposed', async () => {
+      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+        ...MOCK_CONFIG,
+        safeOptions: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      const account0 = await manager.getAccount(0)
+      const account1 = await manager.getAccount(1)
+      account0.dispose()
+
+      expect(() => manager.dispose()).not.toThrow()
+      expect(account1._signerAccount).toBe(null)
+    })
   })
 })

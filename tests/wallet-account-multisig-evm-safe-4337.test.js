@@ -351,6 +351,20 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       expect(testAccount._signerAccount).toBe(null)
       expect(testAccount._coordinator).toBe(null)
     })
+
+    test('should be safe to call dispose twice', () => {
+      const testAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        safeOptions: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+
+      testAccount.dispose()
+
+      expect(() => testAccount.dispose()).not.toThrow()
+    })
   })
 
   describe('toReadOnlyAccount', () => {
@@ -658,6 +672,32 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       erc20Account.dispose()
     })
+
+    test('should not throw when the fee equals transferMaxFee', async () => {
+      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+        ...MOCK_CONFIG,
+        paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
+        paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        transferMaxFee: MOCK_FEE,
+        safeOptions: {
+          owners: [ACCOUNT.address],
+          threshold: 1
+        }
+      })
+      erc20Account.quoteSendTransaction = jest.fn().mockResolvedValue({ fee: MOCK_FEE })
+      erc20Account._submitTransaction = jest.fn().mockResolvedValue({ proposalId: MOCK_SAFE_OP_HASH, confirmations: 1, threshold: 1, status: 'pending' })
+      erc20Account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+      erc20Account._safeAddress = MOCK_SAFE_ADDRESS
+
+      const result = await erc20Account.proposeTransfer({
+        token: '0x956962C34687A954e611A83619ABaA37Ce6bC78A',
+        recipient: ACCOUNT_2.address,
+        amount: 1000n
+      })
+
+      expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      erc20Account.dispose()
+    })
   })
 
   describe('Owner Management', () => {
@@ -678,6 +718,12 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       const result = await account.addOwner(ACCOUNT_2.address)
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
+      expect(mockSmartAccount.createStandardAddOwnerWithThresholdMetaTransaction).toHaveBeenCalledWith(ACCOUNT_2.address, 1)
+    })
+
+    test('addOwner checksums a lowercased owner address before building the meta-transaction', async () => {
+      await account.addOwner(ACCOUNT_2.address.toLowerCase())
+
       expect(mockSmartAccount.createStandardAddOwnerWithThresholdMetaTransaction).toHaveBeenCalledWith(ACCOUNT_2.address, 1)
     })
 

@@ -13,6 +13,8 @@
 // limitations under the License.
 'use strict'
 
+import { hexlify } from 'ethers'
+
 import { NotImplementedError } from '@tetherto/wdk-wallet'
 
 /**
@@ -129,24 +131,10 @@ export class IMultisigCoordinator {
 }
 
 /**
- * Converts a byte array to a 0x-prefixed lowercase hex string.
- *
- * @param {Uint8Array} bytes - The byte array to encode.
- * @returns {string} The 0x-prefixed hex encoding.
- */
-function bytesToHex (bytes) {
-  let hex = '0x'
-  for (const byte of bytes) {
-    hex += byte.toString(16).padStart(2, '0')
-  }
-  return hex
-}
-
-/**
  * Recursively converts a value into a JSON-safe form so it survives JSON.stringify: every BigInt
- * becomes its decimal string and every byte array (Uint8Array, including Buffer) becomes a
- * 0x-prefixed lowercase hex string. Arrays and plain objects are converted entry by entry; all
- * other values are returned unchanged.
+ * becomes its decimal string, every byte array (Uint8Array, including Buffer) becomes a
+ * 0x-prefixed lowercase hex string, and every Date becomes an ISO-8601 string. Arrays and plain
+ * objects are converted entry by entry; all other values are returned unchanged.
  *
  * The conversion is one-way: there is no generic inverse, so a consumer that needs the original
  * types back restores them per field (it knows which fields are amounts, byte strings, etc.).
@@ -160,7 +148,11 @@ export function toJsonSafe (value) {
   }
 
   if (value instanceof Uint8Array) {
-    return bytesToHex(value)
+    return hexlify(value)
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString()
   }
 
   if (Array.isArray(value)) {

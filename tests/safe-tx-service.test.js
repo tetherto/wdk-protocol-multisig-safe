@@ -56,6 +56,14 @@ describe('SafeTxServiceCoordinator', () => {
       await expect(coordinator.getProposal(PROPOSAL_ID)).rejects.toThrow('Service Unavailable')
     })
 
+    test('returns null regardless of the not-found message casing', async () => {
+      const coordinator = coordinatorWithApiKit({
+        getSafeOperation: jest.fn().mockRejectedValue(new Error('NOT FOUND'))
+      })
+
+      expect(await coordinator.getProposal(PROPOSAL_ID)).toBeNull()
+    })
+
     test('returns the operation when the service finds it', async () => {
       const operation = { confirmations: [], userOperation: { ethereumTxHash: null } }
       const coordinator = coordinatorWithApiKit({

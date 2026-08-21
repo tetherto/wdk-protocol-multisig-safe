@@ -138,6 +138,15 @@ describe('WalletAccountReadOnlyMultisigEvmSafe4337', () => {
       }).toThrow('safeOptions is required')
     })
 
+    test('should throw when safeOptions has neither safeAddress nor owners', () => {
+      expect(() => {
+        new WalletAccountReadOnlyMultisigEvmSafe4337({
+          ...MOCK_CONFIG,
+          safeOptions: {}
+        })
+      }).toThrow("safeOptions must provide either 'safeAddress' (existing Safe) or 'owners' (predicted Safe).")
+    })
+
     test('should throw if owners is not an array', () => {
       expect(() => {
         new WalletAccountReadOnlyMultisigEvmSafe4337({

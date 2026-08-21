@@ -14,7 +14,7 @@
 
 'use strict'
 
-import { TypedDataEncoder } from 'ethers'
+import { TypedDataEncoder, getAddress } from 'ethers'
 
 import { WalletAccountEvm } from '@tetherto/wdk-wallet-evm'
 
@@ -291,7 +291,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const { isSponsored, useNativeCoins, transferMaxFee } = mergedConfig
     if (!isSponsored && !useNativeCoins && transferMaxFee !== undefined) {
       const { fee } = await this.quoteSendTransaction(tx, config)
-      if (fee >= transferMaxFee) {
+      if (fee > transferMaxFee) {
         throw new ValueError("The estimated fee exceeds the configured 'transferMaxFee' option.")
       }
     }
@@ -412,7 +412,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const smartAccount = await this._getSmartAccount()
     const threshold = newThreshold || await this.getThreshold()
 
-    const metaTransaction = smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(ownerAddress, threshold)
+    const metaTransaction = smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(getAddress(ownerAddress), threshold)
 
     return await this._propose(metaTransaction, config)
   }
@@ -432,7 +432,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const metaTransaction = await smartAccount.createRemoveOwnerMetaTransaction(
       this._provider,
-      ownerAddress,
+      getAddress(ownerAddress),
       newThreshold || currentThreshold
     )
 
@@ -452,8 +452,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const metaTransactions = await smartAccount.createSwapOwnerMetaTransactions(
       this._provider,
-      newOwnerAddress,
-      oldOwnerAddress
+      getAddress(newOwnerAddress),
+      getAddress(oldOwnerAddress)
     )
 
     return await this._propose([metaTransactions].flat(), config)
@@ -492,18 +492,18 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const newOwnersLower = newOwners.map(o => o.toLowerCase())
 
     const toAdd = newOwners.filter(o => !currentOwnersLower.includes(o.toLowerCase()))
-    const toRemove = currentOwners.filter(o => !newOwnersLower.includes(o.toLowerCase()))
+    const toRemove = [...currentOwners.filter(o => !newOwnersLower.includes(o.toLowerCase()))].reverse()
 
     const transactions = []
 
     for (const owner of toAdd) {
-      transactions.push(smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(owner, currentThreshold))
+      transactions.push(smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(getAddress(owner), currentThreshold))
     }
 
     for (const owner of toRemove) {
       const metaTransaction = await smartAccount.createRemoveOwnerMetaTransaction(
         this._provider,
-        owner,
+        getAddress(owner),
         Math.max(1, Math.min(currentThreshold, newOwners.length))
       )
       transactions.push(...[metaTransaction].flat())
@@ -538,8 +538,10 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Disposes the wallet account, clearing sensitive data from memory.
    */
   dispose () {
-    this._signerAccount.dispose()
-    this._signerAccount = null
+    if (this._signerAccount) {
+      this._signerAccount.dispose()
+      this._signerAccount = null
+    }
     this._paymasters.clear()
     this._bundler = undefined
     this._deployedSmartAccount = undefined

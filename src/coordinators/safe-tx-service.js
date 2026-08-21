@@ -111,7 +111,7 @@ export default class SafeTxServiceCoordinator {
 
   /** @private */
   _isNotFoundError (error) {
-    return error?.message?.includes('Not found')
+    return error?.message?.toLowerCase().includes('not found')
   }
 
   /** @private */

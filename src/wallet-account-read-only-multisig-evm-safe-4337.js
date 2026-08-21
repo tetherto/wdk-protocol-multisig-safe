@@ -973,6 +973,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     }
 
     const safeOptions = config.safeOptions
+
+    if (!safeOptions.safeAddress && !safeOptions.owners) {
+      throw new ConfigurationError("safeOptions must provide either 'safeAddress' (existing Safe) or 'owners' (predicted Safe).")
+    }
+
     const hasPredictedSafe = !!safeOptions.owners
 
     if (hasPredictedSafe) {
