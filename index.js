@@ -17,15 +17,13 @@
 // ============================================
 // Re-export types from @tetherto/wdk-wallet
 // ============================================
-/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigResult} MultisigResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigTransactionResult} MultisigTransactionResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigExecuteResult} MultisigExecuteResult */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigSendOptions} MultisigSendOptions */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigOptions} MultisigOptions */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageProposal} MessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigAutoExecuteResult} MultisigAutoExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigSignature} MultisigSignature */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
 
 // ============================================
 // Re-export types from @tetherto/wdk-wallet-evm
@@ -40,12 +38,12 @@
 /** @typedef {import('@tetherto/wdk-wallet-evm').ApproveOptions} ApproveOptions */
 
 // ============================================
-// Re-export types from @wdk-safe-global/relay-kit
+// Re-export Safe option and receipt types
 // ============================================
 
-/** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').UserOperationReceipt} UserOperationReceipt */
+/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').UserOperationReceipt} UserOperationReceipt */
 
 // ============================================
 // Re-export types from read-only module
@@ -59,6 +57,15 @@
 /** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeReadOnlyConfig} EvmMultisigSafeReadOnlyConfig */
 
 // ============================================
+// Re-export types from coordinators
+// ============================================
+
+/** @typedef {import('./src/coordinators/index.js').MultisigCoordinatorProposal} MultisigCoordinatorProposal */
+/** @typedef {import('./src/coordinators/index.js').MultisigCoordinatorMessage} MultisigCoordinatorMessage */
+/** @typedef {import('./src/coordinators/index.js').MultisigCoordinatorMessageInput} MultisigCoordinatorMessageInput */
+/** @typedef {import('./src/coordinators/index.js').SafeTxServiceCoordinatorConfig} SafeTxServiceCoordinatorConfig */
+
+// ============================================
 // Export classes and constants
 // ============================================
 
@@ -67,3 +74,15 @@ export { default } from './src/wallet-manager-multisig-evm-safe-4337.js'
 export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from './src/wallet-account-read-only-multisig-evm-safe-4337.js'
 
 export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-account-multisig-evm-safe-4337.js'
+
+// ============================================
+// Export coordinators
+// ============================================
+
+export { IMultisigCoordinator, SafeTxServiceCoordinator, toJsonSafe } from './src/coordinators/index.js'
+
+// ============================================
+// Export errors
+// ============================================
+
+export { ConfigurationError } from './src/errors.js'
