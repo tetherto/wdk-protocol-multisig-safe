@@ -35,7 +35,7 @@ import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IMultisigOwnerManagement} IMultisigOwnerManagement */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigTransactionOptions} MultisigTransactionOptions */
-/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigAutoExecuteResult} MultisigAutoExecuteResult */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInteractionResult} MultisigInteractionResult */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigSignature} MultisigSignature */
 /** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigOptions} MultisigOptions */
@@ -266,7 +266,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {EvmTransaction} tx - The transaction to propose
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
+   * @returns {Promise<MultisigProposal & MultisigInteractionResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
    */
   async propose (tx, options = {}) {
     const { autoExecute = false, ...config } = options
@@ -280,7 +280,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    *
    * @param {TransferOptions} transferOptions - Transfer options
    * @param {MultisigTransactionOptions & Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [options] - Send and paymaster config options
-   * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
+   * @returns {Promise<MultisigProposal & MultisigInteractionResult>} The created proposal; its `status` is `'executed'` when `autoExecute` ran to completion, otherwise `'pending'`. When it auto-executed, `transaction` holds the on-chain result.
    * @throws {ValueError} If the estimated fee exceeds the configured `transferMaxFee`.
    */
   async proposeTransfer (transferOptions, options = {}) {
@@ -303,7 +303,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * Approves (signs) an existing proposal.
    *
    * @param {string} proposalId - The Safe operation hash to approve
-   * @returns {Promise<MultisigProposal & MultisigAutoExecuteResult>} Approval result
+   * @returns {Promise<MultisigProposal & MultisigInteractionResult>} Approval result
    * @throws {SignerError} If the signer is not an owner of the Safe.
    * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
