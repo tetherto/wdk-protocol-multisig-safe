@@ -77,6 +77,7 @@ const createMockSmartAccount = (overrides = {}) => ({
   getSafeMessageEip712Data: jest.fn().mockReturnValue(MOCK_MESSAGE_EIP712),
   createStandardAddOwnerWithThresholdMetaTransaction: jest.fn().mockReturnValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xaddowner' }),
   createRemoveOwnerMetaTransaction: jest.fn().mockResolvedValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xremoveowner' }),
+  createStandardRemoveOwnerMetaTransaction: jest.fn().mockReturnValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xremoveowner' }),
   createSwapOwnerMetaTransactions: jest.fn().mockResolvedValue([{ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xswapowner' }]),
   createChangeThresholdMetaTransaction: jest.fn().mockReturnValue({ to: MOCK_SAFE_ADDRESS, value: 0n, data: '0xchangethreshold' }),
   ...overrides
@@ -746,6 +747,29 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       expect(result.proposalId).toBe(MOCK_SAFE_OP_HASH)
       expect(mockSmartAccount.createChangeThresholdMetaTransaction).toHaveBeenCalledWith(1)
+    })
+
+    test('updateOwners removing the head after an add uses the added owner as prevOwner, not the sentinel', async () => {
+      const THIRD_OWNER = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      const NEW_OWNER = '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65'
+      account.getOwners = jest.fn().mockResolvedValue([ACCOUNT.address, ACCOUNT_2.address, THIRD_OWNER])
+      account.getThreshold = jest.fn().mockResolvedValue(1)
+
+      await account.updateOwners([NEW_OWNER, ACCOUNT_2.address, THIRD_OWNER], 1)
+
+      expect(mockSmartAccount.createStandardAddOwnerWithThresholdMetaTransaction).toHaveBeenCalledWith(NEW_OWNER, 1)
+      expect(mockSmartAccount.createStandardRemoveOwnerMetaTransaction).toHaveBeenCalledWith(ACCOUNT.address, 1, NEW_OWNER)
+    })
+
+    test('updateOwners recomputes prevOwner across sequential removals so the second targets the surviving predecessor', async () => {
+      const THIRD_OWNER = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      account.getOwners = jest.fn().mockResolvedValue([ACCOUNT.address, ACCOUNT_2.address, THIRD_OWNER])
+      account.getThreshold = jest.fn().mockResolvedValue(1)
+
+      await account.updateOwners([ACCOUNT.address], 1)
+
+      expect(mockSmartAccount.createStandardRemoveOwnerMetaTransaction).toHaveBeenNthCalledWith(1, ACCOUNT_2.address, 1, ACCOUNT.address)
+      expect(mockSmartAccount.createStandardRemoveOwnerMetaTransaction).toHaveBeenNthCalledWith(2, THIRD_OWNER, 1, ACCOUNT.address)
     })
   })
 

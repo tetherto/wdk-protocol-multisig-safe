@@ -53,6 +53,8 @@ import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only
 /** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
 /** @typedef {import('./wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
 
+const SENTINEL_OWNER = '0x0000000000000000000000000000000000000001'
+
 /**
  * EVM multisig Safe wallet account with signing capabilities.
  * Provides full transaction and message signing operations.
@@ -492,21 +494,24 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const newOwnersLower = newOwners.map(o => o.toLowerCase())
 
     const toAdd = newOwners.filter(o => !currentOwnersLower.includes(o.toLowerCase()))
-    const toRemove = [...currentOwners.filter(o => !newOwnersLower.includes(o.toLowerCase()))].reverse()
+    const toRemove = currentOwners.filter(o => !newOwnersLower.includes(o.toLowerCase()))
 
+    const owners = currentOwners.map(o => getAddress(o))
+    const removalThreshold = Math.max(1, Math.min(currentThreshold, newOwners.length))
     const transactions = []
 
     for (const owner of toAdd) {
-      transactions.push(smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(getAddress(owner), currentThreshold))
+      const added = getAddress(owner)
+      transactions.push(smartAccount.createStandardAddOwnerWithThresholdMetaTransaction(added, currentThreshold))
+      owners.unshift(added)
     }
 
     for (const owner of toRemove) {
-      const metaTransaction = await smartAccount.createRemoveOwnerMetaTransaction(
-        this._provider,
-        getAddress(owner),
-        Math.max(1, Math.min(currentThreshold, newOwners.length))
-      )
-      transactions.push(...[metaTransaction].flat())
+      const removed = getAddress(owner)
+      const index = owners.findIndex(o => o.toLowerCase() === removed.toLowerCase())
+      const prevOwner = index <= 0 ? SENTINEL_OWNER : owners[index - 1]
+      transactions.push(smartAccount.createStandardRemoveOwnerMetaTransaction(removed, removalThreshold, prevOwner))
+      owners.splice(index, 1)
     }
 
     if (newThreshold !== currentThreshold) {

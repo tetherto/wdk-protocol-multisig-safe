@@ -213,4 +213,28 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
 
     expect(after.map(o => o.toLowerCase()).sort()).toEqual(keep.map(o => o.toLowerCase()).sort())
   }, TIMEOUT)
+
+  test('owner management: updateOwners adds an owner and removes the current head owner in one batch', async () => {
+    const NEW_OWNER = '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc'
+
+    signerA._resetState()
+    const before = await signerA.getOwners()
+    const head = before[0]
+
+    const signers = [signerA, signerB, signerC]
+    const signerAddresses = await Promise.all(signers.map(s => s.getSignerAddress()))
+    const beforeLower = before.map(o => o.toLowerCase())
+    const proposer = signers[signerAddresses.findIndex(a => beforeLower.includes(a.toLowerCase()))]
+
+    const desired = [NEW_OWNER, ...before.filter(o => o.toLowerCase() !== head.toLowerCase())]
+
+    const proposal = await proposer.updateOwners(desired, 1)
+    const exec = await proposer.executeProposal(proposal.proposalId)
+    await waitForTx(exec.hash, proposer)
+
+    proposer._resetState()
+    const after = await proposer.getOwners()
+
+    expect(after.map(o => o.toLowerCase()).sort()).toEqual(desired.map(o => o.toLowerCase()).sort())
+  }, TIMEOUT)
 })
