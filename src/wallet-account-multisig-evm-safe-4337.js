@@ -26,10 +26,10 @@ import {
 } from 'abstractionkit'
 
 import { toJsonSafe } from './coordinators/i-multisig-coordinator.js'
-import { HashMismatchError } from './errors.js'
 
 import { NoSuchElementError, SignerError, ValueError } from '@tetherto/wdk-wallet'
 
+import { HashMismatchError } from './errors.js'
 import WalletAccountReadOnlyMultisigEvmSafe4337 from './wallet-account-read-only-multisig-evm-safe-4337.js'
 
 /** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountMultisig} IWalletAccountMultisig */
@@ -164,7 +164,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const smartAccount = await this._getSmartAccount()
 
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, message)
-    const messageId = TypedDataEncoder.hash(domain, types, messageValue)
+    const messageId = this._getMessageId(domain, types, messageValue)
     const signature = await this._signTypedData({ domain, types, message: messageValue })
 
     await this._coordinator.submitMessage(safeAddress, messageId, { message, signature })
@@ -202,7 +202,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     const smartAccount = await this._getSmartAccount()
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, existingMessage.message)
 
-    if (TypedDataEncoder.hash(domain, types, messageValue) !== messageId) {
+    if (this._getMessageId(domain, types, messageValue) !== messageId) {
       throw new HashMismatchError(`Message returned by the coordinator does not hash to the requested id: ${messageId}`)
     }
 
@@ -641,6 +641,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   /** @private */
   _getProposalTypedData (userOp) {
     return SafeAccount020.getUserOperationEip712Data(userOp, this._config.chainId, this._getSafeOperationOptions())
+  }
+
+  /** @private */
+  _getMessageId (domain, types, messageValue) {
+    return TypedDataEncoder.hash(domain, types, messageValue)
   }
 
   /** @private */

@@ -234,6 +234,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     /** @private */
     private _getProposalTypedData;
     /** @private */
+    private _getMessageId;
+    /** @private */
     private _buildProposalPayload;
     /** @private */
     private _aggregateSignatures;
