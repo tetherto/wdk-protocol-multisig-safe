@@ -85,4 +85,4 @@ export { IMultisigCoordinator, SafeTxServiceCoordinator, toJsonSafe } from './sr
 // Export errors
 // ============================================
 
-export { ConfigurationError } from './src/errors.js'
+export { ConfigurationError, HashMismatchError } from './src/errors.js'

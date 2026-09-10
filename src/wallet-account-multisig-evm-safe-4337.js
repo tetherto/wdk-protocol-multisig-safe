@@ -26,6 +26,7 @@ import {
 } from 'abstractionkit'
 
 import { toJsonSafe } from './coordinators/i-multisig-coordinator.js'
+import { HashMismatchError } from './errors.js'
 
 import { NoSuchElementError, SignerError, ValueError } from '@tetherto/wdk-wallet'
 
@@ -187,6 +188,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MultisigMessageProposal & MultisigSignature>} The approval result
    * @throws {SignerError} If the signer is not an owner of the Safe.
    * @throws {NoSuchElementError} If no message exists for the given hash.
+   * @throws {HashMismatchError} If the message returned by the coordinator does not hash to the requested id.
    */
   async approveMessageProposal (messageId) {
     await this.validateSignerIsOwner()
@@ -199,6 +201,11 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
 
     const smartAccount = await this._getSmartAccount()
     const { domain, types, messageValue } = smartAccount.getSafeMessageEip712Data(this._config.chainId, existingMessage.message)
+
+    if (TypedDataEncoder.hash(domain, types, messageValue) !== messageId) {
+      throw new HashMismatchError(`Message returned by the coordinator does not hash to the requested id: ${messageId}`)
+    }
+
     const signature = await this._signTypedData({ domain, types, message: messageValue })
 
     await this._coordinator.confirmMessage(messageId, signature)
@@ -308,6 +315,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<MultisigProposal & MultisigInteractionResult>} Approval result
    * @throws {SignerError} If the signer is not an owner of the Safe.
    * @throws {NoSuchElementError} If no proposal exists for the given id.
+   * @throws {HashMismatchError} If the proposal returned by the coordinator does not hash to the requested id.
    */
   async approveProposal (proposalId) {
     await this.validateSignerIsOwner()
@@ -320,6 +328,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     }
 
     const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
+    this._verifyProposalId(proposalId, userOp)
+
     const { domain, types, messageValue } = this._getProposalTypedData(userOp)
     const signature = await this._signTypedData({ domain, types, message: messageValue })
 
@@ -369,6 +379,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
    * @returns {Promise<TransactionResult>} The execution result
    * @throws {NoSuchElementError} If no proposal exists for the given id.
    * @throws {ValueError} If the proposal does not have enough confirmations to meet the threshold.
+   * @throws {HashMismatchError} If the proposal returned by the coordinator does not hash to the requested id.
    */
   async executeProposal (proposalId) {
     const threshold = await this.getThreshold()
@@ -388,6 +399,8 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     }
 
     const userOp = this._rebuildUserOperation(safeOperationResponse.userOperation)
+    this._verifyProposalId(proposalId, userOp)
+
     userOp.signature = this._aggregateSignatures(safeOperationResponse)
 
     const fee = calculateUserOperationMaxGasCost(userOp)
@@ -611,6 +624,13 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
   /** @private */
   async _signTypedData (typedData) {
     return await this._signerAccount.signTypedData(typedData)
+  }
+
+  /** @private */
+  _verifyProposalId (proposalId, userOp) {
+    if (this._getProposalId(userOp) !== proposalId) {
+      throw new HashMismatchError(`Proposal returned by the coordinator does not hash to the requested id: ${proposalId}`)
+    }
   }
 
   /** @private */
