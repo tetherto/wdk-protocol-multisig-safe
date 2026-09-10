@@ -88,6 +88,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @returns {Promise<MultisigMessageProposal & MultisigSignature>} The approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no message exists for the given hash.
+     * @throws {Error} If the message returned by the coordinator does not hash to the requested id.
      */
     approveMessageProposal(messageId: string): Promise<MultisigMessageProposal & MultisigSignature>;
     /**
@@ -146,6 +147,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @returns {Promise<MultisigProposal & MultisigInteractionResult>} Approval result
      * @throws {Error} If the signer is not an owner of the Safe.
      * @throws {Error} If no proposal exists for the given id.
+     * @throws {Error} If the proposal returned by the coordinator does not hash to the requested id.
      */
     approveProposal(proposalId: string): Promise<MultisigProposal & MultisigInteractionResult>;
     /**
@@ -165,6 +167,7 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
      * @returns {Promise<TransactionResult>} The on-chain transaction's result
      * @throws {Error} If no proposal exists for the given id.
      * @throws {Error} If the proposal does not have enough confirmations to meet the threshold.
+     * @throws {Error} If the proposal returned by the coordinator does not hash to the requested id.
      */
     executeProposal(proposalId: string): Promise<TransactionResult>;
     /**
@@ -225,9 +228,13 @@ export default class WalletAccountMultisigEvmSafe4337 extends WalletAccountReadO
     /** @private */
     private _signTypedData;
     /** @private */
+    private _verifyProposalId;
+    /** @private */
     private _getProposalId;
     /** @private */
     private _getProposalTypedData;
+    /** @private */
+    private _getMessageId;
     /** @private */
     private _buildProposalPayload;
     /** @private */

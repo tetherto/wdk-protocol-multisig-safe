@@ -335,6 +335,21 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         '0xmocksignature'
       )
     })
+
+    test('should throw and not sign or confirm when the returned message does not hash to the requested id', async () => {
+      const mockCoordinator = createMockCoordinator()
+      account._getSmartAccount = jest.fn().mockResolvedValue(createMockSmartAccount())
+      account._signTypedData = jest.fn().mockResolvedValue('0xmocksignature')
+      account._coordinator = mockCoordinator
+      account._safeAddress = MOCK_SAFE_ADDRESS
+      account._threshold = 2
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      await expect(account.approveMessageProposal(MOCK_MESSAGE_HASH))
+        .rejects.toThrow(`Message returned by the coordinator does not hash to the requested id: ${MOCK_MESSAGE_HASH}`)
+      expect(account._signTypedData).not.toHaveBeenCalled()
+      expect(mockCoordinator.confirmMessage).not.toHaveBeenCalled()
+    })
   })
 
   describe('dispose', () => {
@@ -391,6 +406,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
         })
       })
       account._coordinator = mockCoordinator
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
       account._getProposalTypedData = jest.fn().mockReturnValue(MOCK_SAFE_OP_TYPED_DATA)
       account._signTypedData = jest.fn().mockResolvedValue('0xrawsig')
       account._threshold = 2
@@ -404,6 +420,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     test('should call confirmProposal on coordinator', async () => {
       const mockCoordinator = createMockCoordinator()
       account._coordinator = mockCoordinator
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
       account._getProposalTypedData = jest.fn().mockReturnValue(MOCK_SAFE_OP_TYPED_DATA)
       account._signTypedData = jest.fn().mockResolvedValue('0xrawsig')
       account._threshold = 1
@@ -412,6 +429,21 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
       await account.approveProposal(MOCK_SAFE_OP_HASH)
 
       expect(mockCoordinator.confirmProposal).toHaveBeenCalledWith(MOCK_SAFE_OP_HASH, '0xrawsig')
+    })
+
+    test('should throw and not sign or confirm when the returned proposal does not hash to the requested id', async () => {
+      const mockCoordinator = createMockCoordinator()
+      account._coordinator = mockCoordinator
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_USER_OP_HASH)
+      account._getProposalTypedData = jest.fn().mockReturnValue(MOCK_SAFE_OP_TYPED_DATA)
+      account._signTypedData = jest.fn().mockResolvedValue('0xrawsig')
+      account._threshold = 1
+      account.validateSignerIsOwner = jest.fn().mockResolvedValue(undefined)
+
+      await expect(account.approveProposal(MOCK_SAFE_OP_HASH))
+        .rejects.toThrow(`Proposal returned by the coordinator does not hash to the requested id: ${MOCK_SAFE_OP_HASH}`)
+      expect(account._signTypedData).not.toHaveBeenCalled()
+      expect(mockCoordinator.confirmProposal).not.toHaveBeenCalled()
     })
   })
 
@@ -488,6 +520,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
   describe('executeProposal', () => {
     test('should return execute result with hash', async () => {
       account._coordinator = createMockCoordinator()
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
       account._getBundler = jest.fn().mockReturnValue(createMockBundler())
       account._threshold = 1
 
@@ -499,6 +532,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     test('should call sendUserOperation on the bundler', async () => {
       const mockBundler = createMockBundler()
       account._coordinator = createMockCoordinator()
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_SAFE_OP_HASH)
       account._getBundler = jest.fn().mockReturnValue(mockBundler)
       account._threshold = 1
 
@@ -518,6 +552,18 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
       await expect(account.executeProposal(MOCK_SAFE_OP_HASH))
         .rejects.toThrow('Not enough confirmations')
+    })
+
+    test('should throw and not broadcast when the returned proposal does not hash to the requested id', async () => {
+      const mockBundler = createMockBundler()
+      account._coordinator = createMockCoordinator()
+      account._getBundler = jest.fn().mockReturnValue(mockBundler)
+      account._getProposalId = jest.fn().mockReturnValue(MOCK_USER_OP_HASH)
+      account._threshold = 1
+
+      await expect(account.executeProposal(MOCK_SAFE_OP_HASH))
+        .rejects.toThrow(`Proposal returned by the coordinator does not hash to the requested id: ${MOCK_SAFE_OP_HASH}`)
+      expect(mockBundler.sendUserOperation).not.toHaveBeenCalled()
     })
   })
 

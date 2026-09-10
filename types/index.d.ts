@@ -29,4 +29,4 @@ export type MultisigCoordinatorMessageInput = import("./src/coordinators/index.j
 export type SafeTxServiceCoordinatorConfig = import("./src/coordinators/index.js").SafeTxServiceCoordinatorConfig;
 export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from "./src/wallet-account-read-only-multisig-evm-safe-4337.js";
 export { IMultisigCoordinator, SafeTxServiceCoordinator, toJsonSafe } from "./src/coordinators/index.js";
-export { ConfigurationError } from "./src/errors.js";
+export { ConfigurationError, HashMismatchError } from "./src/errors.js";

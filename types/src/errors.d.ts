@@ -6,3 +6,11 @@ export class ConfigurationError extends Error {
      */
     constructor(message: string);
 }
+export class HashMismatchError extends Error {
+    /**
+     * Create a new hash mismatch error.
+     *
+     * @param {string} message - The error message.
+     */
+    constructor(message: string);
+}

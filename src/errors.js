@@ -26,3 +26,16 @@ export class ConfigurationError extends Error {
     this.name = 'ConfigurationError'
   }
 }
+
+export class HashMismatchError extends Error {
+  /**
+   * Create a new hash mismatch error.
+   *
+   * @param {string} message - The error message.
+   */
+  constructor (message) {
+    super(message)
+
+    this.name = 'HashMismatchError'
+  }
+}
