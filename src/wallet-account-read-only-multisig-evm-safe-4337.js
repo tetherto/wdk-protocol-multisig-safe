@@ -14,41 +14,78 @@
 
 'use strict'
 
-import { keccak256, toUtf8Bytes, hashMessage } from 'ethers'
+import { keccak256, toUtf8Bytes, hashMessage, Interface, JsonRpcProvider } from 'ethers'
 
-import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
+import { WalletAccountReadOnly, NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 
 import { WalletAccountReadOnlyEvm } from '@tetherto/wdk-wallet-evm'
 
-import { Safe4337Pack, GenericFeeEstimator } from '@wdk-safe-global/relay-kit'
+import {
+  // eslint-disable-next-line camelcase
+  SafeAccountV0_2_0 as SafeAccount020,
+  AbstractionKitError,
+  Bundler,
+  Erc7677Paymaster,
+  ENTRYPOINT_V6,
+  fetchAccountNonce,
+  calculateUserOperationMaxGasCost
+} from 'abstractionkit'
 
-import SafeApiKit from '@safe-global/api-kit'
+import SafeTxServiceCoordinator from './coordinators/safe-tx-service.js'
+
+import { ConfigurationError } from './errors.js'
 
 /** @typedef {import('ethers').Eip1193Provider} Eip1193Provider */
 
-/** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigInfo} MultisigInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MessageInfo} MessageInfo */
-/** @typedef {import('@tetherto/wdk-wallet').MultisigProposal} MultisigProposal */
+/** @typedef {import('./coordinators/i-multisig-coordinator.js').IMultisigCoordinator} IMultisigCoordinator */
+
+/** @typedef {import('@tetherto/wdk-wallet/multisig').IWalletAccountReadOnlyMultisig} IWalletAccountReadOnlyMultisig */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigInfo} MultisigInfo */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigMessageProposal} MultisigMessageProposal */
+/** @typedef {import('@tetherto/wdk-wallet/multisig').MultisigProposal} MultisigProposal */
+/** @typedef {import('@tetherto/wdk-wallet-evm').TransactionResult} TransactionResult */
 
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransaction} EvmTransaction */
 /** @typedef {import('@tetherto/wdk-wallet-evm').EvmTransactionReceipt} EvmTransactionReceipt */
 /** @typedef {import('@tetherto/wdk-wallet-evm').TransferOptions} TransferOptions */
 
-/** @typedef {import('@wdk-safe-global/relay-kit').ExistingSafeOptions} ExistingSafeOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').PredictedSafeOptions} PredictedSafeOptions */
-/** @typedef {import('@wdk-safe-global/relay-kit').UserOperationReceipt} UserOperationReceipt */
+/** @typedef {import('abstractionkit').UserOperationV7} UserOperationV7 */
+/** @typedef {import('abstractionkit').UserOperationReceiptResult} UserOperationReceipt */
+/** @typedef {import('abstractionkit').SafeAccountV0_2_0} SafeAccount */
+/** @typedef {import('abstractionkit').TokenQuote} TokenQuote */
+
+/**
+ * @typedef {Object} ExistingSafeOptions
+ * @property {string} safeAddress - The address of an already-deployed Safe.
+ */
+
+/**
+ * @typedef {Object} PredictedSafeOptions
+ * @property {string[]} owners - The Safe owners' addresses.
+ * @property {number} threshold - The number of confirmations required to execute an operation.
+ * @property {string} [saltNonce] - Deterministic salt nonce (hex). Defaults to a value derived from owners and threshold.
+ */
+
+/**
+ * @typedef {Object} BuiltUserOperation
+ * @property {UserOperationV7} userOp - The fully-populated UserOperation ready to sign.
+ * @property {SafeAccount} smartAccount - The Safe account that will execute the operation.
+ * @property {'native' | 'sponsored' | 'token'} mode - The paymaster mode used to build the operation.
+ * @property {bigint} chainId - The chain id captured at build time.
+ * @property {TokenQuote} [tokenQuote] - The paymaster token quote, present only in token mode.
+ */
 
 /**
  * @typedef {Object} EvmMultisigSafeCommonConfig
  * @property {string | Eip1193Provider} provider - RPC URL or EIP-1193 provider
  * @property {string} bundlerUrl - ERC-4337 bundler URL
  * @property {bigint} chainId - Chain ID
- * @property {string} [entryPointAddress] - EntryPoint contract address
- * @property {string} [safeModulesVersion='0.2.0'] - Safe modules version
- * @property {string} [paymasterUrl] - Paymaster service URL
+ * @property {string} [entryPointAddress] - EntryPoint contract address (defaults to the v0.6 EntryPoint)
+ * @property {string} [safeModulesVersion='0.2.0'] - Safe modules version (EntryPoint v0.6)
+ * @property {string} [paymasterUrl] - Paymaster service URL (any ERC-7677 paymaster)
  * @property {string} [txServiceUrl] - Custom Safe Transaction Service URL
  * @property {string} [safeApiKey] - Safe API key
+ * @property {IMultisigCoordinator} [coordinator] - Coordinator used to share multisig calldata between signers. Defaults to a SafeTxServiceCoordinator built from `txServiceUrl`/`safeApiKey`.
  * @property {ExistingSafeOptions | PredictedSafeOptions} safeOptions - Safe options (existing or predicted)
  */
 
@@ -56,7 +93,7 @@ import SafeApiKit from '@safe-global/api-kit'
  * @typedef {Object} EvmMultisigSafePaymasterTokenConfig
  * @property {false} [isSponsored] - Whether the paymaster is sponsoring the account.
  * @property {false} [useNativeCoins] - Whether to use native coins instead of a paymaster to pay for gas fees.
- * @property {string} paymasterAddress - Paymaster contract address
+ * @property {string} [paymasterAddress] - Paymaster contract address (only required for unknown paymaster providers)
  * @property {string} paymasterTokenAddress - The address of the paymaster token.
  * @property {number | bigint} [transferMaxFee] - Maximum fee for transfers
  * @property {number | bigint} [amountToApprove] - Amount to approve for paymaster
@@ -85,6 +122,21 @@ import SafeApiKit from '@safe-global/api-kit'
 export const DEFAULT_SAFE_MODULES_VERSION = '0.2.0'
 export const DEFAULT_SAFE_VERSION = '1.4.1'
 
+const SAFE_MODULES_MAP = {
+  '0.2.0': {
+    safe4337ModuleAddress: '0xa581c4A4DB7175302464fF3C06380BC3270b4037',
+    safeModuleSetupAddress: '0x8EcD4ec46D4D2a6B64fE960B3D64e8B94B2234eb'
+  }
+}
+
+const PaymasterMode = {
+  NATIVE: 'native',
+  SPONSORED: 'sponsored',
+  TOKEN: 'token'
+}
+
+const EIP1271_MAGIC_VALUE = '0x1626ba7e'
+
 /**
  * Read-only EVM multisig Safe wallet account.
  * Provides query-only operations for Safe multisig wallets.
@@ -95,10 +147,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   /**
    * Creates a new read-only EVM multisig Safe wallet account.
    *
-   * @param {string | null} signerAddress - The signer's EOA address or null for pure read-only
    * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
+   * @throws {ConfigurationError} If the configuration is invalid or has missing required fields.
    */
-  constructor (signerAddress, config) {
+  constructor (config) {
     super(undefined)
     this._validateConfig(config)
 
@@ -119,20 +171,48 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     this._safeAddress = config.safeOptions?.safeAddress || null
 
     /**
-     * Map of Safe4337Pack instances cached by configuration.
+     * The coordinator used to share multisig calldata between signers.
      *
      * @protected
-     * @type {Map<string, Safe4337Pack>}
+     * @type {IMultisigCoordinator}
      */
-    this._safe4337Packs = new Map()
+    this._coordinator = config.coordinator ?? new SafeTxServiceCoordinator({
+      chainId: config.chainId,
+      txServiceUrl: config.txServiceUrl,
+      apiKey: config.safeApiKey
+    })
 
     /**
-     * The Safe API Kit instance.
+     * An EIP-1193-compatible provider used to interact with the blockchain.
      *
      * @protected
-     * @type {SafeApiKit | null}
+     * @type {Eip1193Provider}
      */
-    this._apiKit = null
+    this._provider = this._wrapEip1193Provider(config.provider)
+
+    /**
+     * Cached AbstractionKit bundler.
+     *
+     * @protected
+     * @type {Bundler | undefined}
+     */
+    this._bundler = undefined
+
+    /**
+     * Cached Erc7677Paymaster instances keyed by URL.
+     *
+     * @protected
+     * @type {Map<string, Erc7677Paymaster>}
+     */
+    this._paymasters = new Map()
+
+    /**
+     * Cached deployed Safe account instance.
+     *
+     * @protected
+     * @type {SafeAccount | undefined}
+     */
+    this._deployedSmartAccount = undefined
 
     /**
      * Cached owners list.
@@ -149,9 +229,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * @type {number | null}
      */
     this._threshold = null
-
-    /** @private */
-    this._signerAddress = signerAddress
   }
 
   /**
@@ -169,16 +246,6 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Returns the signer's EOA address.
-   * For read-only accounts created with a signerAddress, returns that address.
-   *
-   * @returns {Promise<string | null>} The signer's address or null
-   */
-  async getSignerAddress () {
-    return this._signerAddress
-  }
-
-  /**
    * Returns the predicted Safe address.
    *
    * @returns {Promise<string>} The Safe address
@@ -188,20 +255,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
       return this._safeAddress
     }
 
-    const safeOptions = this._config.safeOptions
-    const { owners, threshold, saltNonce } = safeOptions
-    const finalSaltNonce = saltNonce ||
-      WalletAccountReadOnlyMultisigEvmSafe4337.generateDeterministicSaltNonce(owners, threshold)
+    const { owners } = this._config.safeOptions
+    const overrides = this._getInitCodeOverrides()
 
-    this._safeAddress = Safe4337Pack.predictSafeAddress({
-      owners,
-      threshold,
-      saltNonce: finalSaltNonce,
-      chainId: this._config.chainId,
-      safeVersion: DEFAULT_SAFE_VERSION,
-      safeModulesVersion: this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION,
-      paymasterOptions: this._buildPaymasterOptions(this._config)
-    })
+    this._safeAddress = SafeAccount020.createAccountAddress(owners, overrides)
 
     return this._safeAddress
   }
@@ -212,14 +269,15 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<boolean>} True if deployed
    */
   async isDeployed () {
-    const safe4337Pack = await this._getSafe4337Pack()
-    return await safe4337Pack.protocolKit.isSafeDeployed()
+    const safeAddress = await this.getAddress()
+    return await SafeAccount020.isDeployed(safeAddress, this._provider)
   }
 
   /**
    * Returns the list of Safe owners.
    *
    * @returns {Promise<string[]>} Array of owner addresses
+   * @throws {ValueError} If the Safe is not deployed and no owners are provided in the configuration.
    */
   async getOwners () {
     if (this._owners) {
@@ -229,11 +287,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const isDeployed = await this.isDeployed()
 
     if (isDeployed) {
-      const safe4337Pack = await this._getSafe4337Pack()
-      this._owners = await safe4337Pack.protocolKit.getOwners()
+      const smartAccount = await this._getSmartAccount()
+      this._owners = await smartAccount.getOwners(this._provider)
     } else {
       if (!this._config.safeOptions?.owners) {
-        throw new Error('Safe is not deployed and no owners provided in options')
+        throw new ValueError('Safe is not deployed and no owners provided in options')
       }
       this._owners = this._config.safeOptions.owners
     }
@@ -245,6 +303,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * Returns the Safe threshold.
    *
    * @returns {Promise<number>} The threshold
+   * @throws {ValueError} If the Safe is not deployed and no threshold is provided in the configuration.
    */
   async getThreshold () {
     if (this._threshold !== null) {
@@ -254,11 +313,11 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const isDeployed = await this.isDeployed()
 
     if (isDeployed) {
-      const safe4337Pack = await this._getSafe4337Pack()
-      this._threshold = await safe4337Pack.protocolKit.getThreshold()
+      const smartAccount = await this._getSmartAccount()
+      this._threshold = await smartAccount.getThreshold(this._provider)
     } else {
       if (!this._config.safeOptions?.threshold) {
-        throw new Error('Safe is not deployed and no threshold provided in options')
+        throw new ValueError('Safe is not deployed and no threshold provided in options')
       }
       this._threshold = this._config.safeOptions.threshold
     }
@@ -275,24 +334,22 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const address = await this.getAddress()
     const owners = await this.getOwners()
     const threshold = await this.getThreshold()
-    const isCreated = await this.isDeployed()
 
     return {
       address,
       owners,
-      threshold,
-      isCreated
+      threshold
     }
   }
 
   /**
-   * Returns the Safe's current nonce.
+   * Returns the Safe's current ERC-4337 nonce (the EntryPoint nonce used for UserOperations).
    *
-   * @returns {Promise<number>} The nonce
+   * @returns {Promise<bigint>} The nonce
    */
   async getNonce () {
-    const safe4337Pack = await this._getSafe4337Pack()
-    return await safe4337Pack.protocolKit.getNonce()
+    const safeAddress = await this.getAddress()
+    return await fetchAccountNonce(this._provider, this._entryPointAddress(), safeAddress)
   }
 
   /**
@@ -307,8 +364,13 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
       return 'not deployed'
     }
 
-    const safe4337Pack = await this._getSafe4337Pack()
-    return safe4337Pack.protocolKit.getContractVersion()
+    const safeAddress = await this.getAddress()
+    const iface = new Interface(['function VERSION() view returns (string)'])
+    const data = iface.encodeFunctionData('VERSION', [])
+    const raw = await this._provider.request({ method: 'eth_call', params: [{ to: safeAddress, data }, 'latest'] })
+    const [version] = iface.decodeFunctionResult('VERSION', raw)
+
+    return version
   }
 
   /**
@@ -334,7 +396,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
 
   /**
    * Returns a transaction's receipt. Supports both regular transaction hashes
-   * and UserOperation hashes (from ERC-4337 bundler).
+   * and UserOperation hashes (from the ERC-4337 bundler).
    *
    * @param {string} hash - The transaction hash or UserOperation hash
    * @returns {Promise<EvmTransactionReceipt | UserOperationReceipt | null>} The receipt, or null if not yet included in a block
@@ -344,8 +406,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const receipt = await evmReadOnlyAccount.getTransactionReceipt(hash)
     if (receipt) return receipt
 
-    const safe4337Pack = await this._getSafe4337Pack()
-    return await safe4337Pack.getUserOperationReceipt(hash)
+    return await this._getBundler().getUserOperationReceipt(hash)
   }
 
   /**
@@ -356,9 +417,20 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<boolean>} True if the signature is valid
    */
   async verify (message, signature) {
-    const safe4337Pack = await this._getSafe4337Pack()
+    const safeAddress = await this.getAddress()
     const messageHash = hashMessage(message)
-    return await safe4337Pack.protocolKit.isValidSignature(messageHash, signature)
+    const iface = new Interface(['function isValidSignature(bytes32 hash, bytes signature) view returns (bytes4)'])
+    const data = iface.encodeFunctionData('isValidSignature', [messageHash, signature])
+
+    try {
+      const raw = await this._provider.request({ method: 'eth_call', params: [{ to: safeAddress, data }, 'latest'] })
+      return raw.slice(0, 10).toLowerCase() === EIP1271_MAGIC_VALUE
+    } catch (error) {
+      if (error.code === 'CALL_EXCEPTION' || /revert/i.test(error.message ?? '')) {
+        return false
+      }
+      throw error
+    }
   }
 
   /**
@@ -371,42 +443,47 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
     const paymasterTokenAddress = this._config.paymasterTokenAddress
 
     if (!paymasterTokenAddress) {
-      throw new Error('No paymaster token configured')
+      throw new Error("The account has no 'paymasterTokenAddress' configured.")
     }
 
     return await this.getTokenBalance(paymasterTokenAddress)
   }
 
   /**
-   * Returns a list of proposals by their identifiers.
+   * Returns a proposal by its identifier.
    *
-   * @param {string[]} proposalIds - The list of proposal identifiers
-   * @returns {Promise<(MultisigProposal | null)[]>} The proposal details, or null for proposals not found
+   * @param {string} proposalId - The proposal's identifier
+   * @returns {Promise<MultisigProposal | null>} The proposal details, or null if the proposal has not been found.
    */
-  async getProposals (proposalIds) {
-    const apiKit = await this._getApiKit()
+  async getProposal (proposalId) {
+    const safeOperation = await this._coordinator.getProposal(proposalId)
+
+    if (!safeOperation) {
+      return null
+    }
+
     const threshold = await this.getThreshold()
 
-    return Promise.all(proposalIds.map(async (proposalId) => {
-      try {
-        const safeOperation = await apiKit.getSafeOperation(proposalId)
+    return {
+      proposalId,
+      confirmations: safeOperation.confirmations?.length || 0,
+      threshold,
+      status: safeOperation.userOperation?.ethereumTxHash ? 'executed' : 'pending'
+    }
+  }
 
-        if (!safeOperation) {
-          return null
-        }
+  /**
+   * Returns a map from each proposal identifier to its details.
+   *
+   * @param {string[]} proposalIds - The list of proposal identifiers
+   * @returns {Promise<Record<string, MultisigProposal | null>>} For each proposal id, the proposal details or null if it has not been found.
+   */
+  async getProposals (proposalIds) {
+    const entries = await Promise.all(
+      proposalIds.map(async (proposalId) => [proposalId, await this.getProposal(proposalId)])
+    )
 
-        return {
-          proposalId,
-          confirmations: safeOperation.confirmations?.length || 0,
-          threshold
-        }
-      } catch (error) {
-        if (error.message?.includes('not found')) {
-          return null
-        }
-        throw error
-      }
-    }))
+    return Object.fromEntries(entries)
   }
 
   /**
@@ -416,7 +493,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    * @returns {Promise<boolean>} True if confirmations >= threshold
    */
   async isReadyToExecute (proposalId) {
-    const [operation] = await this.getProposals([proposalId])
+    const operation = await this.getProposal(proposalId)
 
     if (!operation) {
       return false
@@ -426,33 +503,41 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Returns a list of message proposals by their hashes.
+   * Returns a message proposal by its identifier.
    *
-   * @param {string[]} messageHashes - The list of message hashes
-   * @returns {Promise<(MessageInfo | null)[]>} The message details, or null for messages not found
+   * @param {string} messageId - The message's hash
+   * @returns {Promise<MultisigMessageProposal | null>} The message details, or null if the message has not been found.
    */
-  async getMessages (messageHashes) {
-    const apiKit = await this._getApiKit()
+  async getMessageProposal (messageId) {
+    const safeMessage = await this._coordinator.getMessage(messageId)
+
+    if (!safeMessage) {
+      return null
+    }
+
     const threshold = await this.getThreshold()
 
-    return Promise.all(messageHashes.map(async (messageHash) => {
-      try {
-        const safeMessage = await apiKit.getMessage(messageHash)
+    return {
+      messageId,
+      message: safeMessage.message,
+      confirmations: safeMessage.confirmations?.length || 0,
+      threshold,
+      combinedSignature: safeMessage.preparedSignature || null
+    }
+  }
 
-        return {
-          messageHash: safeMessage.messageHash,
-          message: safeMessage.message,
-          confirmations: safeMessage.confirmations?.length || 0,
-          threshold,
-          combinedSignature: safeMessage.preparedSignature || null
-        }
-      } catch (error) {
-        if (error.message?.includes('not found')) {
-          return null
-        }
-        throw error
-      }
-    }))
+  /**
+   * Returns a map from each message hash to its details.
+   *
+   * @param {string[]} messageIds - The list of message hashes
+   * @returns {Promise<Record<string, MultisigMessageProposal | null>>} For each message hash, the message details or null if it has not been found.
+   */
+  async getMessageProposals (messageIds) {
+    const entries = await Promise.all(
+      messageIds.map(async (messageId) => [messageId, await this.getMessageProposal(messageId)])
+    )
+
+    return Object.fromEntries(entries)
   }
 
   /**
@@ -468,15 +553,10 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
       throw new Error('Safe is already deployed')
     }
 
-    const safe4337Pack = await this._getSafe4337Pack()
-    const deploymentTx = await safe4337Pack.protocolKit.createSafeDeploymentTransaction()
+    const deploymentTx = this._buildDeploymentTransaction()
 
     const evmReadOnlyAccount = await this._getEvmReadOnlyAccount()
-    return await evmReadOnlyAccount.quoteSendTransaction({
-      to: deploymentTx.to,
-      value: BigInt(deploymentTx.value),
-      data: deploymentTx.data
-    })
+    return await evmReadOnlyAccount.quoteSendTransaction(deploymentTx)
   }
 
   /**
@@ -484,10 +564,18 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    *
    * @param {EvmTransaction} tx - The transaction
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
+   * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units or wei
+   * @throws {Error} If the token paymaster reports that the Safe does not hold the paymaster token.
    */
   async quoteSendTransaction (tx, config) {
-    const fee = await this._estimateUserOperationGas([tx], config)
+    const mergedConfig = { ...this._config, ...config }
+
+    if (mergedConfig.isSponsored) {
+      return { fee: 0n }
+    }
+
+    const { fee } = await this._getUserOperationGasCost([tx].flat(), mergedConfig)
+
     return { fee }
   }
 
@@ -496,7 +584,7 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    *
    * @param {TransferOptions} transferOptions - Transfer options
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units
+   * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units or wei
    */
   async quoteTransfer (transferOptions, config) {
     const tx = await WalletAccountReadOnlyEvm._getTransferTransaction(transferOptions)
@@ -504,104 +592,144 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Creates a GenericFeeEstimator for non-Pimlico bundlers.
+   * Quotes the on-chain cost of executing a pending proposal.
    *
-   * @protected
-   * @returns {GenericFeeEstimator} The fee estimator
+   * @param {string} proposalId - The proposal's id
+   * @returns {Promise<Omit<TransactionResult, 'hash'>>} The execution cost estimate
+   * @throws {NoSuchElementError} If no proposal exists for the given id.
    */
-  _createFeeEstimator () {
-    const chainIdHex = '0x' + this._config.chainId.toString(16)
-    return new GenericFeeEstimator(this._config.provider, chainIdHex)
+  async quoteExecuteProposal (proposalId) {
+    const safeOperation = await this._coordinator.getProposal(proposalId)
+
+    if (!safeOperation) {
+      throw new NoSuchElementError(`SafeOperation not found: ${proposalId}`)
+    }
+
+    const userOp = this._rebuildUserOperation(safeOperation.userOperation)
+
+    return { fee: this._getMaxGasCost(userOp) }
   }
 
   /**
-   * Creates a SafeOperation from transactions.
-   * This is the shared method used by both fee estimation and propose
-   * to ensure they operate on the same transaction structure.
+   * Coerces a stored UserOperation's numeric fields back to BigInt (a coordinator may serialize them as strings).
+   *
+   * @protected
+   * @param {UserOperationV7} userOperation - The stored UserOperation.
+   * @returns {UserOperationV7} The UserOperation with BigInt numeric fields.
+   */
+  _rebuildUserOperation (userOperation) {
+    const toBigInt = (value) => (value === undefined || value === null) ? value : BigInt(value)
+
+    return {
+      ...userOperation,
+      nonce: toBigInt(userOperation.nonce),
+      callGasLimit: toBigInt(userOperation.callGasLimit),
+      verificationGasLimit: toBigInt(userOperation.verificationGasLimit),
+      preVerificationGas: toBigInt(userOperation.preVerificationGas),
+      maxFeePerGas: toBigInt(userOperation.maxFeePerGas),
+      maxPriorityFeePerGas: toBigInt(userOperation.maxPriorityFeePerGas),
+      paymasterVerificationGasLimit: toBigInt(userOperation.paymasterVerificationGasLimit),
+      paymasterPostOpGasLimit: toBigInt(userOperation.paymasterPostOpGasLimit)
+    }
+  }
+
+  /** @private */
+  _getMaxGasCost (userOperation) {
+    const cost = calculateUserOperationMaxGasCost(userOperation)
+    const hasPaymaster = userOperation.paymasterAndData !== undefined && userOperation.paymasterAndData !== '0x'
+
+    if (!hasPaymaster) {
+      return cost + userOperation.verificationGasLimit * userOperation.maxFeePerGas
+    }
+
+    return cost
+  }
+
+  /**
+   * Builds an unsigned UserOperation from the given transaction(s), applying the configured paymaster.
+   *
+   * This is the shared method used by both fee estimation and proposal creation so they operate on
+   * the same UserOperation structure.
    *
    * @protected
    * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
    * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<Object>} The SafeOperation object
+   * @returns {Promise<BuiltUserOperation>} The built operation and signing context.
    */
   async _createSafeOperation (transaction, config) {
-    const safe4337Pack = await this._getSafe4337Pack(config)
-    const feeEstimator = this._createFeeEstimator()
-    const address = await this.getAddress()
-
     const transactions = Array.isArray(transaction) ? transaction : [transaction]
-    const formattedTxs = transactions.map(tx => ({
-      to: tx.to,
-      value: tx.value?.toString() || '0',
-      data: tx.data || '0x'
-    }))
+    const calls = WalletAccountReadOnlyMultisigEvmSafe4337._toMetaTransactions(transactions)
+    const txOverrides = WalletAccountReadOnlyMultisigEvmSafe4337._extractGasOverrides(transactions[0])
 
-    const createTxOptions = {
-      transactions: formattedTxs.map(tx => ({ from: address, ...tx })),
-      options: { feeEstimator }
-    }
-
-    const { isSponsored, amountToApprove, customNonce } = { ...this._config, ...config }
-
-    if (amountToApprove !== undefined && !isSponsored) {
-      createTxOptions.options.amountToApprove = BigInt(amountToApprove.toString())
-    }
-
-    if (customNonce !== undefined) {
-      createTxOptions.options.customNonce = BigInt(customNonce.toString())
-    }
-
-    return await safe4337Pack.createTransaction(createTxOptions)
+    return await this._buildUserOperation(calls, { ...this._config, ...config }, txOverrides)
   }
 
   /**
-   * Estimates UserOperation gas cost.
+   * Builds a UserOperation with paymaster fields applied.
    *
-   * @private
-   * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<bigint>} Gas cost in paymaster token units or wei
+   * @protected
+   * @param {import('abstractionkit').MetaTransaction[]} calls - The meta-transactions to include in the UserOperation.
+   * @param {EvmMultisigSafeConfig} config - The merged wallet configuration.
+   * @param {Object} [txOverrides] - Optional gas overrides extracted from the input transaction(s).
+   * @returns {Promise<BuiltUserOperation>} The built operation, signing context, and (in token mode) the paymaster quote.
    */
-  async _estimateUserOperationGas (transaction, config) {
-    const safe4337Pack = await this._getSafe4337Pack(config)
+  async _buildUserOperation (calls, config, txOverrides = {}) {
+    const smartAccount = await this._getSmartAccount()
+    const chainId = this._config.chainId
 
-    const mergedConfig = { ...this._config, ...config }
-    const { isSponsored, useNativeCoins } = mergedConfig
-    const configTokenAddress = mergedConfig.paymasterTokenAddress
+    const mode = WalletAccountReadOnlyMultisigEvmSafe4337._resolvePaymasterMode(config)
+    const provider = mode !== PaymasterMode.NATIVE
+      ? WalletAccountReadOnlyMultisigEvmSafe4337._detectProvider(config.paymasterUrl)
+      : null
 
-    const tokenAddress = (!isSponsored && !useNativeCoins) ? configTokenAddress : null
+    const gasPrice = await this._fetchBundlerGasPrice(config.bundlerUrl)
+    const expectedSigners = await this._getExpectedSigners()
+
+    const feePairOverridden = txOverrides.maxFeePerGas !== undefined || txOverrides.maxPriorityFeePerGas !== undefined
+    const baseOverrides = feePairOverridden ? { ...txOverrides } : { ...gasPrice, ...txOverrides }
+    const overrides = { ...baseOverrides, expectedSigners }
+
+    if (config.customNonce !== undefined) {
+      overrides.nonce = BigInt(config.customNonce)
+    }
+
+    const baseUserOp = (mode === PaymasterMode.NATIVE || provider === 'candide')
+      ? await smartAccount.createUserOperation(calls, this._provider, config.bundlerUrl, overrides)
+      : await smartAccount.createUserOperation(calls, this._provider, undefined, { skipGasEstimation: true, ...overrides })
+
+    if (mode === PaymasterMode.NATIVE) {
+      return { userOp: baseUserOp, smartAccount, mode, chainId }
+    }
+
+    const { userOp, tokenQuote } = await this._applyPaymasterToUserOp({ mode, smartAccount, userOp: baseUserOp, config, chainId, txOverrides })
+    return { userOp, smartAccount, mode, chainId, tokenQuote }
+  }
+
+  /**
+   * Builds a UserOperation and returns its estimated gas cost.
+   *
+   * Returns the cost in the paymaster token when a token quote is available, otherwise in native wei.
+   *
+   * @protected
+   * @param {EvmTransaction[]} txs - The EVM transactions to include in the UserOperation.
+   * @param {EvmMultisigSafeConfig} config - The merged wallet configuration.
+   * @returns {Promise<BuiltUserOperation & {fee: bigint}>} The built operation plus its estimated fee.
+   * @throws {Error} If the token paymaster reports that the Safe does not hold the paymaster token.
+   */
+  async _getUserOperationGasCost (txs, config) {
+    const calls = WalletAccountReadOnlyMultisigEvmSafe4337._toMetaTransactions(txs)
+    const txOverrides = WalletAccountReadOnlyMultisigEvmSafe4337._extractGasOverrides(txs[0])
 
     try {
-      const safeOperation = await this._createSafeOperation(transaction, config)
+      const buildResult = await this._buildUserOperation(calls, config, txOverrides)
 
-      const {
-        callGasLimit,
-        verificationGasLimit,
-        preVerificationGas,
-        paymasterVerificationGasLimit,
-        paymasterPostOpGasLimit,
-        maxFeePerGas
-      } = safeOperation.userOperation
+      const fee = buildResult.tokenQuote
+        ? buildResult.tokenQuote.tokenCost
+        : this._getMaxGasCost(buildResult.userOp)
 
-      const totalGas = BigInt(callGasLimit) +
-        BigInt(verificationGasLimit) +
-        BigInt(preVerificationGas) +
-        BigInt(paymasterVerificationGasLimit || 0) +
-        BigInt(paymasterPostOpGasLimit || 0)
-
-      const gasCostWei = totalGas * BigInt(maxFeePerGas)
-
-      if (tokenAddress) {
-        const exchangeRate = await safe4337Pack.getTokenExchangeRate(
-          tokenAddress
-        )
-        const gasCostInToken = (gasCostWei * BigInt(exchangeRate)) / (10n ** 18n)
-        return gasCostInToken
-      }
-
-      return gasCostWei
+      return { fee, ...buildResult }
     } catch (error) {
-      if (error.message?.includes('AA50')) {
+      if (error instanceof AbstractionKitError && error.message.includes('AA50')) {
         throw new Error('Simulation failed: not enough funds in the Safe to repay the paymaster.')
       }
       throw error
@@ -609,132 +737,56 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   }
 
   /**
-   * Builds the paymaster options object from config.
+   * Builds the Safe deployment transaction (an EOA-funded factory call).
    *
-   * @private
-   * @param {EvmMultisigSafeConfig} config - The config to build from
-   * @returns {Object | undefined} The paymaster options or undefined
+   * @protected
+   * @returns {{to: string, value: bigint, data: string}} The deployment transaction.
    */
-  _buildPaymasterOptions (config) {
-    if (!config.paymasterUrl || config.useNativeCoins) return undefined
+  _buildDeploymentTransaction () {
+    const { owners } = this._config.safeOptions
+    const overrides = this._getInitCodeOverrides()
+    const smartAccount = SafeAccount020.initializeNewAccount(owners, overrides)
 
-    const options = { paymasterUrl: config.paymasterUrl }
-
-    if (config.paymasterAddress) {
-      options.paymasterAddress = config.paymasterAddress
+    return {
+      to: smartAccount.factoryAddress,
+      value: 0n,
+      data: smartAccount.factoryData
     }
-
-    if (config.isSponsored) {
-      options.isSponsored = true
-      if (config.sponsorshipPolicyId) {
-        options.sponsorshipPolicyId = config.sponsorshipPolicyId
-      }
-    } else if (config.paymasterTokenAddress) {
-      options.paymasterTokenAddress = config.paymasterTokenAddress
-      if (config.amountToApprove !== undefined) {
-        options.amountToApprove = BigInt(config.amountToApprove.toString())
-      }
-    }
-
-    return options
   }
 
   /**
-   * Returns the Safe4337Pack instance, cached by paymaster configuration.
+   * Returns a Safe account instance, cached once deployed.
    *
    * @protected
-   * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
-   * @returns {Promise<Safe4337Pack>} The Safe4337Pack instance
+   * @returns {Promise<SafeAccount>} The Safe account instance.
    */
-  async _getSafe4337Pack (config) {
-    const mergedConfig = config ? { ...this._config, ...config } : this._config
-    const { isSponsored, useNativeCoins, paymasterUrl, paymasterAddress, paymasterTokenAddress } = mergedConfig
-
-    let cacheKey
-    if (useNativeCoins) {
-      cacheKey = 'native'
-    } else if (isSponsored) {
-      cacheKey = `sponsored:${paymasterUrl}`
-    } else {
-      cacheKey = `paymaster:${paymasterUrl}:${paymasterAddress}:${paymasterTokenAddress}`
+  async _getSmartAccount () {
+    if (this._deployedSmartAccount) {
+      return this._deployedSmartAccount
     }
 
-    if (this._safe4337Packs.has(cacheKey)) {
-      return this._safe4337Packs.get(cacheKey)
+    const overrides = this._getInitCodeOverrides()
+    const safeAddress = await this.getAddress()
+
+    if (await SafeAccount020.isDeployed(safeAddress, this._provider)) {
+      this._deployedSmartAccount = new SafeAccount020(safeAddress, overrides)
+      return this._deployedSmartAccount
     }
 
-    const safeOptions = this._config.safeOptions
-
-    const initOptions = {
-      provider: this._config.provider,
-      bundlerUrl: this._config.bundlerUrl,
-      safeModulesVersion: this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION
-    }
-
-    if (this._signerAccount) {
-      initOptions.signer = this._signerAccount._account
-    }
-
-    if (safeOptions.safeAddress) {
-      initOptions.options = { safeAddress: safeOptions.safeAddress }
-    } else if (safeOptions.owners) {
-      const saltNonce = safeOptions.saltNonce ||
-        WalletAccountReadOnlyMultisigEvmSafe4337.generateDeterministicSaltNonce(
-          safeOptions.owners,
-          safeOptions.threshold
-        )
-
-      initOptions.options = {
-        owners: safeOptions.owners,
-        threshold: safeOptions.threshold,
-        saltNonce
-      }
-
-      initOptions.options.safeVersion = safeOptions.safeVersion || DEFAULT_SAFE_VERSION
-
-      if (safeOptions.deploymentType) {
-        initOptions.options.deploymentType = safeOptions.deploymentType
-      }
-    }
-
-    const paymasterOptions = this._buildPaymasterOptions(mergedConfig)
-    if (paymasterOptions) {
-      initOptions.paymasterOptions = paymasterOptions
-    }
-
-    if (this._config.entryPointAddress) {
-      initOptions.customContracts = {
-        entryPointAddress: this._config.entryPointAddress
-      }
-    }
-
-    const safe4337Pack = await Safe4337Pack.init(initOptions)
-    this._safe4337Packs.set(cacheKey, safe4337Pack)
-
-    return safe4337Pack
+    return SafeAccount020.initializeNewAccount(this._config.safeOptions.owners, overrides)
   }
 
   /**
-   * Returns the Safe API Kit instance.
+   * Returns an AbstractionKit Bundler, cached on first use.
    *
    * @protected
-   * @returns {Promise<SafeApiKit>} The Safe API Kit instance
+   * @returns {Bundler} The bundler.
    */
-  async _getApiKit () {
-    if (!this._apiKit) {
-      const apiKitConfig = {
-        chainId: this._config.chainId
-      }
-
-      if (this._config.txServiceUrl) {
-        apiKitConfig.txServiceUrl = this._config.txServiceUrl
-      } else if (this._config.safeApiKey) {
-        apiKitConfig.apiKey = this._config.safeApiKey
-      }
-      this._apiKit = new SafeApiKit(apiKitConfig)
+  _getBundler () {
+    if (!this._bundler) {
+      this._bundler = new Bundler(this._config.bundlerUrl)
     }
-
-    return this._apiKit
+    return this._bundler
   }
 
   /**
@@ -756,6 +808,152 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
   _resetState () {
     this._owners = null
     this._threshold = null
+    this._deployedSmartAccount = undefined
+  }
+
+  /** @private */
+  _entryPointAddress () {
+    return this._config.entryPointAddress || ENTRYPOINT_V6
+  }
+
+  /** @private */
+  _getInitCodeOverrides () {
+    const modules = SAFE_MODULES_MAP[this._config.safeModulesVersion || DEFAULT_SAFE_MODULES_VERSION]
+
+    const overrides = {
+      entrypointAddress: this._entryPointAddress(),
+      safe4337ModuleAddress: modules.safe4337ModuleAddress,
+      safeModuleSetupAddress: modules.safeModuleSetupAddress
+    }
+
+    const { owners, threshold, saltNonce } = this._config.safeOptions
+
+    if (owners && threshold) {
+      overrides.threshold = threshold
+      const finalSaltNonce = saltNonce ||
+        WalletAccountReadOnlyMultisigEvmSafe4337.generateDeterministicSaltNonce(owners, threshold)
+      overrides.c2Nonce = BigInt(finalSaltNonce)
+    }
+
+    return overrides
+  }
+
+  /**
+   * Returns the SafeOperation EIP-712 hashing options shared by propose, approve and execute.
+   *
+   * The same options must be used everywhere a SafeOperation hash is computed and everywhere
+   * signatures are aggregated, otherwise the combined signature will not recover to the owners.
+   *
+   * @protected
+   * @returns {{validAfter: bigint, validUntil: bigint, entrypointAddress: string, safe4337ModuleAddress: string}} The shared SafeOperation options.
+   */
+  _getSafeOperationOptions () {
+    const { entrypointAddress, safe4337ModuleAddress } = this._getInitCodeOverrides()
+    return { validAfter: 0n, validUntil: 0n, entrypointAddress, safe4337ModuleAddress }
+  }
+
+  /** @private */
+  async _getExpectedSigners () {
+    const owners = await this.getOwners()
+    const threshold = await this.getThreshold()
+    return owners.slice(0, threshold)
+  }
+
+  /** @private */
+  _wrapEip1193Provider (provider) {
+    return typeof provider === 'string'
+      ? {
+          provider: new JsonRpcProvider(provider),
+          request ({ method, params }) {
+            return this.provider.send(method, params ?? [])
+          }
+        }
+      : provider
+  }
+
+  /** @private */
+  _getPaymaster (url, options = {}) {
+    if (!this._paymasters.has(url)) {
+      const provider = WalletAccountReadOnlyMultisigEvmSafe4337._detectProvider(url)
+      this._paymasters.set(url, new Erc7677Paymaster(url, { ...options, provider }))
+    }
+    return this._paymasters.get(url)
+  }
+
+  /** @private */
+  async _fetchBundlerGasPrice (bundlerUrl) {
+    if (WalletAccountReadOnlyMultisigEvmSafe4337._detectProvider(bundlerUrl) !== 'pimlico') return undefined
+
+    const paymaster = this._getPaymaster(bundlerUrl)
+    const result = await paymaster.sendRPCRequest('pimlico_getUserOperationGasPrice', [])
+    if (!result?.fast) return undefined
+
+    return {
+      maxFeePerGas: BigInt(result.fast.maxFeePerGas),
+      maxPriorityFeePerGas: BigInt(result.fast.maxPriorityFeePerGas)
+    }
+  }
+
+  /** @private */
+  async _applyPaymasterToUserOp ({ mode, smartAccount, userOp, config, chainId, txOverrides = {} }) {
+    const paymaster = this._getPaymaster(config.paymasterUrl, { chainId: BigInt(chainId) })
+
+    const context = mode === PaymasterMode.TOKEN
+      ? { token: config.paymasterTokenAddress }
+      : { sponsorshipPolicyId: config.sponsorshipPolicyId }
+
+    const paymasterOverrides = { entrypoint: this._entryPointAddress() }
+    if (txOverrides.callGasLimit !== undefined) paymasterOverrides.callGasLimit = txOverrides.callGasLimit
+    if (txOverrides.verificationGasLimit !== undefined) paymasterOverrides.verificationGasLimit = txOverrides.verificationGasLimit
+    if (txOverrides.preVerificationGas !== undefined) paymasterOverrides.preVerificationGas = txOverrides.preVerificationGas
+
+    const result = await paymaster.createPaymasterUserOperation(
+      smartAccount,
+      userOp,
+      config.bundlerUrl,
+      context,
+      paymasterOverrides
+    )
+
+    return { userOp: result.userOperation, tokenQuote: result.tokenQuote }
+  }
+
+  /** @private */
+  static _toMetaTransactions (txs) {
+    return txs.map(tx => ({
+      to: tx.to,
+      value: tx.value !== undefined ? BigInt(tx.value) : 0n,
+      data: tx.data ?? '0x'
+    }))
+  }
+
+  /** @private */
+  static _extractGasOverrides (tx) {
+    const overrides = {}
+    if (!tx) return overrides
+
+    const fields = ['callGasLimit', 'verificationGasLimit', 'preVerificationGas', 'maxFeePerGas', 'maxPriorityFeePerGas']
+    for (const field of fields) {
+      if (tx[field] !== undefined) overrides[field] = BigInt(tx[field])
+    }
+
+    return overrides
+  }
+
+  /** @private */
+  static _resolvePaymasterMode (config) {
+    if (config.isSponsored) return PaymasterMode.SPONSORED
+    if (!config.useNativeCoins && config.paymasterUrl && config.paymasterTokenAddress) return PaymasterMode.TOKEN
+    return PaymasterMode.NATIVE
+  }
+
+  /** @private */
+  static _detectProvider (url) {
+    const detected = Erc7677Paymaster.detectProvider(url)
+    if (detected) return detected
+    if (url?.includes('pimlico')) return 'pimlico'
+    if (url?.includes('candide')) return 'candide'
+    return null
   }
 
   /**
@@ -763,41 +961,51 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
    *
    * @private
    * @param {EvmMultisigSafeConfig} config - The configuration to validate
+   * @throws {ConfigurationError} If the configuration is invalid or has missing required fields.
    */
   _validateConfig (config) {
+    if (config.safeModulesVersion && !SAFE_MODULES_MAP[config.safeModulesVersion]) {
+      throw new ConfigurationError(`Unsupported 'safeModulesVersion': '${config.safeModulesVersion}'. Supported versions: ${Object.keys(SAFE_MODULES_MAP).join(', ')}.`)
+    }
+
     if (!config.safeOptions) {
-      throw new Error('safeOptions is required')
+      throw new ConfigurationError('safeOptions is required')
     }
 
     const safeOptions = config.safeOptions
+
+    if (!safeOptions.safeAddress && !safeOptions.owners) {
+      throw new ConfigurationError("safeOptions must provide either 'safeAddress' (existing Safe) or 'owners' (predicted Safe).")
+    }
+
     const hasPredictedSafe = !!safeOptions.owners
 
     if (hasPredictedSafe) {
       if (!Array.isArray(safeOptions.owners) || safeOptions.owners.length === 0) {
-        throw new Error('safeOptions.owners is required and must not be empty')
+        throw new ConfigurationError('safeOptions.owners is required and must not be empty')
       }
 
       if (!safeOptions.threshold || safeOptions.threshold < 1) {
-        throw new Error('safeOptions.threshold must be at least 1')
+        throw new ConfigurationError('safeOptions.threshold must be at least 1')
       }
 
       if (safeOptions.threshold > safeOptions.owners.length) {
-        throw new Error('safeOptions.threshold cannot exceed number of owners')
+        throw new ConfigurationError('safeOptions.threshold cannot exceed number of owners')
       }
     }
 
     const { isSponsored, useNativeCoins, paymasterUrl, paymasterTokenAddress } = config
 
     if (isSponsored && useNativeCoins) {
-      throw new Error("Cannot use both 'isSponsored: true' and 'useNativeCoins: true'. Please use only one.")
+      throw new ConfigurationError("Cannot use both 'isSponsored: true' and 'useNativeCoins: true'. Please use only one.")
     }
 
     if (isSponsored && !paymasterUrl) {
-      throw new Error('Missing required sponsorship configuration field: paymasterUrl.')
+      throw new ConfigurationError("The 'paymasterUrl' option is required when 'isSponsored' is set.")
     }
 
     if (!isSponsored && !useNativeCoins && paymasterUrl && !paymasterTokenAddress) {
-      throw new Error('Missing required paymaster token configuration field: paymasterTokenAddress.')
+      throw new ConfigurationError("The 'paymasterTokenAddress' option is required when a 'paymasterUrl' is configured.")
     }
   }
 }
