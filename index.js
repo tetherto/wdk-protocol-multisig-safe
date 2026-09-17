@@ -41,20 +41,20 @@
 // Re-export Safe option and receipt types
 // ============================================
 
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').ExistingSafeOptions} ExistingSafeOptions */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').PredictedSafeOptions} PredictedSafeOptions */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').UserOperationReceipt} UserOperationReceipt */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').ExistingSafeOptions} ExistingSafeOptions */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').PredictedSafeOptions} PredictedSafeOptions */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').UserOperationReceipt} UserOperationReceipt */
 
 // ============================================
 // Re-export types from read-only module
 // ============================================
 
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeCommonConfig} EvmMultisigSafeCommonConfig */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafePaymasterTokenConfig} EvmMultisigSafePaymasterTokenConfig */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeSponsoredConfig} EvmMultisigSafeSponsoredConfig */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeNativeCoinsConfig} EvmMultisigSafeNativeCoinsConfig */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeConfig} EvmMultisigSafeConfig */
-/** @typedef {import('./src/wallet-account-read-only-multisig-evm-safe-4337.js').EvmMultisigSafeReadOnlyConfig} EvmMultisigSafeReadOnlyConfig */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').MultisigSafeWalletCommonConfig} MultisigSafeWalletCommonConfig */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').MultisigSafeWalletPaymasterTokenConfig} MultisigSafeWalletPaymasterTokenConfig */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').MultisigSafeWalletSponsoredConfig} MultisigSafeWalletSponsoredConfig */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').MultisigSafeWalletNativeCoinsConfig} MultisigSafeWalletNativeCoinsConfig */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').MultisigSafeWalletConfig} MultisigSafeWalletConfig */
+/** @typedef {import('./src/wallet-account-read-only-multisig-safe.js').MultisigSafeWalletReadOnlyConfig} MultisigSafeWalletReadOnlyConfig */
 
 // ============================================
 // Re-export types from coordinators
@@ -69,11 +69,11 @@
 // Export classes and constants
 // ============================================
 
-export { default } from './src/wallet-manager-multisig-evm-safe-4337.js'
+export { default } from './src/wallet-manager-multisig-safe.js'
 
-export { default as WalletAccountReadOnlyMultisigEvmSafe4337, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from './src/wallet-account-read-only-multisig-evm-safe-4337.js'
+export { default as WalletAccountReadOnlyMultisigSafe, DEFAULT_SAFE_MODULES_VERSION, DEFAULT_SAFE_VERSION } from './src/wallet-account-read-only-multisig-safe.js'
 
-export { default as WalletAccountMultisigEvmSafe4337 } from './src/wallet-account-multisig-evm-safe-4337.js'
+export { default as WalletAccountMultisigSafe } from './src/wallet-account-multisig-safe.js'
 
 // ============================================
 // Export coordinators

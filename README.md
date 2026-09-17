@@ -1,4 +1,4 @@
-# @tetherto/wdk-protocol-multisig-safe
+# @tetherto/wdk-wallet-multisig-safe
 
 **Note**: This package is currently in beta. Please test thoroughly in development environments before using in production.
 
@@ -25,7 +25,7 @@ For detailed documentation about the complete WDK ecosystem, visit [docs.wallet.
 ## ⬇️ Installation
 
 ```bash
-npm install @tetherto/wdk-protocol-multisig-safe
+npm install @tetherto/wdk-wallet-multisig-safe
 ```
 
 ## 🚀 Quick Start
@@ -33,10 +33,10 @@ npm install @tetherto/wdk-protocol-multisig-safe
 ### Creating a New 2-of-2 Multisig Safe
 
 ```javascript
-import WalletManagerMultisigEvmSafe4337, {
-  WalletAccountMultisigEvmSafe4337,
-  WalletAccountReadOnlyMultisigEvmSafe4337
-} from '@tetherto/wdk-protocol-multisig-safe'
+import WalletManagerMultisigSafe, {
+  WalletAccountMultisigSafe,
+  WalletAccountReadOnlyMultisigSafe
+} from '@tetherto/wdk-wallet-multisig-safe'
 
 // Owner seed phrases
 const aliceSeed = 'alice seed phrase here...'
@@ -47,7 +47,7 @@ const aliceEoa = '0x...'
 const bobEoa = '0x...'
 
 // Create Alice's multisig account using PredictedSafeOptions
-const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -75,7 +75,7 @@ console.log('Is Deployed:', isDeployed)
 
 ```javascript
 // Import using ExistingSafeOptions
-const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -117,7 +117,7 @@ console.log('SafeOp Hash:', proposal.proposalId)
 console.log('Confirmations:', proposal.confirmations, '/', proposal.threshold)
 
 // Bob approves
-const bob = new WalletAccountMultisigEvmSafe4337(bobSeed, "0'/0/0", config)
+const bob = new WalletAccountMultisigSafe(bobSeed, "0'/0/0", config)
 const approval = await bob.approveProposal(proposal.proposalId)
 console.log('Confirmations:', approval.confirmations, '/', approval.threshold)
 
@@ -159,7 +159,7 @@ if (result.status === 'executed') {
 
 ```javascript
 // Ensure the signer's EOA has ETH for deployment gas
-const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -199,7 +199,7 @@ const result = await alice.propose({
 The Safe pays gas fees using ERC-20 tokens (e.g., USDT). The Safe must hold sufficient tokens.
 
 ```javascript
-const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -223,7 +223,7 @@ const proposal = await alice.propose(tx, {
 A sponsor pays the gas fees, making transactions completely free for the Safe. No tokens required in the Safe.
 
 ```javascript
-const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -253,7 +253,7 @@ console.log('UserOp Hash:', result.hash)
 You can override the paymaster mode on a per-transaction basis, regardless of the account's default configuration
 ```javascript
 // Account configured with ERC-20 paymaster (USDT)
-const alice = new WalletAccountMultisigEvmSafe4337(aliceSeed, "0'/0/0", {
+const alice = new WalletAccountMultisigSafe(aliceSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -278,7 +278,7 @@ const result2 = await alice.propose(tx, {
 
 ```javascript
 // Account configured with sponsored mode
-const bob = new WalletAccountMultisigEvmSafe4337(bobSeed, "0'/0/0", {
+const bob = new WalletAccountMultisigSafe(bobSeed, "0'/0/0", {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -372,9 +372,9 @@ console.log('Combined Signature:', message.combinedSignature)
 ### Read-Only Account
 
 ```javascript
-import { WalletAccountReadOnlyMultisigEvmSafe4337 } from '@tetherto/wdk-protocol-multisig-safe'
+import { WalletAccountReadOnlyMultisigSafe } from '@tetherto/wdk-wallet-multisig-safe'
 
-const readOnly = new WalletAccountReadOnlyMultisigEvmSafe4337({
+const readOnly = new WalletAccountReadOnlyMultisigSafe({
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -425,10 +425,10 @@ To route calldata through your own backend instead (a relay, a database, a peer-
 A coordinator implements six methods — three for transaction proposals and three for message proposals. Extend `IMultisigCoordinator` (so unimplemented methods throw a clear error), return `null` from the getters when nothing is found, and shape the results like the ones the Safe Transaction Service returns (a `confirmations` array, and `preparedSignature` for messages). Serialize outgoing payloads with the exported `toJsonSafe` helper so native values (BigInt, byte arrays) survive `JSON.stringify`.
 
 ```javascript
-import WalletManagerMultisigEvmSafe4337, {
+import WalletManagerMultisigSafe, {
   IMultisigCoordinator,
   toJsonSafe
-} from '@tetherto/wdk-protocol-multisig-safe'
+} from '@tetherto/wdk-wallet-multisig-safe'
 
 class MyBackendCoordinator extends IMultisigCoordinator {
   constructor (baseUrl) {
@@ -479,7 +479,7 @@ class MyBackendCoordinator extends IMultisigCoordinator {
   }
 }
 
-const wallet = new WalletManagerMultisigEvmSafe4337(seed, {
+const wallet = new WalletManagerMultisigSafe(seed, {
   provider: 'https://your-rpc-provider.example',
   bundlerUrl: 'https://your-aa-provider.example/rpc?apikey=YOUR_KEY',
   chainId: 11155111n,
@@ -493,7 +493,7 @@ const wallet = new WalletManagerMultisigEvmSafe4337(seed, {
 You can also instantiate the default coordinator explicitly, for example to share a single instance:
 
 ```javascript
-import { SafeTxServiceCoordinator } from '@tetherto/wdk-protocol-multisig-safe'
+import { SafeTxServiceCoordinator } from '@tetherto/wdk-wallet-multisig-safe'
 
 const coordinator = new SafeTxServiceCoordinator({
   chainId: 11155111n,

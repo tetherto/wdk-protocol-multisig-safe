@@ -21,8 +21,8 @@ import { TypedDataEncoder } from 'ethers'
 import { afterEach, beforeEach, describe, expect, test, jest } from '@jest/globals'
 
 import {
-  WalletAccountMultisigEvmSafe4337,
-  WalletAccountReadOnlyMultisigEvmSafe4337
+  WalletAccountMultisigSafe,
+  WalletAccountReadOnlyMultisigSafe
 } from '../index.js'
 
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
@@ -115,11 +115,11 @@ const createMockBundler = () => ({
   sendUserOperation: jest.fn().mockResolvedValue(MOCK_USER_OP_HASH)
 })
 
-describe('WalletAccountMultisigEvmSafe4337', () => {
+describe('WalletAccountMultisigSafe', () => {
   let account
 
   beforeEach(() => {
-    account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+    account = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
       ...MOCK_CONFIG,
       safeOptions: {
         owners: [ACCOUNT.address],
@@ -142,7 +142,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with ERC-20 paymaster options', () => {
-      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -158,7 +158,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with sponsored paymaster and sponsorshipPolicyId', () => {
-      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -175,7 +175,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with ExistingSafeOptions', () => {
-      const existingAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const existingAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -187,7 +187,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with PredictedSafeOptions including saltNonce', () => {
-      const predictedAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const predictedAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -354,7 +354,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
   describe('dispose', () => {
     test('should clear sensitive data', () => {
-      const testAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const testAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -369,7 +369,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should be safe to call dispose twice', () => {
-      const testAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const testAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -384,12 +384,12 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
   })
 
   describe('toReadOnlyAccount', () => {
-    test('should return a WalletAccountReadOnlyMultisigEvmSafe4337 instance', async () => {
+    test('should return a WalletAccountReadOnlyMultisigSafe instance', async () => {
       account._safeAddress = MOCK_SAFE_ADDRESS
 
       const readOnlyAccount = await account.toReadOnlyAccount()
 
-      expect(readOnlyAccount).toBeInstanceOf(WalletAccountReadOnlyMultisigEvmSafe4337)
+      expect(readOnlyAccount).toBeInstanceOf(WalletAccountReadOnlyMultisigSafe)
       expect(readOnlyAccount._config.provider).toBe(MOCK_CONFIG.provider)
       expect(readOnlyAccount._config.chainId).toBe(MOCK_CONFIG.chainId)
       expect(readOnlyAccount._config.safeOptions.safeAddress).toBe(MOCK_SAFE_ADDRESS)
@@ -645,7 +645,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should quote a zero fee in sponsored mode', async () => {
-      const sponsoredAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const sponsoredAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -694,7 +694,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should throw when the fee exceeds transferMaxFee', async () => {
-      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -721,7 +721,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
     })
 
     test('should not throw when the fee equals transferMaxFee', async () => {
-      const erc20Account = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const erc20Account = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=dummy-key',
         paymasterTokenAddress: '0x1234567890abcdef1234567890abcdef12345678',
@@ -820,7 +820,7 @@ describe('WalletAccountMultisigEvmSafe4337', () => {
 
   describe('custom coordinator injection', () => {
     const createCustomAccount = (coordinator) => {
-      const customAccount = new WalletAccountMultisigEvmSafe4337(SEED_PHRASE, "0'/0/0", {
+      const customAccount = new WalletAccountMultisigSafe(SEED_PHRASE, "0'/0/0", {
         ...MOCK_CONFIG,
         coordinator,
         safeOptions: {

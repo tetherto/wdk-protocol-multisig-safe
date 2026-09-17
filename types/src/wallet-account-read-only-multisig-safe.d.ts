@@ -15,10 +15,10 @@
 export const DEFAULT_SAFE_MODULES_VERSION: "0.2.0";
 export const DEFAULT_SAFE_VERSION: "1.4.1";
 /**
- * Read-only EVM multisig Safe wallet account.
+ * Read-only multisig Safe wallet account.
  * Provides query-only operations for Safe multisig wallets.
  */
-export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAccountReadOnly implements IWalletAccountReadOnlyMultisig {
+export default class WalletAccountReadOnlyMultisigSafe extends WalletAccountReadOnly implements IWalletAccountReadOnlyMultisig {
     /**
      * Generates a deterministic salt nonce from owners and threshold.
      *
@@ -29,19 +29,19 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      */
     static generateDeterministicSaltNonce(owners: string[], threshold: number): string;
     /**
-     * Creates a new read-only EVM multisig Safe wallet account.
+     * Creates a new read-only multisig Safe wallet account.
      *
-     * @param {EvmMultisigSafeReadOnlyConfig} config - The configuration object
+     * @param {MultisigSafeWalletReadOnlyConfig} config - The configuration object
      * @throws {ConfigurationError} If the configuration is invalid or has missing required fields.
      */
-    constructor(config: EvmMultisigSafeReadOnlyConfig);
+    constructor(config: MultisigSafeWalletReadOnlyConfig);
     /**
      * The multisig Safe configuration.
      *
      * @protected
-     * @type {EvmMultisigSafeReadOnlyConfig}
+     * @type {MultisigSafeWalletReadOnlyConfig}
      */
-    protected _config: EvmMultisigSafeReadOnlyConfig;
+    protected _config: MultisigSafeWalletReadOnlyConfig;
     /**
      * The Safe address.
      *
@@ -226,21 +226,21 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      * Estimates the fee for a transaction.
      *
      * @param {EvmTransaction} tx - The transaction
-     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units or wei
      * @throws {Error} If the token paymaster reports that the Safe does not hold the paymaster token.
      */
-    quoteSendTransaction(tx: EvmTransaction, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<{
+    quoteSendTransaction(tx: EvmTransaction, config?: Partial<MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig>): Promise<{
         fee: bigint;
     }>;
     /**
      * Estimates the fee for a token transfer.
      *
      * @param {TransferOptions} transferOptions - Transfer options
-     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<{fee: bigint}>} Estimated fee in paymaster token units or wei
      */
-    quoteTransfer(transferOptions: TransferOptions, config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<{
+    quoteTransfer(transferOptions: TransferOptions, config?: Partial<MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig>): Promise<{
         fee: bigint;
     }>;
     /**
@@ -266,30 +266,30 @@ export default class WalletAccountReadOnlyMultisigEvmSafe4337 extends WalletAcco
      *
      * @protected
      * @param {EvmTransaction | EvmTransaction[]} transaction - The transaction(s)
-     * @param {Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
+     * @param {Partial<MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig>} [config] - If set, overrides the paymaster options defined in the wallet account configuration.
      * @returns {Promise<BuiltUserOperation>} The built operation and signing context.
      */
-    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], config?: Partial<EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig>): Promise<BuiltUserOperation>;
+    protected _createSafeOperation(transaction: EvmTransaction | EvmTransaction[], config?: Partial<MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig>): Promise<BuiltUserOperation>;
     /**
      * Builds a UserOperation with paymaster fields applied.
      *
      * @protected
      * @param {import('abstractionkit').MetaTransaction[]} calls - The meta-transactions to include in the UserOperation.
-     * @param {EvmMultisigSafeConfig} config - The merged wallet configuration.
+     * @param {MultisigSafeWalletConfig} config - The merged wallet configuration.
      * @param {Object} [txOverrides] - Optional gas overrides extracted from the input transaction(s).
      * @returns {Promise<BuiltUserOperation>} The built operation, signing context, and (in token mode) the paymaster quote.
      */
-    protected _buildUserOperation(calls: import("abstractionkit").MetaTransaction[], config: EvmMultisigSafeConfig, txOverrides?: any): Promise<BuiltUserOperation>;
+    protected _buildUserOperation(calls: import("abstractionkit").MetaTransaction[], config: MultisigSafeWalletConfig, txOverrides?: any): Promise<BuiltUserOperation>;
     /**
      * Builds a UserOperation and returns its estimated gas cost.
      *
      * @protected
      * @param {EvmTransaction[]} txs - The EVM transactions to include in the UserOperation.
-     * @param {EvmMultisigSafeConfig} config - The merged wallet configuration.
+     * @param {MultisigSafeWalletConfig} config - The merged wallet configuration.
      * @returns {Promise<BuiltUserOperation & {fee: bigint}>} The built operation plus its estimated fee.
      * @throws {Error} If the token paymaster reports that the Safe does not hold the paymaster token.
      */
-    protected _getUserOperationGasCost(txs: EvmTransaction[], config: EvmMultisigSafeConfig): Promise<BuiltUserOperation & {
+    protected _getUserOperationGasCost(txs: EvmTransaction[], config: MultisigSafeWalletConfig): Promise<BuiltUserOperation & {
         fee: bigint;
     }>;
     /**
@@ -415,7 +415,7 @@ export type BuiltUserOperation = {
      */
     tokenQuote?: TokenQuote;
 };
-export type EvmMultisigSafeCommonConfig = {
+export type MultisigSafeWalletCommonConfig = {
     /**
      * - RPC URL or EIP-1193 provider
      */
@@ -457,7 +457,7 @@ export type EvmMultisigSafeCommonConfig = {
      */
     safeOptions: ExistingSafeOptions | PredictedSafeOptions;
 };
-export type EvmMultisigSafePaymasterTokenConfig = {
+export type MultisigSafeWalletPaymasterTokenConfig = {
     /**
      * - Whether the paymaster is sponsoring the account.
      */
@@ -483,7 +483,7 @@ export type EvmMultisigSafePaymasterTokenConfig = {
      */
     amountToApprove?: number | bigint;
 };
-export type EvmMultisigSafeSponsoredConfig = {
+export type MultisigSafeWalletSponsoredConfig = {
     /**
      * - Whether the paymaster is sponsoring the account.
      */
@@ -497,7 +497,7 @@ export type EvmMultisigSafeSponsoredConfig = {
      */
     sponsorshipPolicyId?: string;
 };
-export type EvmMultisigSafeNativeCoinsConfig = {
+export type MultisigSafeWalletNativeCoinsConfig = {
     /**
      * - Whether the paymaster is sponsoring the account.
      */
@@ -511,6 +511,6 @@ export type EvmMultisigSafeNativeCoinsConfig = {
      */
     transferMaxFee?: number | bigint;
 };
-export type EvmMultisigSafeConfig = EvmMultisigSafeCommonConfig & (EvmMultisigSafePaymasterTokenConfig | EvmMultisigSafeSponsoredConfig | EvmMultisigSafeNativeCoinsConfig);
-export type EvmMultisigSafeReadOnlyConfig = Omit<EvmMultisigSafeConfig, "transferMaxFee" | "amountToApprove">;
+export type MultisigSafeWalletConfig = MultisigSafeWalletCommonConfig & (MultisigSafeWalletPaymasterTokenConfig | MultisigSafeWalletSponsoredConfig | MultisigSafeWalletNativeCoinsConfig);
+export type MultisigSafeWalletReadOnlyConfig = Omit<MultisigSafeWalletConfig, "transferMaxFee" | "amountToApprove">;
 import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';

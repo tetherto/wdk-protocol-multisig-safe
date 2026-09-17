@@ -3,7 +3,7 @@ import { ethers } from 'ethers'
 import { alto } from 'prool/instances'
 import path from 'path'
 
-import { WalletAccountMultisigEvmSafe4337 } from '../../index.js'
+import { WalletAccountMultisigSafe } from '../../index.js'
 import InMemoryCoordinator from '../helpers/in-memory-coordinator.js'
 
 const TIMEOUT = 120000
@@ -47,7 +47,7 @@ async function waitForDeploy (account) {
   throw new Error('Safe not deployed after 30s')
 }
 
-describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', () => {
+describe('@wdk/wallet-multisig-safe — distributed multisig (integration)', () => {
   let bundlerInstance
   let coordinator
   let baseConfig
@@ -56,7 +56,7 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
   let safeAddress
 
   const deriveEoa = async (seed) => {
-    const tmp = new WalletAccountMultisigEvmSafe4337(seed, "0'/0/0", {
+    const tmp = new WalletAccountMultisigSafe(seed, "0'/0/0", {
       ...baseConfig,
       safeOptions: { owners: ['0x0000000000000000000000000000000000000001'], threshold: 1 }
     })
@@ -93,9 +93,9 @@ describe('@wdk/protocol-multisig-safe — distributed multisig (integration)', (
 
     const config = { ...baseConfig, safeOptions: { owners, threshold: 2 } }
 
-    signerA = new WalletAccountMultisigEvmSafe4337(SEED_A, "0'/0/0", config)
-    signerB = new WalletAccountMultisigEvmSafe4337(SEED_B, "0'/0/0", config)
-    signerC = new WalletAccountMultisigEvmSafe4337(SEED_C, "0'/0/0", config)
+    signerA = new WalletAccountMultisigSafe(SEED_A, "0'/0/0", config)
+    signerB = new WalletAccountMultisigSafe(SEED_B, "0'/0/0", config)
+    signerC = new WalletAccountMultisigSafe(SEED_C, "0'/0/0", config)
 
     safeAddress = await signerA.getAddress()
 
