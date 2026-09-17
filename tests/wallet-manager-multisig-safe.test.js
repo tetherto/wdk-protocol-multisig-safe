@@ -16,9 +16,9 @@
 
 import { describe, expect, test } from '@jest/globals'
 
-import WalletManagerMultisigEvmSafe4337, {
-  WalletAccountMultisigEvmSafe4337,
-  WalletAccountReadOnlyMultisigEvmSafe4337
+import WalletManagerMultisigSafe, {
+  WalletAccountMultisigSafe,
+  WalletAccountReadOnlyMultisigSafe
 } from '../index.js'
 
 const SEED_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
@@ -39,10 +39,10 @@ const MOCK_CONFIG = {
 
 const MOCK_SAFE_ADDRESS = '0x1234567890123456789012345678901234567890'
 
-describe('WalletManagerMultisigEvmSafe4337', () => {
+describe('WalletManagerMultisigSafe', () => {
   describe('constructor', () => {
     test('should successfully initialize with seed phrase and PredictedSafeOptions', () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -56,7 +56,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with ExistingSafeOptions', () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           safeAddress: MOCK_SAFE_ADDRESS
@@ -68,7 +68,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with ERC-20 paymaster options', () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://bundler.dummy-network.example/rpc?apikey=dummy-key',
         paymasterAddress: '0x000000000041F3aFe8892B48D88b6862efe0ec8d',
@@ -84,7 +84,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with sponsored paymaster options', () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         paymasterUrl: 'https://paymaster.dummy-network.example/rpc?apikey=sponsor-key',
         isSponsored: true,
@@ -100,7 +100,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with PredictedSafeOptions including saltNonce', () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -113,7 +113,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should successfully initialize with PredictedSafeOptions including safeVersion', () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -127,8 +127,8 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
   })
 
   describe('getAccount', () => {
-    test('should return WalletAccountMultisigEvmSafe4337 instance', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+    test('should return WalletAccountMultisigSafe instance', async () => {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -138,11 +138,11 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
 
       const account = await manager.getAccount(0)
 
-      expect(account).toBeInstanceOf(WalletAccountMultisigEvmSafe4337)
+      expect(account).toBeInstanceOf(WalletAccountMultisigSafe)
     })
 
     test('should return the same instance for the same index', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -157,7 +157,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should return different instances for different indices', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -173,8 +173,8 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
   })
 
   describe('getAccountByPath', () => {
-    test('should return WalletAccountMultisigEvmSafe4337 instance for custom path', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+    test('should return WalletAccountMultisigSafe instance for custom path', async () => {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -184,12 +184,12 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
 
       const account = await manager.getAccountByPath("0'/0/5")
 
-      expect(account).toBeInstanceOf(WalletAccountMultisigEvmSafe4337)
+      expect(account).toBeInstanceOf(WalletAccountMultisigSafe)
       expect(account.path).toBe("m/44'/60'/0'/0/5")
     })
 
     test('should cache accounts by path', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -206,7 +206,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
 
   describe('dispose', () => {
     test('should dispose all accounts', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],
@@ -224,7 +224,7 @@ describe('WalletManagerMultisigEvmSafe4337', () => {
     })
 
     test('should dispose the remaining accounts even if one was already disposed', async () => {
-      const manager = new WalletManagerMultisigEvmSafe4337(SEED_PHRASE, {
+      const manager = new WalletManagerMultisigSafe(SEED_PHRASE, {
         ...MOCK_CONFIG,
         safeOptions: {
           owners: [ACCOUNT.address],

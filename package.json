@@ -1,5 +1,5 @@
 {
-  "name": "@tetherto/wdk-protocol-multisig-safe",
+  "name": "@tetherto/wdk-wallet-multisig-safe",
   "version": "1.0.0-beta.1",
   "description": "A simple package to manage Safe Protocol multisig wallets with ERC-4337 account abstraction for EVM blockchains",
   "keywords": [
@@ -16,7 +16,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/tetherto/wdk-protocol-multisig-safe.git"
+    "url": "git://github.com/tetherto/wdk-wallet-multisig-safe.git"
   },
   "main": "index.js",
   "type": "module",

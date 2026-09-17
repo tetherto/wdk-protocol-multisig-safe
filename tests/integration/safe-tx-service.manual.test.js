@@ -15,7 +15,7 @@
 
 import { describe, expect, test } from '@jest/globals'
 
-import { WalletAccountMultisigEvmSafe4337 } from '../../index.js'
+import { WalletAccountMultisigSafe } from '../../index.js'
 
 const ENABLED = process.env.SAFE_TX_SERVICE_VALIDATION === '1' &&
   process.env.ST_RPC_URL &&
@@ -43,8 +43,8 @@ suite('SafeTxServiceCoordinator — real Safe Transaction Service V7 round-trip 
       safeOptions: { safeAddress: process.env.ST_SAFE_ADDRESS }
     }
 
-    const proposer = new WalletAccountMultisigEvmSafe4337(process.env.ST_SEED_A, "0'/0/0", config)
-    const approver = new WalletAccountMultisigEvmSafe4337(process.env.ST_SEED_B, "0'/0/0", config)
+    const proposer = new WalletAccountMultisigSafe(process.env.ST_SEED_A, "0'/0/0", config)
+    const approver = new WalletAccountMultisigSafe(process.env.ST_SEED_B, "0'/0/0", config)
 
     const safeAddress = await proposer.getAddress()
 
