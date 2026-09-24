@@ -36,7 +36,7 @@ export default class WalletManagerMultisigSafe extends WalletManager {
   /**
    * Creates a new wallet manager for multisig Safe wallets.
    *
-   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+   * @param {string | Uint8Array} seed - A [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) mnemonic seed phrase, or a raw BIP-32 master seed (16-64 bytes).
    * @param {MultisigSafeWalletConfig} config - The configuration object
    */
   constructor (seed, config) {
